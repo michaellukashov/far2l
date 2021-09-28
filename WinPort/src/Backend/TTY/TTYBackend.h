@@ -37,7 +37,7 @@ class TTYBackend : IConsoleOutputBackend, ITTYInputSpecialSequenceHandler, IFar2
 	unsigned int _prev_width = 0, _prev_height = 0;
 	std::vector<CHAR_INFO> _cur_output, _prev_output;
 
-	long _terminal_size_change_id;
+	long _terminal_size_change_id = 0;
 
 	pthread_t _reader_trd = 0;
 	volatile bool _exiting = false;
@@ -83,7 +83,7 @@ class TTYBackend : IConsoleOutputBackend, ITTYInputSpecialSequenceHandler, IFar2
 			bool go_background : 1;
 		} flags;
 		uint32_t all;
-	} _ae {};
+	} _ae{};
 
 	ClipboardBackendSetter _clipboard_backend_setter;
 
