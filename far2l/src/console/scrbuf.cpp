@@ -550,7 +550,7 @@ void ScreenBuf::RestoreElevationChar()
 	}
 }
 
-//  проскроллировать буффер на одну строку вверх.
+//  проскроллировать буфер на одну строку вверх.
 void ScreenBuf::Scroll(int Num)
 {
 	CriticalSectionLock Lock(CS);
