@@ -4,6 +4,10 @@ project(colorer)
 set(LIBCOLORER_TREE "${CMAKE_CURRENT_SOURCE_DIR}/src/Colorer-library/src")
 
 include(src/Colorer-library/cmake/utils.cmake)
+include(CheckFunctionExists)
+
+check_function_exists(stricmp HAVE_STRICMP)
+check_function_exists(strnicmp HAVE_STRNICMP)
 
 colorer_extract_version()
 message(STATUS "Build Colorer: ${COLORER_VERSION}")
@@ -31,7 +35,7 @@ add_library(colorer MODULE ${SOURCES})
 
 FIND_PACKAGE(Spdlog REQUIRED)
 FIND_PACKAGE(XercesC REQUIRED)
-
+MESSAGE (STATUS "Found Xerces-C: ${XERCESC_LIBRARY}")
 # sometimes libstd requires linking to libfmt, sometimes not
 # so, if libfmt there - lets link to it, if not - then dont care
 FIND_PACKAGE(fmt)
