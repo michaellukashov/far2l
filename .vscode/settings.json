@@ -1,9 +1,10 @@
 {
-  "cmake.buildDirectory": "${workspaceFolder}/../build/far2l-${buildKitTriple}",
+  "cmake.buildDirectory": "/home/user/build/far2l-${buildKitTriple}",
   "cmake.buildArgs": [
   ],
   "cmake.configureArgs": [
-    "-DCMAKE_PREFIX_PATH:STRING=/home/user/projects/vcpkg/installed/x64-linux",
+    "-DCMAKE_TOOLCHAIN_FILE:STRING=/home/user/vcpkg/scripts/buildsystems/vcpkg.cmake",
+    "-DVCPKG_LIBS_PATH:STRING=/home/user/vcpkg/installed/x64-linux",
     "-DEACP:STRING=no",
     "-DUSEUCD:STRING=no",
     "-DUSEWX:STRING=no"
