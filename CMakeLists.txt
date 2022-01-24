@@ -402,6 +402,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		message(STATUS "libneon found -> enjoy WebDav support in NetRocks")
 	else()
 		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
+		set(LIBNEON_ROOT "${CMAKE_CURRENT_BINARY_DIR}/neon_x64-linux")
 		ExternalProject_Add(neon
 			GIT_REPOSITORY https://github.com/notroj/neon.git
 
@@ -414,15 +415,11 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
 			# CONFIGURE_COMMAND "cd ${CMAKE_CURRENT_BINARY_DIR}/neon/src"
 			CONFIGURE_COMMAND ./autogen.sh
-			COMMAND ./configure --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_x64-linux:${VCPKG_ROOT_PATH}/packages/zlib_x64-linux:${VCPKG_ROOT_PATH}/packages/libxml2_x64-linux
-			BUILD_COMMAND "make"
-			INSTALL_COMMAND "make install"
+			COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_x64-linux:${VCPKG_ROOT_PATH}/packages/zlib_x64-linux:${VCPKG_ROOT_PATH}/packages/libxml2_x64-linux
+			BUILD_COMMAND make
+			INSTALL_COMMAND make install
 			UPDATE_COMMAND ""
-
-			# BUILD_COMMAND "<SOURCE_DIR>/bootstrap-vcpkg.sh"
 		)
-		ExternalProject_Get_Property(neon SOURCE_DIR)
-		message("NEON_SOURCE_DIR: ${SOURCE_DIR}")
 		message(WARNING "${ColorRed}libneon not found, NetRocks will not have WebDav protocol support. Install libneon*-dev if you want WebDav protocol available in NetRocks.${ColorNormal}")
 	endif(LIBNEON_FOUND)
 
