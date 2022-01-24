@@ -414,9 +414,8 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
 			# CONFIGURE_COMMAND "cd ${CMAKE_CURRENT_BINARY_DIR}/neon/src"
 			CONFIGURE_COMMAND ./autogen.sh
-			COMMAND ./configure --enable-static --with-ssl=openssl --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_x64-linux:${VCPKG_ROOT_PATH}/packages/zlib_x64-linux
-
-			BUILD_COMMAND "${MAKE_EXE}"
+			COMMAND ./configure --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_x64-linux:${VCPKG_ROOT_PATH}/packages/zlib_x64-linux:${VCPKG_ROOT_PATH}/packages/libxml2_x64-linux
+			BUILD_COMMAND "make"
 			INSTALL_COMMAND "make install"
 			UPDATE_COMMAND ""
 
