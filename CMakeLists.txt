@@ -168,6 +168,7 @@ if(CMAKE_VERSION VERSION_GREATER "3.3")
 endif()
 
 include(cmake/xrepo.cmake)
+include(ExternalProject)
 include_directories(utils/include)
 
 add_subdirectory (farlng)
@@ -400,6 +401,29 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	if(LIBNEON_FOUND)
 		message(STATUS "libneon found -> enjoy WebDav support in NetRocks")
 	else()
+		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
+		ExternalProject_Add(neon
+			GIT_REPOSITORY https://github.com/notroj/neon.git
+
+			# GIT_TAG 0.32.2
+			BUILD_IN_SOURCE TRUE
+
+			# SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/neon/src
+			# BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/neon/src
+
+			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
+			# CONFIGURE_COMMAND "cd ${CMAKE_CURRENT_BINARY_DIR}/neon/src"
+			CONFIGURE_COMMAND ./autogen.sh
+			COMMAND ./configure --enable-static --with-ssl=openssl --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_x64-linux:${VCPKG_ROOT_PATH}/packages/zlib_x64-linux
+
+			BUILD_COMMAND "${MAKE_EXE}"
+			INSTALL_COMMAND "make install"
+			UPDATE_COMMAND ""
+
+			# BUILD_COMMAND "<SOURCE_DIR>/bootstrap-vcpkg.sh"
+		)
+		ExternalProject_Get_Property(neon SOURCE_DIR)
+		message("NEON_SOURCE_DIR: ${SOURCE_DIR}")
 		message(WARNING "${ColorRed}libneon not found, NetRocks will not have WebDav protocol support. Install libneon*-dev if you want WebDav protocol available in NetRocks.${ColorNormal}")
 	endif(LIBNEON_FOUND)
 
