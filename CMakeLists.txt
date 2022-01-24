@@ -387,6 +387,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	if(LIBSMBCLIENT_FOUND)
 		message(STATUS "libsmbclient found -> enjoy SMB support in NetRocks")
 	else()
+		#TODO: get and build https://github.com/samba-team/samba.git
 		message(WARNING "${ColorRed}libsmbclient not found, NetRocks will not have SMB protocol support. Install libsmbclient-dev if you want SMB protocol available in NetRocks.${ColorNormal}")
 	endif(LIBSMBCLIENT_FOUND)
 
@@ -405,15 +406,9 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		set(LIBNEON_ROOT "${CMAKE_CURRENT_BINARY_DIR}/neon_x64-linux")
 		ExternalProject_Add(neon
 			GIT_REPOSITORY https://github.com/notroj/neon.git
-
-			# GIT_TAG 0.32.2
+			GIT_TAG 0.32.2
 			BUILD_IN_SOURCE TRUE
-
-			# SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/neon/src
-			# BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/neon/src
-
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
-			# CONFIGURE_COMMAND "cd ${CMAKE_CURRENT_BINARY_DIR}/neon/src"
 			CONFIGURE_COMMAND ./autogen.sh
 			COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_x64-linux:${VCPKG_ROOT_PATH}/packages/zlib_x64-linux:${VCPKG_ROOT_PATH}/packages/libxml2_x64-linux
 			BUILD_COMMAND make
@@ -520,7 +515,6 @@ install(DIRECTORY "${INSTALL_DIR}/" DESTINATION "share/far2l" USE_SOURCE_PERMISS
 	PATTERN "*.broker" EXCLUDE
 	PATTERN "python/plug/python" EXCLUDE
 	PATTERN "*")
-
 # setup some symlinks and remove deprecated stuff from previous installation
 install(CODE "
 	execute_process(COMMAND ln -sf ../../bin/far2l ${CMAKE_INSTALL_PREFIX}/lib/far2l/far2l_askpass)
