@@ -396,6 +396,68 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	endif(LIBNFS_FOUND)
 
 	find_package(LibNEON)
+  message("LIBNEON_FOUND: ${LIBNEON_FOUND}, LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}, LIBNEON_INCLUDE_DIR: ${LIBNEON_INCLUDE_DIR}")
+  #build LibNEON
+  message("VCPKG_ROOT_PATH: ${VCPKG_ROOT_PATH}")
+  if(DEFINED VCPKG_ROOT_PATH)
+  #include(${VCPKG_ROOT_PATH}/scripts/cmake/vcpkg_common_definitions.cmake)
+  #include(cmake/vcpkg_utilities.cmake)
+  #get_vcpkg()
+  #vcpkg_install(libarchive)
+include(ExternalProject)
+    ExternalProject_Add(neon
+        GIT_REPOSITORY https://github.com/notroj/neon.git
+        CONFIGURE_COMMAND ""
+        INSTALL_COMMAND ""
+        UPDATE_COMMAND ""
+        #BUILD_COMMAND "<SOURCE_DIR>/bootstrap-vcpkg.sh"
+    )
+    ExternalProject_Get_Property(neon SOURCE_DIR)
+    message("SOURCE_DIR: ${SOURCE_DIR}")
+
+include(${VCPKG_ROOT_PATH}/scripts/cmake/z_vcpkg_apply_patches.cmake)
+include(${VCPKG_ROOT_PATH}/scripts/cmake/z_vcpkg_forward_output_variable.cmake)
+include(${VCPKG_ROOT_PATH}/scripts/cmake/z_vcpkg_function_arguments.cmake)
+include(${VCPKG_ROOT_PATH}/scripts/cmake/z_vcpkg_get_cmake_vars.cmake)
+include(${VCPKG_ROOT_PATH}/scripts/cmake/z_vcpkg_prettify_command_line.cmake)
+
+function(debug_message)
+    if(PORT_DEBUG)
+        z_vcpkg_function_arguments(ARGS)
+        list(JOIN ARGS " " ARG_STRING)
+        message(STATUS "[DEBUG] " "${ARG_STRING}")
+    endif()
+endfunction()
+function(z_vcpkg_deprecation_message)
+    z_vcpkg_function_arguments(ARGS)
+    list(JOIN ARGS " " ARG_STRING)
+    message(DEPRECATION "${ARG_STRING}")
+endfunction()
+
+  include(${VCPKG_ROOT_PATH}/scripts/cmake/vcpkg_configure_cmake.cmake)
+  include(${VCPKG_ROOT_PATH}/scripts/cmake/z_vcpkg_get_cmake_vars.cmake)
+  include(${VCPKG_ROOT_PATH}/scripts/cmake/vcpkg_configure_make.cmake)
+
+vcpkg_configure_make(
+    SOURCE_PATH ${SOURCE_PATH}
+    NO_ADDITIONAL_PATHS
+    OPTIONS
+        ${OPTIONS}
+        --enable-strip
+        --disable-lavf
+        --disable-swscale
+        --disable-avs
+        --disable-ffms
+        --disable-gpac
+        --disable-lsmash
+        --enable-debug
+
+)
+
+vcpkg_install_make()
+
+  endif()
+  message("VCPKG_TARGET_IS_LINUX: ${VCPKG_TARGET_IS_LINUX}")
 	if(LIBNEON_FOUND)
 		message(STATUS "libneon found -> enjoy WebDav support in NetRocks")
 	else()

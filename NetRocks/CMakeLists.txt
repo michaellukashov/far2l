@@ -57,6 +57,7 @@ src/Erroring.cpp
 src/Host/HostRemoteBroker.cpp
 )
 
+cmake_policy(SET CMP0063 NEW)
 
 add_executable (NetRocks-FILE
 	${PROTOCOL_SOURCES}
