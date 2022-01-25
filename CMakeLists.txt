@@ -2,6 +2,17 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 cmake_minimum_required (VERSION 3.0.2)
 
+option(OPT_USE_STATIC_EXT_LIBS "Build and use static external libraries: libneon, libsmb etc" OFF)
+
+if(OPT_USE_STATIC_EXT_LIBS)
+include(cmake/xrepo.cmake)
+include(ExternalProject)
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+  set(VCPKG_TARGET_TRIPLET "x64-linux")
+endif()
+endif(OPT_USE_STATIC_EXT_LIBS)
+
 project (far2l)
 
 set(APP_NAME "far2l")
@@ -167,8 +178,6 @@ if(CMAKE_VERSION VERSION_GREATER "3.3")
   cmake_policy(SET CMP0057 NEW)
 endif()
 
-include(cmake/xrepo.cmake)
-include(ExternalProject)
 include_directories(utils/include)
 
 add_subdirectory (farlng)
@@ -383,11 +392,29 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		message(WARNING "${ColorRed}libssh not found, NetRocks will not have SFTP protocol support. Install libssh-dev if you want SFTP protocol available in NetRocks.${ColorNormal}")
 	endif(LIBSSH_FOUND)
 
+	if(OPT_USE_STATIC_EXT_LIBS)
+	#TODO: get and build https://github.com/samba-team/samba.git
+ 	set(LIBSMBCLIENT_ROOT "${CMAKE_CURRENT_BINARY_DIR}/samba_${VCPKG_TARGET_TRIPLET}")
+  #TODO: install libtool gettext xmlto
+ 	ExternalProject_Add(neon
+ 		GIT_REPOSITORY https://github.com/samba-team/samba.git
+ 		GIT_TAG samba-4.15.4
+ 		BUILD_IN_SOURCE TRUE
+ 		# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
+ 		CONFIGURE_COMMAND ./autogen.sh
+ 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT_PATH}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT_PATH}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+ 		BUILD_COMMAND make
+    COMMAND make docs
+    COMMAND make update-po
+    COMMAND make compile-gmo
+ 		INSTALL_COMMAND make install
+ 		UPDATE_COMMAND ""
+ 	)
+	endif(OPT_USE_STATIC_EXT_LIBS)
 	find_package(Libsmbclient)
 	if(LIBSMBCLIENT_FOUND)
 		message(STATUS "libsmbclient found -> enjoy SMB support in NetRocks")
 	else()
-		#TODO: get and build https://github.com/samba-team/samba.git
 		message(WARNING "${ColorRed}libsmbclient not found, NetRocks will not have SMB protocol support. Install libsmbclient-dev if you want SMB protocol available in NetRocks.${ColorNormal}")
 	endif(LIBSMBCLIENT_FOUND)
 
@@ -397,24 +424,30 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	else()
 		message(WARNING "${ColorRed}libnfs not found, NetRocks will not have NFS protocol support. Install libnfs-dev if you want NFS protocol available in NetRocks.${ColorNormal}")
 	endif(LIBNFS_FOUND)
-
+	if(OPT_USE_STATIC_EXT_LIBS)
+ 	# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
+ 	set(LIBNEON_ROOT "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
+  #TODO: install libtool gettext xmlto
+ 	ExternalProject_Add(neon
+ 		GIT_REPOSITORY https://github.com/notroj/neon.git
+ 		GIT_TAG 0.32.2
+ 		BUILD_IN_SOURCE TRUE
+ 		# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
+ 		CONFIGURE_COMMAND ./autogen.sh
+ 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT_PATH}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT_PATH}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+ 		BUILD_COMMAND make
+    COMMAND make docs
+    COMMAND make update-po
+    COMMAND make compile-gmo
+ 		INSTALL_COMMAND make install
+ 		UPDATE_COMMAND ""
+ 	)
+  endif(OPT_USE_STATIC_EXT_LIBS)
 	find_package(LibNEON)
+  message("LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}")
 	if(LIBNEON_FOUND)
 		message(STATUS "libneon found -> enjoy WebDav support in NetRocks")
 	else()
-		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
-		set(LIBNEON_ROOT "${CMAKE_CURRENT_BINARY_DIR}/neon_x64-linux")
-		ExternalProject_Add(neon
-			GIT_REPOSITORY https://github.com/notroj/neon.git
-			GIT_TAG 0.32.2
-			BUILD_IN_SOURCE TRUE
-			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
-			CONFIGURE_COMMAND ./autogen.sh
-			COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_x64-linux:${VCPKG_ROOT_PATH}/packages/zlib_x64-linux:${VCPKG_ROOT_PATH}/packages/libxml2_x64-linux
-			BUILD_COMMAND make
-			INSTALL_COMMAND make install
-			UPDATE_COMMAND ""
-		)
 		message(WARNING "${ColorRed}libneon not found, NetRocks will not have WebDav protocol support. Install libneon*-dev if you want WebDav protocol available in NetRocks.${ColorNormal}")
 	endif(LIBNEON_FOUND)
 
