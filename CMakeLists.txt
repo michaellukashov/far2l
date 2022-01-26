@@ -5,16 +5,19 @@ cmake_minimum_required (VERSION 3.0.2)
 option(OPT_USE_STATIC_EXT_LIBS "Build and use static external libraries: libneon, libsmb etc" OFF)
 
 if(OPT_USE_STATIC_EXT_LIBS)
-include(cmake/xrepo.cmake)
-include(ExternalProject)
-# message("1. ENV{VCPKG_ROOT}: $ENV{VCPKG_ROOT}")
-if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) #OR DEFINED ${VCPKG_ROOT}
-set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-endif()
-# message("1. CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
-if(NOT DEFINED ENV{VCPKG_TARGET_TRIPLET}) # AND NOT DEFINED ENV{VCPKG_TARGET_TRIPLET})
-	set(VCPKG_TARGET_TRIPLET "x64-linux")
-endif()
+	include(cmake/xrepo.cmake)
+	include(ExternalProject)
+	if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) #OR DEFINED ${VCPKG_ROOT}
+		set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+	endif()
+
+	# message("1. CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
+	if(NOT DEFINED ENV{VCPKG_TARGET_TRIPLET})
+		set(VCPKG_TARGET_TRIPLET "x64-linux")
+	else()
+		set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_TARGET_TRIPLET})
+	endif()
+	set(VCPKG_LIBS_PATH "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}")
 endif(OPT_USE_STATIC_EXT_LIBS)
 
 project (far2l)
@@ -407,7 +410,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
  		BUILD_IN_SOURCE TRUE
  		# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
  		CONFIGURE_COMMAND ./autogen.sh
- 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT}/packages/openssl_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+ 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
  		BUILD_COMMAND make
     COMMAND make docs
     COMMAND make update-po
