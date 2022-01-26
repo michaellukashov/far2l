@@ -7,9 +7,13 @@ option(OPT_USE_STATIC_EXT_LIBS "Build and use static external libraries: libneon
 if(OPT_USE_STATIC_EXT_LIBS)
 include(cmake/xrepo.cmake)
 include(ExternalProject)
-if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-  set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
-  set(VCPKG_TARGET_TRIPLET "x64-linux")
+# message("1. ENV{VCPKG_ROOT}: $ENV{VCPKG_ROOT}")
+if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) #OR DEFINED ${VCPKG_ROOT}
+set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+endif()
+# message("1. CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
+if(NOT DEFINED ENV{VCPKG_TARGET_TRIPLET}) # AND NOT DEFINED ENV{VCPKG_TARGET_TRIPLET})
+	set(VCPKG_TARGET_TRIPLET "x64-linux")
 endif()
 endif(OPT_USE_STATIC_EXT_LIBS)
 
@@ -392,6 +396,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		message(WARNING "${ColorRed}libssh not found, NetRocks will not have SFTP protocol support. Install libssh-dev if you want SFTP protocol available in NetRocks.${ColorNormal}")
 	endif(LIBSSH_FOUND)
 
+	if(FALSE)
 	if(OPT_USE_STATIC_EXT_LIBS)
 	#TODO: get and build https://github.com/samba-team/samba.git
  	set(LIBSMBCLIENT_ROOT "${CMAKE_CURRENT_BINARY_DIR}/samba_${VCPKG_TARGET_TRIPLET}")
@@ -402,7 +407,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
  		BUILD_IN_SOURCE TRUE
  		# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
  		CONFIGURE_COMMAND ./autogen.sh
- 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT_PATH}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT_PATH}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+ 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT}/packages/openssl_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
  		BUILD_COMMAND make
     COMMAND make docs
     COMMAND make update-po
@@ -411,6 +416,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
  		UPDATE_COMMAND ""
  	)
 	endif(OPT_USE_STATIC_EXT_LIBS)
+	endif(FALSE)
 	find_package(Libsmbclient)
 	if(LIBSMBCLIENT_FOUND)
 		message(STATUS "libsmbclient found -> enjoy SMB support in NetRocks")
@@ -434,7 +440,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
  		BUILD_IN_SOURCE TRUE
  		# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
  		CONFIGURE_COMMAND ./autogen.sh
- 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT_PATH}/packages/openssl_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT_PATH}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT_PATH}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+ 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT}/packages/openssl_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
  		BUILD_COMMAND make
     COMMAND make docs
     COMMAND make update-po
@@ -547,8 +553,7 @@ install(DIRECTORY "${INSTALL_DIR}/" DESTINATION "share/far2l" USE_SOURCE_PERMISS
 	PATTERN "*.far-plug-*" EXCLUDE
 	PATTERN "*.broker" EXCLUDE
 	PATTERN "python/plug/python" EXCLUDE
-	PATTERN "*")
-# setup some symlinks and remove deprecated stuff from previous installation
+	PATTERN "*")# setup some symlinks and remove deprecated stuff from previous installation
 install(CODE "
 	execute_process(COMMAND ln -sf ../../bin/far2l ${CMAKE_INSTALL_PREFIX}/lib/far2l/far2l_askpass)
 	execute_process(COMMAND ln -sf ../../bin/far2l ${CMAKE_INSTALL_PREFIX}/lib/far2l/far2l_sudoapp)
