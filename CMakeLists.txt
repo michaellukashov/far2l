@@ -443,7 +443,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
  		BUILD_IN_SOURCE TRUE
  		# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
  		CONFIGURE_COMMAND ./autogen.sh
- 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT}/packages/openssl_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+ 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
  		BUILD_COMMAND make
     COMMAND make docs
     COMMAND make update-po
