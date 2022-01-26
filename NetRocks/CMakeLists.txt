@@ -90,8 +90,8 @@ if (LIBSSH_FOUND)
 	target_link_libraries(NetRocks-SFTP utils ${LIBSSH_LIBRARIES})
 	target_include_directories(NetRocks-SFTP PRIVATE src ${LIBSSH_INCLUDE_DIRS})
 	if(OPT_USE_STATIC_EXT_LIBS)
-	target_link_libraries(NetRocks-SFTP ${LIBSSH_LIBRARIES} ${OPENSSL_LIBRARIES}
-		${VCPKG_ROOT}/lib/libz.a dl)
+		target_link_libraries(NetRocks-SFTP ${LIBSSH_LIBRARIES} ${OPENSSL_LIBRARIES}
+			${VCPKG_LIBS_PATH}/lib/libz.a dl)
 	endif(OPT_USE_STATIC_EXT_LIBS)
 	target_include_directories(NetRocks-SFTP PRIVATE src)
 	target_include_directories(NetRocks-SFTP PRIVATE ${LIBSSH_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS})
