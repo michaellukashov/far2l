@@ -84,12 +84,15 @@ if (LIBSSH_FOUND)
 		src/Protocol/SSH/ProtocolSFTP.cpp
 		src/Protocol/SSH/ProtocolSCP.cpp
 	)
-	message("LIBSSH_LIBRARIES: ${LIBSSH_LIBRARIES}")
-	message("ZLIB_INCLUDE_DIRS: ${ZLIB_INCLUDE_DIRS}")
-	message("OPENSSL_INCLUDE_DIRS: ${OPENSSL_INCLUDE_DIRS}")
-	target_link_libraries(NetRocks-SFTP utils)
+	#message("LIBSSH_LIBRARIES: ${LIBSSH_LIBRARIES}")
+	#message("ZLIB_INCLUDE_DIRS: ${ZLIB_INCLUDE_DIRS}")
+	#message("OPENSSL_INCLUDE_DIRS: ${OPENSSL_INCLUDE_DIRS}")
+	target_link_libraries(NetRocks-SFTP utils ${LIBSSH_LIBRARIES})
+	target_include_directories(NetRocks-SFTP PRIVATE src ${LIBSSH_INCLUDE_DIRS})
+	if(OPT_USE_STATIC_EXT_LIBS)
 	target_link_libraries(NetRocks-SFTP ${LIBSSH_LIBRARIES} ${OPENSSL_LIBRARIES}
-		${VCPKG_LIBS_PATH}/lib/libz.a dl)
+		${VCPKG_ROOT}/lib/libz.a dl)
+	endif(OPT_USE_STATIC_EXT_LIBS)
 	target_include_directories(NetRocks-SFTP PRIVATE src)
 	target_include_directories(NetRocks-SFTP PRIVATE ${LIBSSH_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS})
 	set_target_properties(NetRocks-SFTP
@@ -154,8 +157,10 @@ endif (LIBNEON_FOUND)
 		src/Protocol/DirectoryEnumCache.cpp
 	)
 	target_link_libraries(NetRocks-FTP utils)
+  if(OPT_USE_STATIC_EXT_LIBS)
 	target_link_libraries(NetRocks-FTP
 		${VCPKG_LIBS_PATH}/lib/libz.a dl)
+  endif(OPT_USE_STATIC_EXT_LIBS)
 	target_include_directories(NetRocks-FTP PRIVATE src)
 if (OPENSSL_FOUND)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENSSL")
