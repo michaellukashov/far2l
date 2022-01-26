@@ -181,13 +181,14 @@ endif()
 # find_package(z NAMES libz.a PATHS $ENV{CMAKE_PREFIX_PATH} PATH_SUFFIXES $ENV{CMAKE_PREFIX_PATH})
 # find_package(libbz2)
 
-message("LibZ_LIBRARIES: ${LibZ_LIBRARIES}")
-message("Libbz2_LIBRARIES: ${Libbz2_LIBRARIES}")
-message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
+#message("LibZ_LIBRARIES: ${LibZ_LIBRARIES}")
+#message("Libbz2_LIBRARIES: ${Libbz2_LIBRARIES}")
+#message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
 if(LibArchive_FOUND)
     list(REMOVE_ITEM LibArchive_LIBRARIES OpenSSL::Crypto)
     target_compile_definitions(multiarc PRIVATE -DHAVE_LIBARCHIVE)
     target_link_libraries(multiarc ${LibArchive_LIBRARIES})
+    if(OPT_USE_STATIC_EXT_LIBS)
     target_link_libraries(multiarc
         ${VCPKG_LIBS_PATH}/lib/libz.a
         ${VCPKG_LIBS_PATH}/lib/libzstd.a
@@ -198,6 +199,7 @@ if(LibArchive_FOUND)
         ${VCPKG_LIBS_PATH}/lib/liblzma.a
         ${VCPKG_LIBS_PATH}/lib/libbz2.a
     )
+    endif(OPT_USE_STATIC_EXT_LIBS)
     target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
     target_include_directories(multiarc PRIVATE ${VCPKG_LIBS_PATH}/include)
 endif()
