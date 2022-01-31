@@ -6,7 +6,7 @@ FROM fedora:32
 
 ARG PREFIX=/far2l
 ARG VCPKG_DEFAULT_TRIPLET=x64-linux
-ARG VCPKGDIR=~/vcpkg
+ARG VCPKGDIR=/vcpkg
 ARG VCPKG_BUILD_TYPE=release
 
 RUN sudo dnf update -y
