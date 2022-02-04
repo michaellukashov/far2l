@@ -440,7 +440,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	endif(LIBNFS_FOUND)
 	if(OPT_USE_STATIC_EXT_LIBS)
  	# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
- 	set(LIBNEON_ROOT "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
+ 	set(LibNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
   #TODO: install libtool gettext xmlto
  	ExternalProject_Add(neon-static
  		GIT_REPOSITORY https://github.com/notroj/neon.git
@@ -448,7 +448,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
  		BUILD_IN_SOURCE TRUE
  		# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
  		CONFIGURE_COMMAND ./autogen.sh
- 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+ 		COMMAND ./configure --prefix=${LibNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
  		BUILD_COMMAND make
     COMMAND make docs
     COMMAND make update-po
@@ -456,8 +456,28 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
  		INSTALL_COMMAND make install
  		UPDATE_COMMAND ""
  	)
+  message("LibNEON_DIR: ${LibNEON_DIR}")
+  set(LIBNEON_FOUND TRUE)
+  set(LIBNEON_LIBRARIES 
+    ${LibNEON_DIR}/lib/libneon.a
+    ${VCPKG_LIBS_PATH}/lib/libssl.a
+    ${VCPKG_LIBS_PATH}/lib/libcrypto.a #-ldl -pthread  -L/home/user/vcpkg/installed/x64-linux/lib/pkgconfig/../../lib 
+    ${VCPKG_LIBS_PATH}/lib/libxml2.a #-lm -lz
+    ${VCPKG_LIBS_PATH}/lib/liblzma.a #-pthread 
+    ${VCPKG_LIBS_PATH}/lib/libz.a #-lm -lz
+   -ldl
+  )
+  set(LIBNEON_INCLUDE_DIRS "${LibNEON_DIR}/include")
+	#find_package(LibNEON MODULE) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
+  #find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
+  else()
+	  find_package(LibNEON) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
   endif(OPT_USE_STATIC_EXT_LIBS)
-	find_package(LibNEON)
+  #set(LibNEON_INCLUDE_DIR "${LibNEON_DIR}/include")
+	#set(LibNEON_LIBRARY "${LibNEON_DIR}/lib/libneon.a")
+  #find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
+  message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
+  message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
   message("LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}")
 	if(LIBNEON_FOUND)
 		message(STATUS "libneon found -> enjoy WebDav support in NetRocks")
