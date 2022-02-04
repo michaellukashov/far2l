@@ -10,8 +10,11 @@ if(OPT_USE_STATIC_EXT_LIBS)
 	if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) #OR DEFINED ${VCPKG_ROOT}
 		set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 	endif()
+	if(DEFINED ENV{VCPKG_ROOT}})
+    set(VCPKG_ROOT ENV{VCPKG_ROOT})
+	endif()
 
-	# message("1. CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
+	#message("1. CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
 	if(NOT DEFINED ENV{VCPKG_TARGET_TRIPLET})
 		set(VCPKG_TARGET_TRIPLET "x64-linux")
 	else()
@@ -403,8 +406,10 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	if(OPT_USE_STATIC_EXT_LIBS)
 	#TODO: get and build https://github.com/samba-team/samba.git
  	set(LIBSMBCLIENT_ROOT "${CMAKE_CURRENT_BINARY_DIR}/samba_${VCPKG_TARGET_TRIPLET}")
+  set(LIBNEON_ROOT "${CMAKE_CURRENT_BINARY_DIR}/neon-static")
+  #message("VCPKG_LIBS_PATH: ${VCPKG_LIBS_PATH}")
   #TODO: install libtool gettext xmlto
- 	ExternalProject_Add(neon
+ 	ExternalProject_Add(smbclient-static
  		GIT_REPOSITORY https://github.com/samba-team/samba.git
  		GIT_TAG samba-4.15.4
  		BUILD_IN_SOURCE TRUE
@@ -437,7 +442,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
  	# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
  	set(LIBNEON_ROOT "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
   #TODO: install libtool gettext xmlto
- 	ExternalProject_Add(neon
+ 	ExternalProject_Add(neon-static
  		GIT_REPOSITORY https://github.com/notroj/neon.git
  		GIT_TAG 0.32.2
  		BUILD_IN_SOURCE TRUE
