@@ -40,11 +40,12 @@ if(OPT_USE_STATIC_EXT_LIBS)
 	vcpkg_add_package(fmt)
 	vcpkg_add_package(spdlog)
 	vcpkg_add_package(xerces-c)
-	vcpkg_add_package(pcre)
 	vcpkg_add_package(zlib)
 	vcpkg_add_package(openssl)
 	vcpkg_add_package(libssh[core,zlib,openssl])
+	vcpkg_add_package(pcre2)
 	vcpkg_add_package(libarchive)
+	vcpkg_add_package(uchardet)
 
 endif(OPT_USE_STATIC_EXT_LIBS)
 
