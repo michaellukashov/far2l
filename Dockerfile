@@ -36,7 +36,7 @@ RUN sudo dnf install -y libsmbclient-devel
 
 #RUN sudo dnf install -y uchardet-devel
 #RUN sudo dnf install -y wxGTK3-devel
-RUN sudo dnf install -y zip bzip2 xz patch wget which libtool gettext xmlto autoconf
+RUN sudo dnf install -y zip bzip2 xz patch wget which autoconf libtool gettext xmlto
 
 
 WORKDIR /build-far2l
@@ -44,7 +44,7 @@ WORKDIR /build-far2l
 COPY . $PREFIX/
 
 #RUN ls -la /vcpkg/installed/x64-linux
-RUN cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -Wno-dev -DVCPKG_PARENT_DIR=$VCPKGDIR/.. #-DVCPKG_ROOT=$VCPKGDIR -DCOLORER=no -DUSEUCD=no -DCMAKE_PREFIX_PATH=$VCPKGDIR/installed/x64-linux
+RUN cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -Wno-dev -DVCPKG_ROOT=$VCPKGDIR # -DCOLORER=no -DUSEUCD=no -DCMAKE_PREFIX_PATH=$VCPKGDIR/installed/x64-linux
 RUN make -j$(nproc)
 RUN cpack
 
