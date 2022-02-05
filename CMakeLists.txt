@@ -529,9 +529,10 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		# FIND_PACKAGE(zlib) # REQUIRED)
 		# MESSAGE (STATUS "Found zlib: ${zlib_LIBRARY}")
 		set(LIBNEON_FOUND TRUE)
-		set(LIBNEON_INCLUDE_DIRS "${LibNEON_DIR}/include")
-		set(LIBNEON_LIBRARIES
-			${LibNEON_DIR}/lib/libneon.a
+		set(LIBNEON_INCLUDE_DIR ${LibNEON_DIR}/include)
+		set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
+		set(LIBNEON_LIBRARY ${LibNEON_DIR}/lib/libneon.a)
+		set(LIBNEON_LIBRARIES ${LIBNEON_LIBRARY}
 			${OPENSSL_LIBRARIES}
 			${LIBXML2_LIBRARIES}
 			${VCPKG_LIBS_PATH}/lib/libxml2.a
@@ -539,13 +540,14 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			${VCPKG_LIBS_PATH}/lib/libz.a
 			-lm -ldl
 		)
+
 		#find_package(LibNEON MODULE) # NAMES " libneon.a ") # HINTS " ${LibNEON_DIR}" PATHS "${LibNEON_DIR} " NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES " ${LibNEON_DIR} ") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
 		#find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
 		#set(LibNEON_INCLUDE_DIR "${LibNEON_DIR}/include")
 		#set(LibNEON_LIBRARY "${LibNEON_DIR}/lib/libneon.a")
 		#find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
 		set(CMAKE_PREFIX_PATH "${LibNEON_DIR};${CMAKE_PREFIX_PATH}")
-	# else()
+	else()
 		find_package(LibNEON) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
 	endif(OPT_USE_STATIC_EXT_LIBS)
 	# message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
