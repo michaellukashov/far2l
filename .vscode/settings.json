@@ -4,8 +4,9 @@
   "cmake.buildArgs": [
     "-j1"
   ],
+  "cmake.configureOnEdit": false,
   "cmake.clearOutputBeforeBuild": true,
-  "cmake.environment": {"VCPKG_ROOT": "/home/user/vcpkg"},
+  // "cmake.environment": {"VCPKG_ROOT": "/home/user/vcpkg"},
   "cmake.configureArgs": [
     //"-DCMAKE_TOOLCHAIN_FILE:STRING=/home/user/vcpkg/scripts/buildsystems/vcpkg.cmake",
     "-DVCPKG_ROOT:STRING=/home/user/vcpkg",
