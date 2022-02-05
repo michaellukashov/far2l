@@ -9,7 +9,7 @@
   // "cmake.environment": {"VCPKG_ROOT": "/home/user/vcpkg"},
   "cmake.configureArgs": [
     //"-DCMAKE_TOOLCHAIN_FILE:STRING=/home/user/vcpkg/scripts/buildsystems/vcpkg.cmake",
-    "-DVCPKG_ROOT:STRING=/home/user/vcpkg",
+    // "-DVCPKG_ROOT:STRING=/home/user/vcpkg",
     // "-DVCPKG_LIBS_PATH:STRING=/home/user/vcpkg/installed/x64-linux",
     // "-DVCPKG_ROOT_PATH:STRING=/home/user/vcpkg",
     "-DOPT_USE_STATIC_EXT_LIBS=ON",

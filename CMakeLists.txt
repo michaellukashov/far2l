@@ -45,10 +45,6 @@ if(OPT_USE_STATIC_EXT_LIBS)
 	vcpkg_add_package(openssl)
 	vcpkg_add_package(libssh[core,zlib,openssl])
 	vcpkg_add_package(libarchive)
-	# set(UCHARDET_DIR "${VCPKG_LIBS_PATH}")
-	# set(UCHARDET_FOUND TRUE)
-	# set(UCHARDET_INCLUDE_DIR ${UCHARDET_DIR}/include/uchardet)
-	# set(UCHARDET_LIBRARY ${UCHARDET_DIR}/lib/libuchardet.a)
 
 endif(OPT_USE_STATIC_EXT_LIBS)
 
