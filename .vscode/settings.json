@@ -14,7 +14,7 @@
     // "-DVCPKG_ROOT_PATH:STRING=/home/user/vcpkg",
     "-DOPT_USE_STATIC_EXT_LIBS=ON",
     "-DEACP:STRING=no",
-    "-DUSEUCD:STRING=no",
+    // "-DUSEUCD:STRING=no",
     "-DUSEWX:STRING=no",
     "-Wno-dev"
   ]
