@@ -372,6 +372,7 @@ else()
 		" COMPONENT system)
 endif()
 
+find_package(OpenSSL)
 if (NOT DEFINED MULTIARC OR MULTIARC)
 	message(STATUS "MULTIARC plugin enabled")
 	# workaround for brew's/macports' libarchive
@@ -465,7 +466,6 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	endif(LIBNFS_FOUND)
 	if(OPT_USE_STATIC_EXT_LIBS)
 		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
-
 		# TODO: install libtool gettext xmlto
 		set(LibNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
 		ExternalProject_Add(neon-static
@@ -488,16 +488,22 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		# message("neon_BINARY_DIR: ${neon_BINARY_DIR}")
 		# set(LibNEON_DIR "${neon_BINARY_DIR}")
 		# message("LibNEON_DIR: ${LibNEON_DIR} ")
+		FIND_PACKAGE(libxml2) # REQUIRED)
+		# MESSAGE (STATUS "Found xml2: ${xml2_LIBRARY}")
+		# message("1. LIBXML2_LIBRARIES: ${LIBXML2_LIBRARIES} ")
+		# message("2. OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES} ")
+		# FIND_PACKAGE(zlib) # REQUIRED)
+		# MESSAGE (STATUS "Found zlib: ${zlib_LIBRARY}")
 		set(LIBNEON_FOUND TRUE)
 		set(LIBNEON_INCLUDE_DIRS "${LibNEON_DIR}/include")
 		set(LIBNEON_LIBRARIES
 			${LibNEON_DIR}/lib/libneon.a
-			${VCPKG_LIBS_PATH}/lib/libssl.a
-			${VCPKG_LIBS_PATH}/lib/libcrypto.a #-ldl -pthread  -L/home/user/vcpkg/installed/x64-linux/lib/pkgconfig/../../lib
-			${VCPKG_LIBS_PATH}/lib/libxml2.a #-lm -lz
-			${VCPKG_LIBS_PATH}/lib/liblzma.a #-pthread
-			${VCPKG_LIBS_PATH}/lib/libz.a #-lm -lz
-			-ldl
+			${OPENSSL_LIBRARIES}
+			${LIBXML2_LIBRARIES}
+			# ${VCPKG_LIBS_PATH}/lib/libxml2.a
+			# ${VCPKG_LIBS_PATH}/lib/liblzma.a
+			${VCPKG_LIBS_PATH}/lib/libz.a
+			-lm -ldl
 		)
 		#find_package(LibNEON MODULE) # NAMES " libneon.a ") # HINTS " ${LibNEON_DIR}" PATHS "${LibNEON_DIR} " NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES " ${LibNEON_DIR} ") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
 		#find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
@@ -507,7 +513,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	else()
 		find_package(LibNEON) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
 	endif(OPT_USE_STATIC_EXT_LIBS)
-	message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
+	# message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
 	message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
 	message("LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}")
 	if(LIBNEON_FOUND)

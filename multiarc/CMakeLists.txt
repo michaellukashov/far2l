@@ -184,17 +184,16 @@ endif()
 #message("LibZ_LIBRARIES: ${LibZ_LIBRARIES}")
 #message("Libbz2_LIBRARIES: ${Libbz2_LIBRARIES}")
 #message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
-message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
+# message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
 if(LibArchive_FOUND)
     list(REMOVE_ITEM LibArchive_LIBRARIES OpenSSL::Crypto)
     target_compile_definitions(multiarc PRIVATE -DHAVE_LIBARCHIVE)
     target_link_libraries(multiarc ${LibArchive_LIBRARIES})
     if(OPT_USE_STATIC_EXT_LIBS)
     target_link_libraries(multiarc
+        ${OPENSSL_LIBRARIES}
         ${VCPKG_LIBS_PATH}/lib/libz.a
         ${VCPKG_LIBS_PATH}/lib/libzstd.a
-        ${VCPKG_LIBS_PATH}/lib/libssl.a
-        ${VCPKG_LIBS_PATH}/lib/libcrypto.a
         ${VCPKG_LIBS_PATH}/lib/liblz4.a
         ${VCPKG_LIBS_PATH}/lib/libxml2.a
         ${VCPKG_LIBS_PATH}/lib/liblzma.a
