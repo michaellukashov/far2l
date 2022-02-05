@@ -12,23 +12,23 @@ ARG VCPKG_BUILD_TYPE=release
 RUN sudo dnf update -y
 RUN sudo dnf install -y gawk m4 gcc g++ git zip perl cmake
 
-WORKDIR $VCPKGDIR
-RUN git clone https://github.com/Microsoft/vcpkg.git --depth=1 .
+#WORKDIR $VCPKGDIR
+#RUN git clone https://github.com/Microsoft/vcpkg.git --depth=1 .
 
-RUN ./bootstrap-vcpkg.sh
+#RUN ./bootstrap-vcpkg.sh
 #RUN ./vcpkg install xerces-c fmt --triplet=x64-linux
 #RUN ./vcpkg install spdlog openssl libssh libarchive
 #--triplet=x64-linux
-RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/x64-linux.cmake
+#RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/x64-linux.cmake
 
-RUN ./vcpkg install fmt spdlog xerces-c pcre
-RUN ./vcpkg install zlib openssl
-RUN ./vcpkg install libssh[core,zlib,openssl]
+#RUN ./vcpkg install fmt spdlog xerces-c pcre
+#RUN ./vcpkg install zlib openssl
+#RUN ./vcpkg install libssh[core,zlib,openssl]
 #RUN ./vcpkg install pcre2
-RUN ./vcpkg install libarchive uchardet
+#RUN ./vcpkg install libarchive uchardet
 
 RUN sudo dnf install -y libsmbclient-devel
-RUN sudo dnf install -y libnfs-devel
+#RUN sudo dnf install -y libnfs-devel
 #RUN sudo dnf install -y neon-devel
 #RUN sudo dnf install -y pcre-devel
 #RUN sudo dnf install -y libssh-devel openssl-devel
@@ -43,7 +43,7 @@ WORKDIR /build-far2l
 COPY . $PREFIX/
 
 #RUN ls -la /vcpkg/installed/x64-linux
-RUN CMAKE_PREFIX_PATH=$VCPKGDIR/installed/x64-linux cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -DVCPKG_ROOT=$VCPKGDIR -Wno-dev #-DCOLORER=no -DUSEUCD=no
+RUN cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -Wno-dev #-DVCPKG_ROOT=$VCPKGDIR -DCOLORER=no -DUSEUCD=no -DCMAKE_PREFIX_PATH=$VCPKGDIR/installed/x64-linux
 RUN make -j$(nproc)
 RUN cpack
 
