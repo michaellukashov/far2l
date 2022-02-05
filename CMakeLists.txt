@@ -458,12 +458,46 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		message(WARNING "${ColorRed}libsmbclient not found, NetRocks will not have SMB protocol support. Install libsmbclient-dev if you want SMB protocol available in NetRocks.${ColorNormal}")
 	endif(LIBSMBCLIENT_FOUND)
 
+	if(OPT_USE_STATIC_EXT_LIBS)
+		set(LibNfs_DIR "${CMAKE_BINARY_DIR}/nfs_${VCPKG_TARGET_TRIPLET}")
+		ExternalProject_Add(nfs-static
+			GIT_REPOSITORY https://github.com/sahlberg/libnfs.git
+			SOURCE_SUBDIR "src"
+			GIT_TAG libnfs-5.0.1
+			# BUILD_IN_SOURCE TRUE
+			PREFIX ${CMAKE_BINARY_DIR}/nfs
+			INSTALL_DIR ${LibNfs_DIR}
+			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && ./bootstrap
+			COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && ./configure --prefix=${LibNfs_DIR} --enable-static --enable-shared=no #--with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make 2>&1 > /dev/null
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make install 2>&1 > /dev/null
+			UPDATE_COMMAND ""
+		)
+		set(LIBNFS_FOUND TRUE)
+		set(LIBNFS_INCLUDE_DIR "${LibNfs_DIR}/include")
+		set(LIBNFS_LIBRARY
+			${LibNfs_DIR}/lib/libnfs.a
+		)
+		set(LIBNFS_LIBRARIES ${LIBNFS_LIBRARY})
+		set(LIBNFS_INCLUDE_DIRS "${LIBNFS_INCLUDE_DIR}")
+		# execute_process(
+		# 	COMMAND ./bootstrap
+		# 	COMMAND ./configure --prefix=${LibNfs_DIR} --enable-static --enable-shared=no
+		# 	COMMAND ./make
+		# 	COMMAND ./make install
+		# 	WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/nfs-static-prefix/src/nfs-static"
+		# 	RESULT_VARIABLE LIBNFS_BUILD_OK
+		# )
+		set(CMAKE_PREFIX_PATH "${LibNfs_DIR};${CMAKE_PREFIX_PATH}")
+	endif(OPT_USE_STATIC_EXT_LIBS)
+
 	find_package(LibNfs)
 	if(LIBNFS_FOUND)
 		message(STATUS "libnfs found -> enjoy NFS support in NetRocks")
 	else()
 		message(WARNING "${ColorRed}libnfs not found, NetRocks will not have NFS protocol support. Install libnfs-dev if you want NFS protocol available in NetRocks.${ColorNormal}")
 	endif(LIBNFS_FOUND)
+
 	if(OPT_USE_STATIC_EXT_LIBS)
 		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
 		# TODO: install libtool gettext xmlto
@@ -475,11 +509,11 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
 			CONFIGURE_COMMAND ./autogen.sh
 			COMMAND ./configure --prefix=${LibNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
-			BUILD_COMMAND make
+			BUILD_COMMAND make 2>&1 > /dev/null
 			COMMAND make docs
 			COMMAND make update-po
 			COMMAND make compile-gmo
-			INSTALL_COMMAND make install
+			INSTALL_COMMAND make install 2>&1 > /dev/null
 			UPDATE_COMMAND ""
 		)
 		# set(LIBNEON_FOUND TRUE)
@@ -491,7 +525,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		FIND_PACKAGE(libxml2) # REQUIRED)
 		# MESSAGE (STATUS "Found xml2: ${xml2_LIBRARY}")
 		# message("1. LIBXML2_LIBRARIES: ${LIBXML2_LIBRARIES} ")
-		# message("2. OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES} ")
+		message("2. OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES} ")
 		# FIND_PACKAGE(zlib) # REQUIRED)
 		# MESSAGE (STATUS "Found zlib: ${zlib_LIBRARY}")
 		set(LIBNEON_FOUND TRUE)
@@ -500,8 +534,8 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			${LibNEON_DIR}/lib/libneon.a
 			${OPENSSL_LIBRARIES}
 			${LIBXML2_LIBRARIES}
-			# ${VCPKG_LIBS_PATH}/lib/libxml2.a
-			# ${VCPKG_LIBS_PATH}/lib/liblzma.a
+			${VCPKG_LIBS_PATH}/lib/libxml2.a
+			${VCPKG_LIBS_PATH}/lib/liblzma.a
 			${VCPKG_LIBS_PATH}/lib/libz.a
 			-lm -ldl
 		)
@@ -510,7 +544,8 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		#set(LibNEON_INCLUDE_DIR "${LibNEON_DIR}/include")
 		#set(LibNEON_LIBRARY "${LibNEON_DIR}/lib/libneon.a")
 		#find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
-	else()
+		set(CMAKE_PREFIX_PATH "${LibNEON_DIR};${CMAKE_PREFIX_PATH}")
+	# else()
 		find_package(LibNEON) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
 	endif(OPT_USE_STATIC_EXT_LIBS)
 	# message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
@@ -523,6 +558,10 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	endif(LIBNEON_FOUND)
 
 	add_subdirectory (NetRocks)
+	if(OPT_USE_STATIC_EXT_LIBS)
+		add_dependencies(NetRocks-NFS nfs-static)
+		add_dependencies(NetRocks-WebDAV neon-static)
+	endif(OPT_USE_STATIC_EXT_LIBS)
 else()
 	message(STATUS "${ColorRed}NETROCKS plugin disabled due to NETROCKS=${NETROCKS}${ColorNormal}")
 	install(CODE "

@@ -126,6 +126,9 @@ if (LIBNFS_FOUND)
 	)
 	target_link_libraries(NetRocks-NFS utils ${LIBNFS_LIBRARIES})
 	target_include_directories(NetRocks-NFS PRIVATE src ${LIBNFS_INCLUDE_DIRS})
+	if(OPT_USE_STATIC_EXT_LIBS)
+		# add_dependencies(NetRocks-NFS nfs-static)
+	endif(OPT_USE_STATIC_EXT_LIBS)
 	set_target_properties(NetRocks-NFS
 		PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY "${INSTALL_DIR}/Plugins/NetRocks/plug"
@@ -141,6 +144,11 @@ if (LIBNEON_FOUND)
 	)
 	target_link_libraries(NetRocks-WebDAV utils ${LIBNEON_LIBRARIES})
 	target_include_directories(NetRocks-WebDAV PRIVATE src ${LIBNEON_INCLUDE_DIRS})
+	if(OPT_USE_STATIC_EXT_LIBS)
+		target_link_libraries(NetRocks-WebDAV ${OPENSSL_LIBRARIES} ${LIBXML2_LIBRARIES}
+			${VCPKG_LIBS_PATH}/lib/libz.a dl)
+		# add_dependencies(NetRocks-WebDAV neon-static)
+	endif(OPT_USE_STATIC_EXT_LIBS)
 	set_target_properties(NetRocks-WebDAV
 		PROPERTIES
 		RUNTIME_OUTPUT_DIRECTORY "${INSTALL_DIR}/Plugins/NetRocks/plug"
