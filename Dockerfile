@@ -36,6 +36,7 @@ RUN sudo dnf install -y libsmbclient-devel
 
 #RUN sudo dnf install -y uchardet-devel
 #RUN sudo dnf install -y wxGTK3-devel
+RUN sudo dnf install -y zip bzip2 xz patch wget which libtool gettext xmlto
 
 
 WORKDIR /build-far2l
