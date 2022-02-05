@@ -5,13 +5,13 @@ cmake_minimum_required (VERSION 3.0.2)
 option(OPT_USE_STATIC_EXT_LIBS "Build and use static external libraries: libneon, libsmb etc" OFF)
 
 if(OPT_USE_STATIC_EXT_LIBS)
-	include(cmake/xrepo.cmake)
+	#include(cmake/xrepo.cmake)
 	include(ExternalProject)
 	if(DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) #OR DEFINED ${VCPKG_ROOT}
 		set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 	endif()
 	if(DEFINED ENV{VCPKG_ROOT}})
-    set(VCPKG_ROOT ENV{VCPKG_ROOT})
+		set(VCPKG_ROOT ENV{VCPKG_ROOT})
 	endif()
 
 	#message("1. CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
@@ -404,25 +404,25 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 
 	if(FALSE)
 	if(OPT_USE_STATIC_EXT_LIBS)
-	#TODO: get and build https://github.com/samba-team/samba.git
- 	set(LIBSMBCLIENT_ROOT "${CMAKE_CURRENT_BINARY_DIR}/samba_${VCPKG_TARGET_TRIPLET}")
-  set(LIBNEON_ROOT "${CMAKE_CURRENT_BINARY_DIR}/neon-static")
-  #message("VCPKG_LIBS_PATH: ${VCPKG_LIBS_PATH}")
-  #TODO: install libtool gettext xmlto
- 	ExternalProject_Add(smbclient-static
- 		GIT_REPOSITORY https://github.com/samba-team/samba.git
- 		GIT_TAG samba-4.15.4
- 		BUILD_IN_SOURCE TRUE
- 		# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
- 		CONFIGURE_COMMAND ./autogen.sh
- 		COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
- 		BUILD_COMMAND make
-    COMMAND make docs
-    COMMAND make update-po
-    COMMAND make compile-gmo
- 		INSTALL_COMMAND make install
- 		UPDATE_COMMAND ""
- 	)
+		#TODO: get and build https://github.com/samba-team/samba.git
+		set(LIBSMBCLIENT_ROOT "${CMAKE_CURRENT_BINARY_DIR}/samba_${VCPKG_TARGET_TRIPLET}")
+		set(LIBNEON_ROOT "${CMAKE_CURRENT_BINARY_DIR}/neon-static")
+		#message("VCPKG_LIBS_PATH: ${VCPKG_LIBS_PATH}")
+		#TODO: install libtool gettext xmlto
+		ExternalProject_Add(smbclient-static
+			GIT_REPOSITORY https://github.com/samba-team/samba.git
+			GIT_TAG samba-4.15.4
+			BUILD_IN_SOURCE TRUE
+			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
+			CONFIGURE_COMMAND ./autogen.sh
+			COMMAND ./configure --prefix=${LIBNEON_ROOT} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+			BUILD_COMMAND make
+			COMMAND make docs
+			COMMAND make update-po
+			COMMAND make compile-gmo
+			INSTALL_COMMAND make install
+			UPDATE_COMMAND ""
+	)
 	endif(OPT_USE_STATIC_EXT_LIBS)
 	endif(FALSE)
 	find_package(Libsmbclient)
@@ -439,46 +439,42 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		message(WARNING "${ColorRed}libnfs not found, NetRocks will not have NFS protocol support. Install libnfs-dev if you want NFS protocol available in NetRocks.${ColorNormal}")
 	endif(LIBNFS_FOUND)
 	if(OPT_USE_STATIC_EXT_LIBS)
- 	# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
- 	set(LibNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
-  #TODO: install libtool gettext xmlto
- 	ExternalProject_Add(neon-static
- 		GIT_REPOSITORY https://github.com/notroj/neon.git
- 		GIT_TAG 0.32.2
- 		BUILD_IN_SOURCE TRUE
- 		# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
- 		CONFIGURE_COMMAND ./autogen.sh
- 		COMMAND ./configure --prefix=${LibNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
- 		BUILD_COMMAND make
-    COMMAND make docs
-    COMMAND make update-po
-    COMMAND make compile-gmo
- 		INSTALL_COMMAND make install
- 		UPDATE_COMMAND ""
- 	)
-  message("LibNEON_DIR: ${LibNEON_DIR}")
-  set(LIBNEON_FOUND TRUE)
-  set(LIBNEON_LIBRARIES 
-    ${LibNEON_DIR}/lib/libneon.a
-    ${VCPKG_LIBS_PATH}/lib/libssl.a
-    ${VCPKG_LIBS_PATH}/lib/libcrypto.a #-ldl -pthread  -L/home/user/vcpkg/installed/x64-linux/lib/pkgconfig/../../lib 
-    ${VCPKG_LIBS_PATH}/lib/libxml2.a #-lm -lz
-    ${VCPKG_LIBS_PATH}/lib/liblzma.a #-pthread 
-    ${VCPKG_LIBS_PATH}/lib/libz.a #-lm -lz
-   -ldl
-  )
-  set(LIBNEON_INCLUDE_DIRS "${LibNEON_DIR}/include")
-	#find_package(LibNEON MODULE) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
-  #find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
-  else()
-	  find_package(LibNEON) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
-  endif(OPT_USE_STATIC_EXT_LIBS)
-  #set(LibNEON_INCLUDE_DIR "${LibNEON_DIR}/include")
-	#set(LibNEON_LIBRARY "${LibNEON_DIR}/lib/libneon.a")
-  #find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
-  message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
-  message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
-  message("LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}")
+		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
+		set(LibNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
+		#TODO: install libtool gettext xmlto
+		ExternalProject_Add(neon-static
+			GIT_REPOSITORY https://github.com/notroj/neon.git
+			GIT_TAG 0.32.2
+			BUILD_IN_SOURCE TRUE
+			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
+			CONFIGURE_COMMAND ./autogen.sh
+			COMMAND ./configure --prefix=${LibNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+			BUILD_COMMAND make
+			COMMAND make docs
+			COMMAND make update-po
+			COMMAND make compile-gmo
+			INSTALL_COMMAND make install
+			UPDATE_COMMAND ""
+		)
+		# message("LibNEON_DIR: ${LibNEON_DIR}")
+		set(LIBNEON_FOUND TRUE)
+		set(LIBNEON_LIBRARIES
+			${LibNEON_DIR}/lib/libneon.a
+			${VCPKG_LIBS_PATH}/lib/libssl.a
+			${VCPKG_LIBS_PATH}/lib/libcrypto.a #-ldl -pthread  -L/home/user/vcpkg/installed/x64-linux/lib/pkgconfig/../../lib
+			${VCPKG_LIBS_PATH}/lib/libxml2.a #-lm -lz
+			${VCPKG_LIBS_PATH}/lib/liblzma.a #-pthread
+			${VCPKG_LIBS_PATH}/lib/libz.a #-lm -lz
+			-ldl
+		)
+		set(LIBNEON_INCLUDE_DIRS "${LibNEON_DIR}/include")
+		#find_package(LibNEON MODULE) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
+		#find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
+		message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
+		message("LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}")
+	else()
+		find_package(LibNEON)
+	endif(OPT_USE_STATIC_EXT_LIBS)
 	if(LIBNEON_FOUND)
 		message(STATUS "libneon found -> enjoy WebDav support in NetRocks")
 	else()

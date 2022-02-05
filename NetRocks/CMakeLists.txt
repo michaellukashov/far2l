@@ -157,10 +157,10 @@ endif (LIBNEON_FOUND)
 		src/Protocol/DirectoryEnumCache.cpp
 	)
 	target_link_libraries(NetRocks-FTP utils)
-  if(OPT_USE_STATIC_EXT_LIBS)
+	if(OPT_USE_STATIC_EXT_LIBS)
 	target_link_libraries(NetRocks-FTP
 		${VCPKG_LIBS_PATH}/lib/libz.a dl)
-  endif(OPT_USE_STATIC_EXT_LIBS)
+	endif(OPT_USE_STATIC_EXT_LIBS)
 	target_include_directories(NetRocks-FTP PRIVATE src)
 if (OPENSSL_FOUND)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENSSL")
