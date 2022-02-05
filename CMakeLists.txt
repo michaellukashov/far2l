@@ -6,7 +6,8 @@ option(OPT_USE_STATIC_EXT_LIBS "Build and use static external libraries: libneon
 
 if(OPT_USE_STATIC_EXT_LIBS)
 	# include(cmake/xrepo.cmake)
-	include(cmake/CPM.cmake)
+	# include(cmake/CPM.cmake)
+	include(cmake/vcpkg.cmake)
 	include(ExternalProject)
 
 	if(NOT DEFINED VCPKG_ROOT)
@@ -37,6 +38,13 @@ if(OPT_USE_STATIC_EXT_LIBS)
 		set(CMAKE_PREFIX_PATH "${VCPKG_LIBS_PATH}")
 	endif()
 	message("CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+
+	vcpkg_add_package(uchardet)
+	# set(UCHARDET_DIR "${VCPKG_LIBS_PATH}")
+	# set(UCHARDET_FOUND TRUE)
+	# set(UCHARDET_INCLUDE_DIR ${UCHARDET_DIR}/include/uchardet)
+	# set(UCHARDET_LIBRARY ${UCHARDET_DIR}/lib/libuchardet.a)
+
 endif(OPT_USE_STATIC_EXT_LIBS)
 
 project (far2l)
