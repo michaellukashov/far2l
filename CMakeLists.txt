@@ -11,7 +11,7 @@ if(OPT_USE_STATIC_EXT_LIBS)
 	include(ExternalProject)
 
 	if(NOT DEFINED VCPKG_ROOT)
-		set(VCPKG_ROOT $ENV{VCPKG_ROOT})
+		set(VCPKG_ROOT ${CMAKE_BINARY_DIR}/vcpkg)
 	endif()
 
 	# message("VCPKG_ROOT: ${VCPKG_ROOT}")
@@ -31,12 +31,9 @@ if(OPT_USE_STATIC_EXT_LIBS)
 	endif()
 	# message("VCPKG_TARGET_TRIPLET: ${VCPKG_TARGET_TRIPLET}")
 	set(VCPKG_LIBS_PATH "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}")
-
 	message("VCPKG_LIBS_PATH: ${VCPKG_LIBS_PATH}")
 
-	if(NOT DEFINED CMAKE_PREFIX_PATH)
-		set(CMAKE_PREFIX_PATH "${VCPKG_LIBS_PATH}")
-	endif()
+	set(CMAKE_PREFIX_PATH "${VCPKG_LIBS_PATH};${CMAKE_PREFIX_PATH}")
 	message("CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 	vcpkg_add_package(uchardet)
