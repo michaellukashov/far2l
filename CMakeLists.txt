@@ -468,7 +468,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			PREFIX ${CMAKE_BINARY_DIR}/nfs
 			INSTALL_DIR ${LibNfs_DIR}
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && ./bootstrap
-			COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && ./configure --prefix=${LibNfs_DIR} --enable-static --enable-shared=no #--with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+			COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && ./configure --prefix=${LibNfs_DIR} --enable-static --enable-shared=no
 			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make 2>&1 > /dev/null
 			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make install 2>&1 > /dev/null
 			UPDATE_COMMAND ""
