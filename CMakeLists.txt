@@ -473,12 +473,12 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			INSTALL_COMMAND make install
 			UPDATE_COMMAND ""
 		)
-		set(LIBNEON_FOUND TRUE)
+		# set(LIBNEON_FOUND TRUE)
 		# CPMAddPackage("gh:notroj/neon#0.32.2")
 		# message("neon_ADDED: ${neon_ADDED}")
 		# message("neon_BINARY_DIR: ${neon_BINARY_DIR}")
-		set(LibNEON_DIR "${neon_BINARY_DIR}")
-		message("LibNEON_DIR: ${LibNEON_DIR} ")
+		# set(LibNEON_DIR "${neon_BINARY_DIR}")
+		# message("LibNEON_DIR: ${LibNEON_DIR} ")
 		set(LIBNEON_FOUND TRUE)
 		set(LIBNEON_INCLUDE_DIRS "${LibNEON_DIR}/include")
 		set(LIBNEON_LIBRARIES
