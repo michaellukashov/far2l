@@ -456,9 +456,10 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	endif(LIBNFS_FOUND)
 	if(OPT_USE_STATIC_EXT_LIBS)
 		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
+
+		# TODO: install libtool gettext xmlto
 		set(LibNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
-		#TODO: install libtool gettext xmlto
-		#[[ExternalProject_Add(neon-static
+		ExternalProject_Add(neon-static
 			GIT_REPOSITORY https://github.com/notroj/neon.git
 			GIT_TAG 0.32.2
 			BUILD_IN_SOURCE TRUE
@@ -472,8 +473,14 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			INSTALL_COMMAND make install
 			UPDATE_COMMAND ""
 		)
-		message("LibNEON_DIR: ${LibNEON_DIR}")
-		set(LIBNEON_FOUND TRUE)]]
+		set(LIBNEON_FOUND TRUE)
+		# CPMAddPackage("gh:notroj/neon#0.32.2")
+		# message("neon_ADDED: ${neon_ADDED}")
+		# message("neon_BINARY_DIR: ${neon_BINARY_DIR}")
+		set(LibNEON_DIR "${neon_BINARY_DIR}")
+		message("LibNEON_DIR: ${LibNEON_DIR} ")
+		set(LIBNEON_FOUND TRUE)
+		set(LIBNEON_INCLUDE_DIRS "${LibNEON_DIR}/include")
 		set(LIBNEON_LIBRARIES
 			${LibNEON_DIR}/lib/libneon.a
 			${VCPKG_LIBS_PATH}/lib/libssl.a
@@ -481,10 +488,9 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			${VCPKG_LIBS_PATH}/lib/libxml2.a #-lm -lz
 			${VCPKG_LIBS_PATH}/lib/liblzma.a #-pthread
 			${VCPKG_LIBS_PATH}/lib/libz.a #-lm -lz
-		-ldl
+			-ldl
 		)
-		set(LIBNEON_INCLUDE_DIRS "${LibNEON_DIR}/include")
-		#find_package(LibNEON MODULE) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
+		#find_package(LibNEON MODULE) # NAMES " libneon.a ") # HINTS " ${LibNEON_DIR}" PATHS "${LibNEON_DIR} " NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES " ${LibNEON_DIR} ") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
 		#find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
 		#set(LibNEON_INCLUDE_DIR "${LibNEON_DIR}/include")
 		#set(LibNEON_LIBRARY "${LibNEON_DIR}/lib/libneon.a")
