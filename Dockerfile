@@ -21,18 +21,15 @@ RUN ./bootstrap-vcpkg.sh
 #--triplet=x64-linux
 RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/x64-linux.cmake
 
-RUN ./vcpkg install fmt
-RUN ./vcpkg install spdlog
-RUN ./vcpkg install xerces-c
-RUN ./vcpkg install pcre
+RUN ./vcpkg install fmt spdlog xerces-c pcre
 RUN ./vcpkg install zlib openssl
 RUN ./vcpkg install libssh[core,zlib,openssl]
 #RUN ./vcpkg install pcre2
-RUN ./vcpkg install libarchive
+RUN ./vcpkg install libarchive uchardet
 
 RUN sudo dnf install -y libsmbclient-devel
 RUN sudo dnf install -y libnfs-devel
-RUN sudo dnf install -y neon-devel
+#RUN sudo dnf install -y neon-devel
 #RUN sudo dnf install -y pcre-devel
 #RUN sudo dnf install -y libssh-devel openssl-devel
 #RUN sudo dnf install -y libarchive-devel
@@ -46,8 +43,7 @@ WORKDIR /build-far2l
 COPY . $PREFIX/
 
 #RUN ls -la /vcpkg/installed/x64-linux
-RUN CMAKE_PREFIX_PATH=/vcpkg/installed/x64-linux \
-   cmake $PREFIX -DEACP=no -DUSEUCD=no -DUSEWX=no #-DCOLORER=no
+RUN CMAKE_PREFIX_PATH=$VCPKGDIR/installed/x64-linux cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -DVCPKG_ROOT=$VCPKGDIR -Wno-dev #-DCOLORER=no -DUSEUCD=no
 RUN make -j$(nproc)
 RUN cpack
 
