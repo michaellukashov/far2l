@@ -169,7 +169,11 @@ endif(OPT_USE_STATIC_EXT_LIBS)
 
 add_library (multiarc MODULE ${SOURCES})
 
-target_compile_definitions(multiarc PRIVATE -DRARDLL -D_7ZIP_ST) # -D_7ZIP_PPMD_SUPPPORT)
+if(OPT_USE_STATIC_EXT_LIBS)
+    target_compile_definitions(multiarc PRIVATE -DRARDLL -D_7ZIP_ST -D_7ZIP_PPMD_SUPPPORT)
+else()
+    target_compile_definitions(multiarc PRIVATE -DRARDLL -D_7ZIP_ST) # -D_7ZIP_PPMD_SUPPPORT)
+endif(OPT_USE_STATIC_EXT_LIBS)
 
 target_link_libraries(multiarc utils far2l)
 
@@ -185,17 +189,19 @@ if(PCRE_FOUND)
     target_include_directories(multiarc PRIVATE ${PCRE_INCLUDE_DIRS})
 endif()
 
-# message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
+message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
+message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
 if(LibArchive_FOUND)
     if(OPT_USE_STATIC_EXT_LIBS)
         list(REMOVE_ITEM LibArchive_LIBRARIES OpenSSL::Crypto)
-        vcpkg_add_package(openssl)
+        # vcpkg_add_package(openssl)
         vcpkg_add_package(zlib)
         vcpkg_add_package(zstd)
         vcpkg_add_package(lz4)
         vcpkg_add_package(libxml2)
         vcpkg_add_package(liblzma)
         vcpkg_add_package(bzip2)
+        # find_package(openssl CONFIG)
         find_package(zlib CONFIG)
         find_package(zstd CONFIG)
         find_package(lz4 CONFIG)
@@ -204,7 +210,7 @@ if(LibArchive_FOUND)
         find_package(bzip2 CONFIG)
         target_link_libraries(multiarc
             ${OPENSSL_LIBRARIES}
-            # zlib zstd lz4 libxml2 liblzma bzip2
+            # OpenSSL::SSL OpenSSL::Crypto
             ZLIB::ZLIB
             zstd::libzstd_static
             lz4::lz4
