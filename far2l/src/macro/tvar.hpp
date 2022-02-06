@@ -160,7 +160,9 @@ class TAbstractSet
 		TAbstractSet *next;
 
 	public:
-		TAbstractSet(const wchar_t *s)
+		TAbstractSet& operator=(const TAbstractSet&) = delete;
+		TAbstractSet(const TAbstractSet&) = delete;
+		explicit TAbstractSet(const wchar_t *s)
 		{
 			str = nullptr;
 			next = nullptr;
@@ -185,6 +187,8 @@ class TVarSet : public TAbstractSet
 		TVar value;
 
 	public:
+		TVarSet& operator=(const TVarSet&) = delete;
+		TVarSet(const TVarSet&) = delete;
 		TVarSet(const wchar_t *s) : TAbstractSet(s), value() {}
 };
 
