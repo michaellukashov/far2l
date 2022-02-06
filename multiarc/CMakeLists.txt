@@ -192,23 +192,32 @@ if(LibArchive_FOUND)
     target_link_libraries(multiarc ${LibArchive_LIBRARIES})
     if(OPT_USE_STATIC_EXT_LIBS)
     # find_package(PkgConfig REQUIRED)
-    include(FindPkgConfig)
-    pkg_check_modules(zstd QUIET zstd)
+    # include(FindPkgConfig)
+    # target_link_libraries(main PRIVATE zstd::libzstd_static)
     # pkg_search_module(zstd QUIET zstd) # sdl2>=2.0.1)
-    message("zstd_FOUND: ${zstd_FOUND}")
-    message("zstd: ${zstd_INCLUDE_DIRS}")
-    # pkg_check_modules(lz4 REQUIRED lz4)
-    # pkg_check_modules(xml2 REQUIRED xml2)
-    # pkg_check_modules(lzma REQUIRED lzma)
-    # pkg_check_modules(bz2 REQUIRED bz2)
+    # message("zstd_FOUND: ${zstd_FOUND}")
+    vcpkg_add_package(zlib)
+    vcpkg_add_package(zstd)
+    vcpkg_add_package(lz4)
+    vcpkg_add_package(libxml2)
+    vcpkg_add_package(liblzma)
+    vcpkg_add_package(bzip2)
+    find_package(zlib CONFIG)
+    find_package(zstd CONFIG)
+    find_package(lz4 CONFIG)
+    find_package(libxml2 CONFIG)
+    find_package(liblzma CONFIG)
+    find_package(bzip2 CONFIG)
     target_link_libraries(multiarc
         ${OPENSSL_LIBRARIES}
-        ${VCPKG_LIBS_PATH}/lib/libz.a
-        ${VCPKG_LIBS_PATH}/lib/libzstd.a
-        ${VCPKG_LIBS_PATH}/lib/liblz4.a
-        ${VCPKG_LIBS_PATH}/lib/libxml2.a
-        ${VCPKG_LIBS_PATH}/lib/liblzma.a
-        ${VCPKG_LIBS_PATH}/lib/libbz2.a
+        # ${VCPKG_LIBS_PATH}/lib/libz.a
+        zlib
+        # ${VCPKG_LIBS_PATH}/lib/libzstd.a
+        zstd lz4 libxml2 liblzma bzip2
+        # ${VCPKG_LIBS_PATH}/lib/liblz4.a
+        # ${VCPKG_LIBS_PATH}/lib/libxml2.a
+        # ${VCPKG_LIBS_PATH}/lib/liblzma.a
+        # ${VCPKG_LIBS_PATH}/lib/libbz2.a
     )
     endif(OPT_USE_STATIC_EXT_LIBS)
     target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
