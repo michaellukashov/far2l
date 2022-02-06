@@ -171,7 +171,7 @@ class Panel:public ScreenObject
 		virtual int GetRealSelCount() {return 0;};
 		virtual int GetSelName(FARString *strName,DWORD &FileAttr,DWORD &FileMode,FAR_FIND_DATA_EX *fd=nullptr) {return FALSE;};
 
-		int GetSelNameCompat(FARString *strName,DWORD &FileAttr,FAR_FIND_DATA_EX *fd=nullptr) 
+		int GetSelNameCompat(FARString *strName,DWORD &FileAttr,FAR_FIND_DATA_EX *fd=nullptr)
 		{
 			DWORD FileMode = 0;
 			return GetSelName(strName, FileAttr, FileMode, fd);
