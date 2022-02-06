@@ -168,7 +168,7 @@ TreeList::TreeList(int IsPanel):
 	WorkDir(0),
 	GetSelPosition(0),
 	// NumericSort(FALSE),
-	CaseSensitiveSort(FALSE),
+	// CaseSensitiveSort(FALSE),
 	ExitCode(1),
 	SaveListData(nullptr)
 {
