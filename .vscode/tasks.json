@@ -1,0 +1,16 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run CMake",
+      "type": "shell",
+      "command": "/usr/bin/cmake --no-warn-unused-cli -DOPT_USE_STATIC_EXT_LIBS=ON -DEACP:STRING=no -DVCPKG_ROOT=/home/user/vcpkg -DUSEWX:STRING=no -Wno-dev -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_C_COMPILER:FILEPATH=/bin/x86_64-redhat-linux-gcc-10 -H/home/user/projects/far2l -B/home/user/build/far2l-nowx -G \"Unix Makefiles\"",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+  }
+  ]
+}
