@@ -15,6 +15,7 @@
     "-DOPT_USE_STATIC_EXT_LIBS=ON",
     "-DEACP:STRING=no",
     // "-DUSEUCD:STRING=no",
+    "-DVCPKG_ROOT=/home/user/vcpkg",
     "-DUSEWX:STRING=no",
     "-Wno-dev"
   ]

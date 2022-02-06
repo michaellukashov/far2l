@@ -43,7 +43,7 @@ WORKDIR /build-far2l
 
 COPY . $PREFIX/
 
-RUN cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
+RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 > /dev/null && cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
 # -DCOLORER=no -DUSEUCD=no
 RUN make -j$(nproc)
 RUN cpack
