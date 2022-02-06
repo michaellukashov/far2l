@@ -102,7 +102,7 @@ int PluginClass::GetFiles(PluginPanelItem *PanelItem, int ItemsNumber,
 
   LastWithoutPathsState=DialogItems[7].Selected;
 
-  Opt.Background=OpMode & OPM_SILENT ? Opt.OldUserBackground : Opt.UserBackground; // $ 02.07.2002 AY: Если OPM_SILENT значит выбрано несколько архивов
+  Opt.Background=(OpMode & OPM_SILENT) ? Opt.OldUserBackground : Opt.UserBackground; // $ 02.07.2002 AY: Если OPM_SILENT значит выбрано несколько архивов
 
   /*int SpaceOnly=TRUE;
   for (int I=0;DestPath[I]!=0;I++)
