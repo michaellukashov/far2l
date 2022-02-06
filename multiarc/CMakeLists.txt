@@ -95,18 +95,18 @@ set(SOURCES
         src/formats/7z/C/Alloc.c
         src/formats/7z/C/XzCrc64.c
         src/formats/7z/C/XzEnc.c
-        #src/formats/7z/C/Ppmd8.c
+        src/formats/7z/C/Ppmd8.c
         src/formats/7z/C/Aes.c
         src/formats/7z/C/7zCrc.c
         src/formats/7z/C/Bcj2.c
         src/formats/7z/C/Delta.c
         src/formats/7z/C/7zFile.c
         src/formats/7z/C/Bcj2Enc.c
-        #src/formats/7z/C/Ppmd8Enc.c
+        src/formats/7z/C/Ppmd8Enc.c
         src/formats/7z/C/LzmaEnc.c
         src/formats/7z/C/Ppmd7Enc.c
         src/formats/7z/C/7zStream.c
-        #src/formats/7z/C/Ppmd8Dec.c
+        src/formats/7z/C/Ppmd8Dec.c
         src/formats/7z/C/XzCrc64Opt.c
         src/formats/7z/C/LzmaDec.c
         src/formats/7z/C/XzIn.c
@@ -159,6 +159,14 @@ else()
     )
 endif()
 
+if(OPT_USE_STATIC_EXT_LIBS)
+    list(REMOVE_ITEM SOURCES # already exist in static libarchive.a
+        src/formats/7z/C/Ppmd8.c
+        src/formats/7z/C/Ppmd8Enc.c
+        src/formats/7z/C/Ppmd8Dec.c
+    )
+endif(OPT_USE_STATIC_EXT_LIBS)
+
 add_library (multiarc MODULE ${SOURCES})
 
 target_compile_definitions(multiarc PRIVATE -DRARDLL -D_7ZIP_ST) # -D_7ZIP_PPMD_SUPPPORT)
@@ -177,48 +185,39 @@ if(PCRE_FOUND)
     target_include_directories(multiarc PRIVATE ${PCRE_INCLUDE_DIRS})
 endif()
 
-# set(z_ROOT $ENV{CMAKE_PREFIX_PATH})
-# find_package(z NAMES libz.a PATHS $ENV{CMAKE_PREFIX_PATH} PATH_SUFFIXES $ENV{CMAKE_PREFIX_PATH})
-# find_package(libbz2)
-
-#message("LibZ_LIBRARIES: ${LibZ_LIBRARIES}")
-#message("Libbz2_LIBRARIES: ${Libbz2_LIBRARIES}")
-message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
-message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
-message("LIBSSH2_LIBRARIES: ${LIBSSH2_LIBRARIES}")
+# message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
 if(LibArchive_FOUND)
-    list(REMOVE_ITEM LibArchive_LIBRARIES OpenSSL::Crypto)
     target_compile_definitions(multiarc PRIVATE -DHAVE_LIBARCHIVE)
     target_link_libraries(multiarc ${LibArchive_LIBRARIES})
     if(OPT_USE_STATIC_EXT_LIBS)
-    # find_package(PkgConfig REQUIRED)
-    # include(FindPkgConfig)
-    # target_link_libraries(main PRIVATE zstd::libzstd_static)
-    # pkg_search_module(zstd QUIET zstd) # sdl2>=2.0.1)
-    # message("zstd_FOUND: ${zstd_FOUND}")
-    vcpkg_add_package(zlib)
-    vcpkg_add_package(zstd)
-    vcpkg_add_package(lz4)
-    vcpkg_add_package(libxml2)
-    vcpkg_add_package(liblzma)
-    vcpkg_add_package(bzip2)
-    find_package(zlib CONFIG)
-    find_package(zstd CONFIG)
-    find_package(lz4 CONFIG)
-    find_package(libxml2 CONFIG)
-    find_package(liblzma CONFIG)
-    find_package(bzip2 CONFIG)
-    target_link_libraries(multiarc
-        ${OPENSSL_LIBRARIES}
-        # ${VCPKG_LIBS_PATH}/lib/libz.a
-        zlib
-        # ${VCPKG_LIBS_PATH}/lib/libzstd.a
-        zstd lz4 libxml2 liblzma bzip2
-        # ${VCPKG_LIBS_PATH}/lib/liblz4.a
-        # ${VCPKG_LIBS_PATH}/lib/libxml2.a
-        # ${VCPKG_LIBS_PATH}/lib/liblzma.a
-        # ${VCPKG_LIBS_PATH}/lib/libbz2.a
-    )
+        list(REMOVE_ITEM LibArchive_LIBRARIES OpenSSL::Crypto)
+        list(REMOVE_ITEM SOURCES #already exist in static libarchive.a
+            src/formats/7z/C/Ppmd8.c
+            src/formats/7z/C/Ppmd8Enc.c
+            src/formats/7z/C/Ppmd8Dec.c
+        )
+        vcpkg_add_package(zlib)
+        vcpkg_add_package(zstd)
+        vcpkg_add_package(lz4)
+        vcpkg_add_package(libxml2)
+        vcpkg_add_package(liblzma)
+        vcpkg_add_package(bzip2)
+        find_package(zlib CONFIG)
+        find_package(zstd CONFIG)
+        find_package(lz4 CONFIG)
+        find_package(libxml2 CONFIG)
+        find_package(liblzma CONFIG)
+        find_package(bzip2 CONFIG)
+        target_link_libraries(multiarc
+            ${OPENSSL_LIBRARIES}
+            # zlib zstd lz4 libxml2 liblzma bzip2
+            ZLIB::ZLIB
+            zstd::libzstd_static
+            lz4::lz4
+            LibXml2::LibXml2
+            LibLZMA::LibLZMA
+            BZip2::BZip2
+        )
     endif(OPT_USE_STATIC_EXT_LIBS)
     target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
     target_include_directories(multiarc PRIVATE ${VCPKG_LIBS_PATH}/include)
