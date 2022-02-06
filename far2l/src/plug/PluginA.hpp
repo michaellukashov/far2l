@@ -65,7 +65,7 @@ typedef int (WINAPI *PLUGINPROCESSDIALOGEVENT)(int Event,void *Param);
 class PluginA: public Plugin
 {
 	private:
-		FARString strRootKey;
+		// FARString strRootKey;
 		std::string mbRootKey;
 
 		PluginInfo PI;
