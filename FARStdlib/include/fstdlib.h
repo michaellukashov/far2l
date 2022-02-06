@@ -20,8 +20,8 @@
        - Variables    Global variables;
 
     @section Add Additional helpers.
-      Additional helpers andd classes does not relatie to FAR API directly but used by other wrapers or
-      incapsulate usefull functionality.
+      Additional helpers andd classes does not relatie to FAR API directly but used by other wrappers or
+      incapsulate useful functionality.
 
       - FP_Screen - helper for save and restore FAR screen buffer. <br>
                     Class for save and restore whole screen buffer.

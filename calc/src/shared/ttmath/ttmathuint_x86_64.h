@@ -1044,7 +1044,7 @@ namespace ttmath
 		we must use these temporary variables in order to inform the compilator
 		that value pointed with result1 and result2 has changed
 
-		this has no effect in visual studio but it's usefull when
+		this has no effect in visual studio but it's useful when
 		using gcc and options like -O
 	*/
 	uint result1_;

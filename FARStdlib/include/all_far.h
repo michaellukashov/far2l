@@ -140,7 +140,7 @@ struct FPPeriod
 /** @defgroup StdLib RTL extension\replacement
     @{
 
-    Wrapers for stdlib functions and some usefull extended stdlib functions.
+    Wrappers for stdlib functions and some useful extended stdlib functions.
 */
 #if !defined(__FP_NOT_FUNCTIONS__)
 //string extension
