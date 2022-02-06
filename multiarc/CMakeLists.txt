@@ -187,15 +187,9 @@ endif()
 
 # message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
 if(LibArchive_FOUND)
-    target_compile_definitions(multiarc PRIVATE -DHAVE_LIBARCHIVE)
-    target_link_libraries(multiarc ${LibArchive_LIBRARIES})
     if(OPT_USE_STATIC_EXT_LIBS)
         list(REMOVE_ITEM LibArchive_LIBRARIES OpenSSL::Crypto)
-        list(REMOVE_ITEM SOURCES #already exist in static libarchive.a
-            src/formats/7z/C/Ppmd8.c
-            src/formats/7z/C/Ppmd8Enc.c
-            src/formats/7z/C/Ppmd8Dec.c
-        )
+        vcpkg_add_package(openssl)
         vcpkg_add_package(zlib)
         vcpkg_add_package(zstd)
         vcpkg_add_package(lz4)
@@ -219,6 +213,8 @@ if(LibArchive_FOUND)
             BZip2::BZip2
         )
     endif(OPT_USE_STATIC_EXT_LIBS)
+    target_compile_definitions(multiarc PRIVATE -DHAVE_LIBARCHIVE)
+    target_link_libraries(multiarc ${LibArchive_LIBRARIES})
     target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
     target_include_directories(multiarc PRIVATE ${VCPKG_LIBS_PATH}/include)
 endif()
