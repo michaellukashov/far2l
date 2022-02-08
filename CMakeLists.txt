@@ -508,42 +508,50 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
 		find_package(libxml2 REQUIRED)
 		# TODO: install libtool gettext xmlto
-		set(LibNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
+		set(LIBNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
 
-		#[[ExternalProject_Add(neon-static
+		ExternalProject_Add(neon-static
 			GIT_REPOSITORY https://github.com/notroj/neon.git
 			GIT_TAG 0.32.2
 			BUILD_IN_SOURCE TRUE
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
 			CONFIGURE_COMMAND ./autogen.sh
-			COMMAND ./configure --prefix=${LibNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+			COMMAND ./configure --prefix=${LIBNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
 			BUILD_COMMAND make 2>&1 > /dev/null
 			COMMAND make docs
 			COMMAND make update-po
 			COMMAND make compile-gmo
 			INSTALL_COMMAND make install 2>&1 > /dev/null
 			UPDATE_COMMAND ""
-		)]]
-		FetchContent_Declare(LibNEON
+		)
+		#[[FetchContent_Declare(neon
 			GIT_REPOSITORY https://github.com/notroj/neon.git
 			GIT_TAG 0.32.2
+
 			# BUILD_IN_SOURCE TRUE
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
+			CONFIGURE_COMMAND ./autogen.sh
+			COMMAND ./configure --prefix=${LIBNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+			BUILD_COMMAND make 2>&1 > /dev/null
+			COMMAND make docs
+			COMMAND make update-po
+			COMMAND make compile-gmo
+			INSTALL_COMMAND make install 2>&1 > /dev/null
+			UPDATE_COMMAND ""
 		)
-		FetchContent_MakeAvailable(LibNEON)
-		FetchContent_Populate(LibNEON)
-		message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
-		# set(LIBNEON_FOUND TRUE)
+		# FetchContent_MakeAvailable(LibNEON)
+		FetchContent_Populate(neon)]]
+
 		# CPMAddPackage("gh:notroj/neon#0.32.2")
 		# message("neon_ADDED: ${neon_ADDED}")
 		# message("neon_BINARY_DIR: ${neon_BINARY_DIR}")
-		# set(LibNEON_DIR "${neon_BINARY_DIR}")
-		# message("LibNEON_DIR: ${LibNEON_DIR} ")
+		# set(LIBNEON_DIR "${neon_BINARY_DIR}")
+		# message("LIBNEON_DIR: ${LIBNEON_DIR} ")
 		# MESSAGE (STATUS "Found xml2: ${xml2_LIBRARY}")
 		#[[set(LIBNEON_FOUND TRUE)
-		set(LIBNEON_INCLUDE_DIR ${LibNEON_DIR}/include)
+		set(LIBNEON_INCLUDE_DIR ${LIBNEON_DIR}/include)
 		set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
-		set(LIBNEON_LIBRARY ${LibNEON_DIR}/lib/libneon.a)
+		set(LIBNEON_LIBRARY ${LIBNEON_DIR}/lib/libneon.a)
 		set(LIBNEON_LIBRARIES ${LIBNEON_LIBRARY}
 			${OPENSSL_LIBRARIES}
 			${LIBXML2_LIBRARIES}
@@ -553,15 +561,22 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			-lm -ldl
 		)]]
 
-		include(cmake/modules/FindLibNEON.cmake)
-		#find_package(LibNEON MODULE) # NAMES " libneon.a ") # HINTS " ${LibNEON_DIR}" PATHS "${LibNEON_DIR} " NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES " ${LibNEON_DIR} ") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
-		#find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
-		#set(LibNEON_INCLUDE_DIR "${LibNEON_DIR}/include")
-		#set(LibNEON_LIBRARY "${LibNEON_DIR}/lib/libneon.a")
-		#find_library(LIBNEON NAMES "libneon.a" PATHS "${LibNEON_DIR}" HINTS "${LibNEON_DIR}/lib" NO_DEFAULT_PATH)
-		# set(CMAKE_PREFIX_PATH "${LibNEON_DIR};${CMAKE_PREFIX_PATH}")
+		# include(cmake/modules/FindLibNEON.cmake)
+		# find_package(LibNEON MODULE) # NAMES " libneon.a ") # HINTS " ${LIBNEON_DIR}" PATHS "${LIBNEON_DIR} " NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES " ${LIBNEON_DIR} ") #CONFIG ) #${LIBNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
+		# find_library(LIBNEON NAMES "libneon.a" PATHS "${LIBNEON_DIR}" HINTS "${LIBNEON_DIR}/lib" NO_DEFAULT_PATH)
+		# set(LibNEON_INCLUDE_DIR "${LIBNEON_DIR}/include")
+		# set(LibNEON_LIBRARY "${LIBNEON_DIR}/lib/libneon.a")
+		# find_library(LIBNEON NAMES "libneon.a" PATHS "${LIBNEON_DIR}" HINTS "${LIBNEON_DIR}/lib" NO_DEFAULT_PATH)
+		# set(CMAKE_PREFIX_PATH "${LIBNEON_DIR};${CMAKE_PREFIX_PATH}")
+		add_library(LibNEON STATIC IMPORTED)
+		set_target_properties(LibNEON PROPERTIES IMPORTED_LOCATION ${LIBNEON_DIR}/lib/libneon.a)
+		set(LIBNEON_FOUND TRUE)
+		set(LIBNEON_INCLUDE_DIR "${LIBNEON_DIR}/include")
+		set(LIBNEON_LIBRARY "${LIBNEON_DIR}/lib/libneon.a")
+		set(LIBNEON_INCLUDE_DIRS "${LIBNEON_INCLUDE_DIR}")
+		set(LIBNEON_LIBRARIES "${LIBNEON_LIBRARY}")
 	else()
-		find_package(LibNEON) # NAMES "libneon.a") # HINTS "${LibNEON_DIR}" PATHS "${LibNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LibNEON_DIR}") #CONFIG ) #${LibNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
+		find_package(LibNEON) # NAMES "libneon.a") # HINTS "${LIBNEON_DIR}" PATHS "${LIBNEON_DIR}" NO_DEFAULT_PATH NO_SYSTEM_ENVIRONMENT_PATH) #PATH_SUFFIXES "${LIBNEON_DIR}") #CONFIG ) #${LIBNEON_DIR}/lib/pkgconfig/neon.pc NAMES libneon.a")
 	endif(OPT_USE_STATIC_EXT_LIBS)
 	# message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
 	message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
@@ -575,7 +590,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	add_subdirectory (NetRocks)
 	if(OPT_USE_STATIC_EXT_LIBS)
 		add_dependencies(NetRocks-NFS nfs-static)
-		# add_dependencies(NetRocks-WebDAV LibNEON)
+		add_dependencies(NetRocks-WebDAV LibNEON)
 	endif(OPT_USE_STATIC_EXT_LIBS)
 else()
 	message(STATUS "${ColorRed}NETROCKS plugin disabled due to NETROCKS=${NETROCKS}${ColorNormal}")
