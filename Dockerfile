@@ -11,32 +11,26 @@ ARG VCPKG_BUILD_TYPE=release
 
 RUN sudo dnf update -y
 RUN sudo dnf install -y gawk m4 gcc g++ git zip perl cmake
+#for libneon build
+RUN sudo dnf install -y zip bzip2 xz patch wget which autoconf libtool gettext xmlto
 
+
+# setup vcpkg
 WORKDIR $VCPKGDIR
 RUN git clone https://github.com/Microsoft/vcpkg.git --depth=1 .
 
 RUN ./bootstrap-vcpkg.sh
-#RUN ./vcpkg install xerces-c fmt --triplet=x64-linux
-#RUN ./vcpkg install spdlog openssl libssh libarchive
-#--triplet=x64-linux
 RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 
+# setup vcpkg libs
 RUN ./vcpkg install fmt spdlog xerces-c pcre
-RUN ./vcpkg install zlib openssl
-RUN ./vcpkg install libssh[core,zlib,openssl]
-RUN ./vcpkg install pcre2
-RUN ./vcpkg install libarchive uchardet
+RUN ./vcpkg install zlib openssl libssh[core,zlib,openssl]
+RUN ./vcpkg install libxml2 liblzma libarchive uchardet
 
+# setup libs
 RUN sudo dnf install -y libsmbclient-devel
-#RUN sudo dnf install -y libnfs-devel
-#RUN sudo dnf install -y neon-devel
-#RUN sudo dnf install -y pcre-devel
-#RUN sudo dnf install -y libssh-devel openssl-devel
-#RUN sudo dnf install -y libarchive-devel
-
-#RUN sudo dnf install -y uchardet-devel
+#RUN sudo dnf install -y libnfs-devel neon-devel pcre-devel libssh-devel openssl-devel libarchive-devel uchardet-devel
 #RUN sudo dnf install -y wxGTK3-devel
-RUN sudo dnf install -y zip bzip2 xz patch wget which autoconf libtool gettext xmlto
 
 
 WORKDIR /build-far2l
