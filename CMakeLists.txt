@@ -86,13 +86,13 @@ if("${VERSION_MAJOR}" STREQUAL "" OR "${VERSION_MAJOR}" STREQUAL "${VERSION}"
 endif()
 
 execute_process(COMMAND sh -c
-        "cd ${CMAKE_SOURCE_DIR} && git describe --tag"
-        OUTPUT_VARIABLE GIT_TAG)
+	"cd ${CMAKE_SOURCE_DIR} && git describe --tag || exit 0"
+	OUTPUT_VARIABLE GIT_TAG)
 string(REGEX REPLACE "[\r\n\t ]$" "" GIT_TAG "${GIT_TAG}")
 
 if(NOT "${GIT_TAG}" STREQUAL "v_${VERSION}")
 	execute_process(COMMAND sh -c
-		"cd ${CMAKE_SOURCE_DIR} && git rev-parse --short HEAD"
+		"cd ${CMAKE_SOURCE_DIR} && git rev-parse --short HEAD || exit 0"
 		OUTPUT_VARIABLE GIT_HASH)
 	string(REGEX REPLACE "[\r\n\t ]$" "" GIT_HASH "${GIT_HASH}")
 	if(NOT "${GIT_HASH}" STREQUAL "")
@@ -470,27 +470,35 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			GIT_REPOSITORY https://github.com/sahlberg/libnfs.git
 			SOURCE_SUBDIR "src"
 			GIT_TAG libnfs-5.0.1
+
 			# BUILD_IN_SOURCE TRUE
 			PREFIX ${CMAKE_BINARY_DIR}/nfs
 			INSTALL_DIR ${LibNfs_DIR}
 			CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && ./bootstrap
 			COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && ./configure --prefix=${LibNfs_DIR} --enable-static --enable-shared=no
-			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make 2>&1 > /dev/null
-			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make install 2>&1 > /dev/null
+			BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make || exit 0
+			INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make install || exit 0
 			UPDATE_COMMAND ""
 		)
+		# ExternalProject_Get_Property(nfs-static install_dir)
+		# message("install_dir: ${install_dir}")
 		set(LIBNFS_FOUND TRUE)
-		set(LIBNFS_INCLUDE_DIR "${LibNfs_DIR}/include")
-		set(LIBNFS_LIBRARY
-			${LibNfs_DIR}/lib/libnfs.a
-		)
+		set(LIBNFS_INCLUDE_DIR ${LibNfs_DIR}/include)
+		set(LIBNFS_LIBRARY ${LibNfs_DIR}/lib/libnfs.a)
 		set(LIBNFS_LIBRARIES ${LIBNFS_LIBRARY})
-		set(LIBNFS_INCLUDE_DIRS "${LIBNFS_INCLUDE_DIR}")
+		set(LIBNFS_INCLUDE_DIRS ${LIBNFS_INCLUDE_DIR})
+		set(LIBNFS_LIBRARIES ${LIBNFS_LIBRARY})
 		set(CMAKE_PREFIX_PATH ${LibNfs_DIR} ${CMAKE_PREFIX_PATH})
-		add_custom_target(build-nfs-static DEPENDS ${LIBNFS_LIBRARY})
+		add_library(LibNfs STATIC IMPORTED)
+		set_target_properties(LibNfs PROPERTIES IMPORTED_LOCATION ${LIBNFS_LIBRARY})
+		add_dependencies(LibNfs nfs-static)
+		set_source_files_properties(
+			${LIBNFS_LIBRARY}
+			PROPERTIES GENERATED TRUE
+		)
+	else()
+		find_package(LibNfs)
 	endif(OPT_USE_STATIC_EXT_LIBS)
-
-	find_package(LibNfs)
 	if(LIBNFS_FOUND)
 		message(STATUS "libnfs found -> enjoy NFS support in NetRocks")
 	else()
@@ -507,29 +515,35 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		if(NOT GETTEXT_PROG)
 		    message(FATAL_ERROR "${ColorRed}${GETTEXT_NAME} not found - please install it${ColorNormal}")
 		endif()]]
+		# TODO: apply patch for docs
 		ExternalProject_Add(neon-static
 			GIT_REPOSITORY https://github.com/notroj/neon.git
 			GIT_TAG 0.32.2
 			BUILD_IN_SOURCE TRUE
+
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
 			CONFIGURE_COMMAND ./autogen.sh
 			COMMAND ./configure --prefix=${LIBNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
-			BUILD_COMMAND make 2>&1 > /dev/null
+			BUILD_COMMAND make || exit 0
 			COMMAND make docs
 			COMMAND make update-po
 			COMMAND make compile-gmo
-			INSTALL_COMMAND make install 2>&1 > /dev/null
+			INSTALL_COMMAND make install || exit 0
 			UPDATE_COMMAND ""
 		)
-		add_library(LibNEON STATIC IMPORTED)
-		set_target_properties(LibNEON PROPERTIES IMPORTED_LOCATION ${LIBNEON_DIR}/lib/libneon.a)
 		set(LIBNEON_FOUND TRUE)
-		set(LIBNEON_INCLUDE_DIR "${LIBNEON_DIR}/include")
-		set(LIBNEON_LIBRARY "${LIBNEON_DIR}/lib/libneon.a")
-		set(LIBNEON_INCLUDE_DIRS "${LIBNEON_INCLUDE_DIR}")
-		set(LIBNEON_LIBRARIES "${LIBNEON_LIBRARY}")
+		set(LIBNEON_INCLUDE_DIR ${LIBNEON_DIR}/include)
+		set(LIBNEON_LIBRARY ${LIBNEON_DIR}/lib/libneon.a)
+		set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
+		set(LIBNEON_LIBRARIES ${LIBNEON_LIBRARY})
 		set(CMAKE_PREFIX_PATH ${LIBNEON_DIR} ${CMAKE_PREFIX_PATH})
-		add_custom_target(build-neon-static DEPENDS ${LIBNEON_LIBRARY})
+		add_library(LibNEON STATIC IMPORTED)
+		set_target_properties(LibNEON PROPERTIES IMPORTED_LOCATION ${LIBNEON_LIBRARY})
+		add_dependencies(LibNEON neon-static)
+		set_source_files_properties(
+			${LIBNEON_LIBRARY}
+			PROPERTIES GENERATED TRUE
+		)
 	else()
 		find_package(LibNEON)
 	endif(OPT_USE_STATIC_EXT_LIBS)
@@ -544,8 +558,8 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 
 	add_subdirectory (NetRocks)
 	if(OPT_USE_STATIC_EXT_LIBS)
-		add_dependencies(NetRocks-NFS build-nfs-static)
-		add_dependencies(NetRocks-WebDAV build-neon-static)
+		add_dependencies(NetRocks-NFS LibNfs)
+		add_dependencies(NetRocks-WebDAV LibNEON)
 	endif(OPT_USE_STATIC_EXT_LIBS)
 else()
 	message(STATUS "${ColorRed}NETROCKS plugin disabled due to NETROCKS=${NETROCKS}${ColorNormal}")
