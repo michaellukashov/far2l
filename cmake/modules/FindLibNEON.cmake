@@ -1,3 +1,5 @@
+include_guard(GLOBAL)
+
 #  LIBNEON_FOUND     - System has libneon
 #  LIBNEON_INCLUDE_DIR - The libneon include directories
 #  LIBNEON_LIBRARIES    - The libraries needed to use libneon
@@ -39,6 +41,6 @@ set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
 
 mark_as_advanced(LIBNEON_INCLUDE_DIR LIBNEON_LIBRARY)
 
-message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
-message("LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}")
-message("LIBNEON_INCLUDE_DIR: ${LIBNEON_INCLUDE_DIR}")
+# message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
+# message("LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}")
+# message("LIBNEON_INCLUDE_DIR: ${LIBNEON_INCLUDE_DIR}")

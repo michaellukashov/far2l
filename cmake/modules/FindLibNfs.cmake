@@ -1,3 +1,5 @@
+include_guard(GLOBAL)
+
 #  LIBNFS_FOUND     - System has libnf
 #  LIBNFS_INCLUDE_DIR - The libnf include directories
 #  LIBNFS_LIBRARIES    - The libraries needed to use libnf
