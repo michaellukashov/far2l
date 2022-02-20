@@ -75,15 +75,15 @@ set (SPDLOG_DEFINES
 )
 
 if (NOT EXISTS "${SPDLOG_INCLUDE_DIR}/spdlog/fmt/bundled")
-  if (fmt_FOUND)
-    set (SPDLOG_DEFINES
-        ${SPDLOG_DEFINES}
-        SPDLOG_FMT_EXTERNAL=ON
-    )
-    message("Forcing SPDLOG_FMT_EXTERNAL cuz FMT installed and missing ${SPDLOG_INCLUDE_DIR}/spdlog/fmt/bundled")
-  else()
-    message("NOT forcing SPDLOG_FMT_EXTERNAL cuz FMT NOT installed")
-  endif()
+    if(fmt_FOUND)
+        set(SPDLOG_DEFINES
+            ${SPDLOG_DEFINES}
+            SPDLOG_FMT_EXTERNAL=ON
+        )
+        message("Forcing SPDLOG_FMT_EXTERNAL cuz FMT installed and missing ${SPDLOG_INCLUDE_DIR}/spdlog/fmt/bundled")
+    else()
+        message("NOT forcing SPDLOG_FMT_EXTERNAL cuz FMT NOT installed")
+    endif()
 endif()
 
 target_compile_definitions(colorer PUBLIC
@@ -100,14 +100,14 @@ target_include_directories(colorer PRIVATE ../WinPort)
 target_include_directories(colorer PRIVATE ../far2l/far2sdk)
 
 set_target_properties(colorer
-  PROPERTIES
+    PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY "${INSTALL_DIR}/Plugins/colorer/plug"
     PREFIX ""
     SUFFIX ".far-plug-wide")
 
 add_custom_command(TARGET colorer POST_BUILD
-   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/configs
-   COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/configs "${INSTALL_DIR}/Plugins/colorer"
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/configs
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/configs "${INSTALL_DIR}/Plugins/colorer"
 )
 
 add_subdirectory("${LIBCOLORER_TREE}" "${CMAKE_BINARY_DIR}/Colorer-library/src")
