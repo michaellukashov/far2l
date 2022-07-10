@@ -565,6 +565,11 @@ extern "C"
 				_attr = FILE_ATTRIBUTE_REPARSE_POINT;
 			}
 
+#if defined(__APPLE__) || defined(__FreeBSD__)
+			if (DereferencedStat().st_flags & UF_HIDDEN) { // chflags hidden FILENAME
+				_attr|= FILE_ATTRIBUTE_HIDDEN;
+			}
+#endif
 			_attr|= EvaluateAttributesT(DereferencedStat().st_mode, name);
 		}
 
