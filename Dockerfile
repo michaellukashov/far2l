@@ -1,6 +1,6 @@
 # TODO: build static libsmbclient (needed for NetRocks-SMB)
 # sudo docker build -t far2l -f Dockerfile .
-# sudo docker run --rm far2l > far2l-nowx.tar.gz
+# sudo docker run --rm far2l > far2l-nowx-static.tar.gz
 
 FROM fedora:32
 
