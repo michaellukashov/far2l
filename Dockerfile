@@ -31,7 +31,7 @@ RUN ./vcpkg install libxml2 liblzma libarchive uchardet
 RUN sudo dnf install -y libsmbclient-devel
 #RUN sudo dnf install -y libnfs-devel neon-devel pcre-devel libssh-devel openssl-devel libarchive-devel uchardet-devel
 #RUN sudo dnf install -y wxGTK3-devel
-
+RUN sudo dnf install -y ninja-build
 
 WORKDIR /build-far2l
 
@@ -40,6 +40,8 @@ COPY . $PREFIX/
 RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 > /dev/null && cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
 # -DCOLORER=no -DUSEUCD=no
 RUN make -j$(nproc)
+#cmake -G Ninja
+# RUN ninja -v
 RUN cpack
 
 #CMD zip -qXr - far2l-nowx*.tar.gz
