@@ -22,6 +22,7 @@
 #include <CheckedCast.hpp>
 
 #include "HostLocal.h"
+#include "../../WinPort/WinCompat.h"
 
 #ifdef NETROCKS_PROTOCOL
 # define API(x) x
