@@ -17,5 +17,6 @@
     "-DUSEWX:STRING=no",
     "-Wno-dev",
     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
-  ]
+  ],
+  "cmake.configureOnOpen": false
 }

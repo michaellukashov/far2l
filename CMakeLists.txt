@@ -443,7 +443,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
   #TODO: install libtool gettext xmlto
  	ExternalProject_Add(smbclient-static
  		GIT_REPOSITORY https://github.com/samba-team/samba.git
- 		GIT_TAG samba-4.15.4
+ 		GIT_TAG samba-4.16.4 #samba-4.15.4
  		BUILD_IN_SOURCE TRUE
  		CONFIGURE_COMMAND ./autogen.sh
  		COMMAND ./configure --prefix=${LIBSMBCLIENT_FOUND} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
