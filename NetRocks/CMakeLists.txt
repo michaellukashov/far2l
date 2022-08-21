@@ -149,7 +149,7 @@ if (LIBNEON_FOUND)
 	if(OPT_USE_STATIC_EXT_LIBS)
 		target_link_libraries(NetRocks-WebDAV ${OPENSSL_LIBRARIES} ${LIBXML2_LIBRARIES}
 			${VCPKG_LIBS_PATH}/lib/libz.a dl)
-		add_dependencies(NetRocks-WebDAV LibNEON)
+		#add_dependencies(NetRocks-WebDAV LibNEON)
 	endif(OPT_USE_STATIC_EXT_LIBS)
 	set_target_properties(NetRocks-WebDAV
 		PROPERTIES
