@@ -17,7 +17,7 @@ RUN apt-get install -y binutils cmake make build-essential gcc g++
 #RUN apt-get install -y libstdc++6 libc6-compat
 #RUN apt-get install -y gcc6 g++6
 RUN apt-get install -y perl cmake ninja-build #build-base
-RUN apt-get install -y linux-headers-$(uname -r) 
+#RUN apt-get install -y linux-headers-$(uname -r) 
 # RUN apt-get install -y zlib-static bzip2-static
 RUN apt-get install -y gawk m4 curl gettext pkgconf git
 #for libneon build
