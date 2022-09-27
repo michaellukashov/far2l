@@ -11,18 +11,18 @@ ARG VCPKG_DEFAULT_TRIPLET=x64-linux
 ARG VCPKGDIR=/vcpkg
 ARG VCPKG_BUILD_TYPE=release
 
-RUN apt update -y && apt upgrade -y
-RUN apt-get install -y apt-utils apt-transport-https
-RUN apt-get install -y binutils cmake make build-essential gcc g++
+RUN DEBIAN_FRONTEND=noninteractiv apt update -y && apt upgrade -y
+RUN DEBIAN_FRONTEND=noninteractiv apt-get install -y apt-utils apt-transport-https && \
+  apt-get install -y binutils cmake make build-essential gcc g++ && \
+  apt-get install -y perl cmake ninja-build && \
+  apt-get install -y gawk m4 curl gettext pkgconf git && \
+  apt-get install -y zip unzip xz-utils tar patch
+
 #RUN apt-get install -y libstdc++6 libc6-compat
 #RUN apt-get install -y gcc6 g++6
-RUN apt-get install -y perl cmake ninja-build #build-base
 #RUN apt-get install -y linux-headers-$(uname -r) 
 # RUN apt-get install -y zlib-static bzip2-static
-RUN apt-get install -y gawk m4 curl gettext pkgconf git
-#for libneon build
 #RUN apt-get install -y zip unzip bzip2 xz-utils patch wget autoconf automake libtool gettext xmlto
-RUN apt-get install -y zip unzip xz-utils tar patch
 
 # setup vcpkg
 #ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
