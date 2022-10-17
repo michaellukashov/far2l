@@ -96,6 +96,7 @@ class HelpRecord
 		{
 			if (this != &rhs)
 			{
+				if (HelpStr) free(HelpStr);
 				HelpStr = wcsdup(rhs.HelpStr);
 			}
 
