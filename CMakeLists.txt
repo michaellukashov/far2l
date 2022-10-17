@@ -3,6 +3,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 cmake_minimum_required (VERSION 3.14.0)
 
 option(OPT_USE_STATIC_EXT_LIBS "Build and use static external libraries: libneon, libsmb etc" OFF)
+option(OPT_PVS_ANALYSIS "use PVS static analysis" OFF)
 
 if(OPT_USE_STATIC_EXT_LIBS)
 	# include(cmake/xrepo.cmake)
@@ -670,3 +671,26 @@ list (SORT _variableNames)
 foreach (_variableName ${_variableNames})
    message(STATUS "${_variableName}=${${_variableName}}")
 endforeach()]]
+
+if(OPT_PVS_ANALYSIS)
+
+include(FetchContent)
+FetchContent_Declare(
+    PVS_CMakeModule
+    GIT_REPOSITORY "https://github.com/viva64/pvs-studio-cmake-module.git"
+    GIT_TAG        "master" 
+)
+FetchContent_MakeAvailable(PVS_CMakeModule)
+include("${pvs_cmakemodule_SOURCE_DIR}/PVS-Studio.cmake")
+
+pvs_studio_add_target(TARGET far2l.analyze ALL
+    OUTPUT FORMAT json
+    ANALYZE far2l
+    COMPILE_COMMANDS 
+    MODE GA:1,2
+    LOG target.err
+    # ARGS -e CMakeFiles/far2l.dir/far2l_autogen)
+)
+
+endif(OPT_PVS_ANALYSIS)
+
