@@ -90,7 +90,7 @@ class HelpRecord
 			HelpStr = nullptr;
 			if (HStr )
 				HelpStr = wcsdup(HStr);
-		};
+		}
 
 		const HelpRecord& operator=(const HelpRecord &rhs)
 		{
@@ -100,17 +100,17 @@ class HelpRecord
 			}
 
 			return *this;
-		};
+		}
 
 		bool operator==(const HelpRecord &rhs) const
 		{
 			return !StrCmpI(HelpStr,rhs.HelpStr);
-		};
+		}
 
 		int operator<(const HelpRecord &rhs) const
 		{
 			return StrCmpI(HelpStr,rhs.HelpStr) < 0;
-		};
+		}
 
 		~HelpRecord()
 		{
