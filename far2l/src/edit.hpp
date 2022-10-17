@@ -205,6 +205,7 @@ class Edit:public ScreenObject
 		inline int CalcPosFwd(int LimitPos = -1) const { return CalcPosFwdTo(CurPos, LimitPos); }
 		inline int CalcPosBwd() const { return CalcPosBwdTo(CurPos); }
 
+		inline const wchar_t* WordDiv(void) {return strWordDiv->CPtr();}
 	public:
 		Edit(ScreenObject *pOwner = nullptr, Callback* aCallback = nullptr, bool bAllocateData = true);
 		virtual ~Edit();
@@ -269,31 +270,31 @@ class Edit:public ScreenObject
 		void  SetCellCurPos(int NewPos);
 		int   GetLeftPos() {return(LeftPos);}
 		void  SetLeftPos(int NewPos) {LeftPos=NewPos;}
-		void  SetPasswordMode(int Mode) {Flags.Change(FEDITLINE_PASSWORDMODE,Mode);};
-		void  SetMaxLength(int Length) {MaxLength=Length;};
+		void  SetPasswordMode(int Mode) {Flags.Change(FEDITLINE_PASSWORDMODE,Mode);}
+		void  SetMaxLength(int Length) {MaxLength=Length;}
 
 		// Получение максимального значения строки для потребностей Dialod API
-		int   GetMaxLength() {return MaxLength;};
+		int   GetMaxLength() {return MaxLength;}
 
 		void  SetInputMask(const wchar_t *InputMask);
 		const wchar_t* GetInputMask() {return Mask;}
 
-		void  SetOvertypeMode(int Mode) {Flags.Change(FEDITLINE_OVERTYPE,Mode);};
-		int   GetOvertypeMode() {return Flags.Check(FEDITLINE_OVERTYPE);};
+		void  SetOvertypeMode(int Mode) {Flags.Change(FEDITLINE_OVERTYPE,Mode);}
+		int   GetOvertypeMode() {return Flags.Check(FEDITLINE_OVERTYPE);}
 
-		void  SetConvertTabs(int Mode) { TabExpandMode = Mode;};
-		int   GetConvertTabs() {return TabExpandMode;};
+		void  SetConvertTabs(int Mode) { TabExpandMode = Mode;}
+		int   GetConvertTabs() {return TabExpandMode;}
 
 		int   RealPosToCell(int Pos);
 		int   CellPosToReal(int Pos);
 		void  Select(int Start,int End);
 		void  AddSelect(int Start,int End);
 		void  GetSelection(int &Start,int &End);
-		BOOL  IsSelection() {return  SelStart==-1 && !SelEnd?FALSE:TRUE; };
+		BOOL  IsSelection() {return  SelStart==-1 && !SelEnd?FALSE:TRUE; }
 		void  GetRealSelection(int &Start,int &End);
-		void  SetEditBeyondEnd(int Mode) {Flags.Change(FEDITLINE_EDITBEYONDEND,Mode);};
-		void  SetEditorMode(int Mode) {Flags.Change(FEDITLINE_EDITORMODE,Mode);};
-		void  ExpandTabs();
+		void  SetEditBeyondEnd(int Mode) {Flags.Change(FEDITLINE_EDITBEYONDEND,Mode);}
+		void  SetEditorMode(int Mode) {Flags.Change(FEDITLINE_EDITORMODE,Mode);}
+		void  ReplaceTabs();
 
 		void  InsertTab();
 
