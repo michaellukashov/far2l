@@ -814,7 +814,7 @@ int FileEditor::ReProcessKey(int Key,int CalledFromControl)
 		Key=Key == KEY_ENTER?KEY_SHIFTENTER:KEY_SHIFTNUMENTER;
 	}
 
-	// Все сотальные необработанные клавиши пустим далее
+	// Все остальные необработанные клавиши пустим далее
 	/* $ 28.04.2001 DJ
 	   не передаем KEY_MACRO* плагину - поскольку ReadRec в этом случае
 	   никак не соответствует обрабатываемой клавише, возникают разномастные
@@ -849,7 +849,7 @@ int FileEditor::ReProcessKey(int Key,int CalledFromControl)
 
 				// проверка на "а может это говно удалили уже?"
 				// возможно здесь она и не нужна!
-				// хотя, раз уж были изменени, то
+				// хотя, раз уж были изменения, то
 				if (m_editor->IsFileChanged() && // в текущем сеансе были изменения?
 				        apiGetFileAttributes(strFullFileName) == INVALID_FILE_ATTRIBUTES) // а файл еще существует?
 				{
@@ -2360,7 +2360,7 @@ DWORD FileEditor::EditorGetFileAttributes(const wchar_t *Name)
 	return FileAttributes;
 }
 
-/* Return TRUE - панель обовили
+/* Return TRUE - панель обновили
 */
 BOOL FileEditor::UpdateFileList()
 {
