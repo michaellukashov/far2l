@@ -43,6 +43,7 @@ RUN make -j$(nproc)
 #cmake -G Ninja
 # RUN ninja -v
 RUN cpack
+RUN cat far2l-nowx-*.tar.gz > /far2l-nowx-static.tar.gz
 
 #CMD zip -qXr - far2l-nowx*.tar.gz
 CMD cat far2l-nowx*.tar.gz
