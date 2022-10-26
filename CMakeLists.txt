@@ -47,8 +47,8 @@ if(OPT_USE_STATIC_EXT_LIBS)
 	vcpkg_add_package(xerces-c)
 	vcpkg_add_package(zlib)
 	vcpkg_add_package(bzip2)
-	# vcpkg_add_package(openssl)
-	vcpkg_add_package(libssh[core,zlib,openssl])
+	vcpkg_add_package(mbedtls)
+	vcpkg_add_package(libssh[core,zlib])
 	vcpkg_add_package(pcre)
 	vcpkg_add_package(liblzma)
 	vcpkg_add_package(libarchive)
@@ -536,7 +536,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
 			CONFIGURE_COMMAND ./autogen.sh
-			COMMAND ./configure --prefix=${LIBNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+			COMMAND ./configure --prefix=${LIBNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_INSTALLED_DIR}/x64-linux:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
 			BUILD_COMMAND make || exit 0
 			COMMAND make docs
 			COMMAND make update-po
