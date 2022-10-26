@@ -144,12 +144,12 @@ if (LIBNEON_FOUND)
 		${PROTOCOL_SOURCES}
 		src/Protocol/WebDAV/ProtocolWebDAV.cpp
 	)
-	target_link_libraries(NetRocks-WebDAV utils ${LIBNEON_LIBRARIES})
+	target_link_libraries(NetRocks-WebDAV utils) # ${LIBNEON_LIBRARIES})
 	target_include_directories(NetRocks-WebDAV PRIVATE src ${LIBNEON_INCLUDE_DIRS})
 	if(OPT_USE_STATIC_EXT_LIBS)
 		target_link_libraries(NetRocks-WebDAV ${OPENSSL_LIBRARIES} ${LIBXML2_LIBRARIES}
 			${VCPKG_LIBS_PATH}/lib/libz.a dl)
-		#add_dependencies(NetRocks-WebDAV LibNEON)
+		#add_dependencies(NetRocks-WebDAV neon-static)
 	endif(OPT_USE_STATIC_EXT_LIBS)
 	set_target_properties(NetRocks-WebDAV
 		PROPERTIES
