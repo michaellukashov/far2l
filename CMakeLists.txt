@@ -46,7 +46,8 @@ if(OPT_USE_STATIC_EXT_LIBS)
 	vcpkg_add_package(spdlog)
 	vcpkg_add_package(xerces-c)
 	vcpkg_add_package(zlib)
-	vcpkg_add_package(openssl)
+	vcpkg_add_package(bzip2)
+	# vcpkg_add_package(openssl)
 	vcpkg_add_package(libssh[core,zlib,openssl])
 	vcpkg_add_package(pcre)
 	vcpkg_add_package(liblzma)
@@ -387,7 +388,9 @@ else()
 		" COMPONENT system)
 endif()
 
-find_package(OpenSSL)
+#find_package(OpenSSL)
+find_package(OpenSSL CONFIG)
+message("OpenSSL_INCLUDE_DIR: ${OpenSSL_INCLUDE_DIR}")
 if (NOT DEFINED MULTIARC OR MULTIARC)
 	message(STATUS "MULTIARC plugin enabled")
 	# workaround for brew's/macports' libarchive
@@ -514,7 +517,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		message(WARNING "${ColorRed}libnfs not found, NetRocks will not have NFS protocol support. Install libnfs-dev if you want NFS protocol available in NetRocks.${ColorNormal}")
 	endif(LIBNFS_FOUND)
 
-	if(FALSE)
+	#if(FALSE)
 	if(OPT_USE_STATIC_EXT_LIBS)
 		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
 		find_package(libxml2 REQUIRED)
@@ -526,7 +529,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		    message(FATAL_ERROR "${ColorRed}${GETTEXT_NAME} not found - please install it${ColorNormal}")
 		endif()]]
 		# TODO: apply patch for docs
-		ExternalProject_Add(neon-static
+		ExternalProject_Add(neon_project
 			GIT_REPOSITORY https://github.com/notroj/neon.git
 			GIT_TAG 0.32.2
 			BUILD_IN_SOURCE TRUE
@@ -540,6 +543,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			COMMAND make compile-gmo
 			INSTALL_COMMAND make install || exit 0
 			UPDATE_COMMAND ""
+      BUILD_BYPRODUCTS ${LIBNEON_DIR}/lib/libneon.a
 		)
 		set(LIBNEON_FOUND TRUE)
 		set(LIBNEON_INCLUDE_DIR ${LIBNEON_DIR}/include)
@@ -549,13 +553,13 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		set(CMAKE_PREFIX_PATH ${LIBNEON_DIR} ${CMAKE_PREFIX_PATH})
 		add_library(LibNEON STATIC IMPORTED)
 		set_target_properties(LibNEON PROPERTIES IMPORTED_LOCATION ${LIBNEON_LIBRARY})
-		add_dependencies(LibNEON neon-static)
+		#add_dependencies(LibNEON neon_project)
 		set_source_files_properties(
 			${LIBNEON_LIBRARY}
 			PROPERTIES GENERATED TRUE
 		)
 	endif(OPT_USE_STATIC_EXT_LIBS)
-	endif(FALSE)
+	#endif(FALSE)
 	find_package(LibNEON)
 	# message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
 	message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
@@ -569,7 +573,20 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	add_subdirectory (NetRocks)
 	if(OPT_USE_STATIC_EXT_LIBS)
 		#add_dependencies(NetRocks-NFS LibNfs)
+    ExternalProject_Get_Property(neon_project install_dir)
+    message("neon_project_install_dir: ${install_dir}")
+    add_library(neon STATIC IMPORTED)
+    set_property(TARGET neon PROPERTY IMPORTED_LOCATION ${LIBNEON_DIR}/lib/libneon.a) #${install_dir}/lib/libneon.a)
+    add_dependencies(neon neon_project)
+    #add_dependencies(NetRocks-WebDAV neon_project)
 		#add_dependencies(NetRocks-WebDAV LibNEON)
+  	#set_source_files_properties(
+		#	${install_dir}/lib/libneon.a
+		#	PROPERTIES GENERATED TRUE
+		#)
+    target_link_libraries(NetRocks-WebDAV neon)
+  	target_link_libraries(NetRocks-WebDAV ${OPENSSL_SSL_LIBRARY} ${LIBXML2_LIBRARIES}
+			${VCPKG_LIBS_PATH}/lib/libz.a dl)
 	endif(OPT_USE_STATIC_EXT_LIBS)
 else()
 	message(STATUS "${ColorRed}NETROCKS plugin disabled due to NETROCKS=${NETROCKS}${ColorNormal}")
