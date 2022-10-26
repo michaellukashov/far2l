@@ -1,0 +1,18 @@
+{
+    "name": "far2l",
+    "version": "2.4.1",
+    "dependencies": [
+        {
+            "name": "openssl",
+            "version>=": "1.1.1n#1"
+        }, 
+        "zlib"
+    ],
+    "builtin-baseline": "44135c31038685cb7deaed1d703ef6707c867a0d",
+    "overrides": [
+        {
+            "name": "openssl",
+            "version-string": "1.1.1n#1"
+        }
+    ]
+}
