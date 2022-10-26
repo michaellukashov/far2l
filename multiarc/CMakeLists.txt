@@ -207,7 +207,9 @@ if(LibArchive_FOUND)
         find_package(lz4 CONFIG)
         find_package(libxml2 CONFIG)
         find_package(liblzma CONFIG)
-        find_package(bzip2 CONFIG)
+        #find_package(bzip2 CONFIG)
+        find_package(BZip2 REQUIRED)
+        #target_link_libraries(main PRIVATE BZip2::BZip2)
         target_link_libraries(multiarc
             ${OPENSSL_LIBRARIES}
             # OpenSSL::SSL OpenSSL::Crypto
