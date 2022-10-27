@@ -3,15 +3,16 @@
 # docker run --rm far2l cat /far2l-nowx-static.tar.gz > far2l-nowx-static.tar.gz
 
 #FROM bitnami/debian-base-buildpack:latest
-FROM debian:stable-slim
+#FROM debian:stable-slim
+FROM debian:9
 # FROM frolvlad/alpine-glibc
 
-ARG PREFIX=/far2l
+ARG PREFIX=/build/far2l
 ARG VCPKG_DEFAULT_TRIPLET=x64-linux
-ARG VCPKGDIR=/vcpkg
+ARG VCPKGDIR=/build/vcpkg
 ARG VCPKG_BUILD_TYPE=release
 
-RUN DEBIAN_FRONTEND=noninteractiv apt update -y && apt upgrade -y
+RUN DEBIAN_FRONTEND=noninteractiv apt-get update -y && apt-get upgrade -y
 RUN DEBIAN_FRONTEND=noninteractiv apt-get install -y apt-utils apt-transport-https && \
   apt-get install -y binutils cmake make build-essential gcc g++ && \
   apt-get install -y perl cmake ninja-build && \
@@ -24,18 +25,27 @@ RUN DEBIAN_FRONTEND=noninteractiv apt-get install -y apt-utils apt-transport-htt
 # RUN apt-get install -y zlib-static bzip2-static
 #RUN apt-get install -y zip unzip bzip2 xz-utils patch wget autoconf automake libtool gettext xmlto
 
+# setup git
+WORKDIR /build/git
+RUN git clone https://github.com/git/git.git --depth=1 .
+RUN apt-get install -y libssl-dev libcurl4-openssl-dev zlib1g-dev libexpat-dev
+RUN make && make install
+
 # setup vcpkg
 #ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
 WORKDIR $VCPKGDIR
-RUN git clone https://github.com/Microsoft/vcpkg.git --depth=1 .
+RUN git clone https://github.com/Microsoft/vcpkg.git . #--depth=1 .
 
 RUN ./bootstrap-vcpkg.sh
 RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 
 # setup vcpkg libs
-RUN ./vcpkg install fmt spdlog xerces-c pcre
-RUN ./vcpkg install zlib openssl libssh[core,zlib,openssl]
+RUN ./vcpkg install fmt
+RUN ./vcpkg install spdlog xerces-c 
+# RUN ./vcpkg install pcre
+RUN ./vcpkg install zlib mbedtls
+# RUN ./vcpkg install libssh[core,zlib,mbedtls]
 RUN ./vcpkg install libxml2 zstd liblzma libarchive uchardet
 
 # setup libs
@@ -44,21 +54,23 @@ RUN ./vcpkg install libxml2 zstd liblzma libarchive uchardet
 RUN apt-get install -y libnfs-dev libneon27-dev
 #RUN sudo apt-get install -y wxGTK3-devel
 #RUN apt-get install -y ninja-build
-RUN apt-get install -y autoconf automake libtool #xmlto
+RUN apt-get install -y autoconf automake libtool
+# RUN apt-get install -y xmlto #for libneon
 
 ARG MAKE_ARGS=
 
-WORKDIR /build-far2l
+WORKDIR /build/far2l
 
 COPY . $PREFIX/
 #-DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
 RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
-  cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE \
+  $VCPKGDIR/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE \
   -DCMAKE_CXX_FLAGS="-DPIC" \
   -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
   -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
 # -DCOLORER=no -DUSEUCD=no
+RUN make neon_project
 RUN make ${MAKE_ARGS} #$(nproc)
 RUN make install
 #cmake -G Ninja
