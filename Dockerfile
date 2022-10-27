@@ -29,7 +29,7 @@ RUN DEBIAN_FRONTEND=noninteractiv apt-get install -y apt-utils apt-transport-htt
 WORKDIR /build/git
 RUN git clone https://github.com/git/git.git --depth=1 .
 RUN apt-get install -y libssl-dev libcurl4-openssl-dev zlib1g-dev libexpat-dev
-RUN make && make install
+RUN make prefix=/usr && make prefix=/usr install
 
 # setup vcpkg
 #ENV VCPKG_FORCE_SYSTEM_BINARIES="1"

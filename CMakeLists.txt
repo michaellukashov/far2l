@@ -587,7 +587,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		#	${install_dir}/lib/libneon.a
 		#	PROPERTIES GENERATED TRUE
 		#)
-		target_link_libraries(NetRocks-WebDAV neon)
+		target_link_libraries(NetRocks-WebDAV LibNEON)
 		target_link_libraries(NetRocks-WebDAV ${OPENSSL_SSL_LIBRARY} LibXml2::LibXml2 LibLZMA::LibLZMA
 			${VCPKG_INSTALLED_PATH}/lib/libz.a dl)
 	endif(OPT_USE_STATIC_EXT_LIBS)
