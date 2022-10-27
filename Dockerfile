@@ -54,7 +54,7 @@ COPY . $PREFIX/
 #-DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
 RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
   cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE \
-  -DCMAKE_CXX_FLAGS="-D__MUSL__ -DPIC" \
+  -DCMAKE_CXX_FLAGS="-DPIC" \
   -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
   -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
