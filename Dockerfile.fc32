@@ -24,24 +24,25 @@ RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_
 
 # setup vcpkg libs
 RUN ./vcpkg install fmt spdlog xerces-c pcre
-RUN ./vcpkg install zlib openssl libssh[core,zlib,openssl]
-RUN ./vcpkg install libxml2 liblzma libarchive uchardet
+RUN ./vcpkg install zlib libssh[core,zlib,mbedtls]
+#RUN ./vcpkg install libxml2 liblzma libarchive uchardet
+RUN ./vcpkg install uchardet
 
 # setup libs
 RUN sudo dnf install -y libsmbclient-devel
 #RUN sudo dnf install -y libnfs-devel neon-devel pcre-devel libssh-devel openssl-devel libarchive-devel uchardet-devel
 #RUN sudo dnf install -y wxGTK3-devel
-RUN sudo dnf install -y ninja-build
+RUN sudo dnf install -y ninja-build make
 
 WORKDIR /build-far2l
 
 COPY . $PREFIX/
 
-RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 > /dev/null && cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
+RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 > /dev/null && cmake -G Ninja $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE -Wno-dev -DVCPKG_ROOT=$VCPKGDIR -DCMAKE_MAKE_PROGRAM=ninja -DCMAKE_TOOLCHAIN_FILE=$VCPKGDIR/scripts/buildsystems/vcpkg.cmake 
 # -DCOLORER=no -DUSEUCD=no
-RUN make -j$(nproc)
+#RUN make -j$(nproc)
 #cmake -G Ninja
-# RUN ninja -v
+RUN ninja -v
 RUN cpack
 RUN cat far2l-nowx-*.tar.gz > /far2l-nowx-static.tar.gz
 
