@@ -43,15 +43,16 @@ RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_
 # setup vcpkg libs
 RUN ./vcpkg install fmt
 RUN ./vcpkg install spdlog xerces-c 
-# RUN ./vcpkg install pcre
-RUN ./vcpkg install zlib mbedtls
-# RUN ./vcpkg install libssh[core,zlib,mbedtls]
+RUN ./vcpkg install pcre
+RUN ./vcpkg install zlib
+#RUN ./vcpkg install mbedtls
+RUN ./vcpkg install libssh[core,zlib,mbedtls]
 RUN ./vcpkg install libxml2 zstd liblzma libarchive uchardet
 
 # setup libs
 #RUN apt-get install -y samba-dev
 #RUN sudo apt-get install -y libnfs-devel neon-devel pcre-devel libssh-devel openssl-devel libarchive-devel uchardet-devel
-RUN apt-get install -y libnfs-dev libneon27-dev
+RUN apt-get install -y libnfs-dev #libneon27-dev
 #RUN sudo apt-get install -y wxGTK3-devel
 #RUN apt-get install -y ninja-build
 RUN apt-get install -y autoconf automake libtool
@@ -64,11 +65,12 @@ WORKDIR /build/far2l
 COPY . $PREFIX/
 #-DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
 RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
-  $VCPKGDIR/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE \
+  $VCPKGDIR/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake $PREFIX -DEACP=no -DUSEWX=no \
   -DCMAKE_CXX_FLAGS="-DPIC" \
   -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
-  -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
+  -Wno-dev -DOPT_USE_STATIC_EXT_LIBS=TRUE -DVCPKG_ROOT=$VCPKGDIR \
+  -DCMAKE_TOOLCHAIN_FILE=$VCPKGDIR/scripts/buildsystems/vcpkg.cmake 
 # -DCOLORER=no -DUSEUCD=no
 RUN make neon_project
 RUN make ${MAKE_ARGS} #$(nproc)
