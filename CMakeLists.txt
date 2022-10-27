@@ -20,13 +20,13 @@ if(OPT_USE_STATIC_EXT_LIBS)
 		set(VCPKG_PARENT_DIR "${PARENT_DIR}")
 	endif()
 	message("VCPKG_PARENT_DIR: ${VCPKG_PARENT_DIR}")
-	include(cmake/vcpkg.cmake)
+	#include(cmake/vcpkg.cmake)
 
 	if(DEFINED VCPKG_ROOT AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) #OR DEFINED ${VCPKG_ROOT}
 	set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 	endif()
 
-	# message("CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
+	message("CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
 
 	if(NOT DEFINED VCPKG_TARGET_TRIPLET)
 		set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_TARGET_TRIPLET})
@@ -36,13 +36,13 @@ if(OPT_USE_STATIC_EXT_LIBS)
 		set(VCPKG_TARGET_TRIPLET "x64-linux")
 	endif()
 	# message("VCPKG_TARGET_TRIPLET: ${VCPKG_TARGET_TRIPLET}")
-	set(VCPKG_LIBS_PATH "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}")
-	# message("VCPKG_LIBS_PATH: ${VCPKG_LIBS_PATH}")
+	set(VCPKG_INSTALLED_PATH "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}")
+	# message("VCPKG_INSTALLED_PATH: ${VCPKG_INSTALLED_PATH}")
 
-	set(CMAKE_PREFIX_PATH ${VCPKG_LIBS_PATH} ${CMAKE_PREFIX_PATH})
+	set(CMAKE_PREFIX_PATH ${VCPKG_INSTALLED_PATH} ${CMAKE_PREFIX_PATH})
 	# message("CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
-	vcpkg_add_package(fmt)
+	#[[vcpkg_add_package(fmt)
 	vcpkg_add_package(spdlog)
 	vcpkg_add_package(xerces-c)
 	vcpkg_add_package(zlib)
@@ -53,11 +53,11 @@ if(OPT_USE_STATIC_EXT_LIBS)
 	vcpkg_add_package(liblzma)
 	vcpkg_add_package(libarchive)
 	vcpkg_add_package(uchardet)
-	vcpkg_add_package(libxml2)
+	vcpkg_add_package(libxml2)]]
 
 endif(OPT_USE_STATIC_EXT_LIBS)
 
-project (far2l)
+project (far2l LANGUAGES C CXX)
 
 set(APP_NAME "far2l")
 set(APP_IDENTIFIER "com.far2l")
@@ -450,14 +450,14 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	if(OPT_USE_STATIC_EXT_LIBS)
 	#TODO: get and build https://github.com/samba-team/samba.git
  	set(LIBSMBCLIENT_ROOT "${CMAKE_CURRENT_BINARY_DIR}/samba_${VCPKG_TARGET_TRIPLET}")
-  #message("VCPKG_LIBS_PATH: ${VCPKG_LIBS_PATH}")
+  #message("VCPKG_INSTALLED_PATH: ${VCPKG_INSTALLED_PATH}")
   #TODO: install libtool gettext xmlto
  	ExternalProject_Add(smbclient-static
  		GIT_REPOSITORY https://github.com/samba-team/samba.git
  		GIT_TAG samba-4.16.4 #samba-4.15.4
  		BUILD_IN_SOURCE TRUE
  		CONFIGURE_COMMAND ./autogen.sh
- 		COMMAND ./configure --prefix=${LIBSMBCLIENT_FOUND} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_LIBS_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+ 		COMMAND ./configure --prefix=${LIBSMBCLIENT_FOUND} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_INSTALLED_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
  		BUILD_COMMAND make
     COMMAND make docs
     COMMAND make update-po
@@ -520,7 +520,8 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	#if(FALSE)
 	if(OPT_USE_STATIC_EXT_LIBS)
 		# xrepo_package("neon 0.32.2" CONFIGS "shared=false,mt=true")
-		find_package(libxml2 REQUIRED)
+		find_package(LibXml2 CONFIG)
+  	find_package(liblzma CONFIG)
 		# TODO: install libtool gettext xmlto
 		set(LIBNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
 
@@ -531,12 +532,12 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		# TODO: apply patch for docs
 		ExternalProject_Add(neon_project
 			GIT_REPOSITORY https://github.com/notroj/neon.git
-			GIT_TAG 0.32.2
+			GIT_TAG 0.32.4
 			BUILD_IN_SOURCE TRUE
 
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
 			CONFIGURE_COMMAND ./autogen.sh
-			COMMAND ./configure --prefix=${LIBNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_INSTALLED_DIR}/x64-linux:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+			COMMAND ./configure --prefix=${LIBNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_ROOT}/installed/x64-linux
 			BUILD_COMMAND make || exit 0
 			COMMAND make docs
 			COMMAND make update-po
@@ -585,8 +586,8 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		#	PROPERTIES GENERATED TRUE
 		#)
     target_link_libraries(NetRocks-WebDAV neon)
-  	target_link_libraries(NetRocks-WebDAV ${OPENSSL_SSL_LIBRARY} ${LIBXML2_LIBRARIES}
-			${VCPKG_LIBS_PATH}/lib/libz.a dl)
+  	target_link_libraries(NetRocks-WebDAV ${OPENSSL_SSL_LIBRARY} LibXml2::LibXml2 LibLZMA::LibLZMA
+			${VCPKG_INSTALLED_PATH}/lib/libz.a dl)
 	endif(OPT_USE_STATIC_EXT_LIBS)
 else()
 	message(STATUS "${ColorRed}NETROCKS plugin disabled due to NETROCKS=${NETROCKS}${ColorNormal}")
