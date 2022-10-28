@@ -546,11 +546,11 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 			COMMAND make install-lib install-headers install-config
 			INSTALL_COMMAND ""
 			UPDATE_COMMAND ""
-			BUILD_BYPRODUCTS ${LIBNEON_DIR}/libs/libneon.a #${LIBNEON_DIR}/lib/libneon.a
+			BUILD_BYPRODUCTS ${LIBNEON_DIR}/lib/libneon.a #${LIBNEON_DIR}/lib/libneon.a
 		)
 		set(LIBNEON_FOUND TRUE)
 		set(LIBNEON_INCLUDE_DIR ${LIBNEON_DIR}/include)
-		set(LIBNEON_LIBRARY ${LIBNEON_DIR}/libs/libneon.a) #${LIBNEON_DIR}/lib/libneon.a)
+		set(LIBNEON_LIBRARY ${LIBNEON_DIR}/lib/libneon.a) #${LIBNEON_DIR}/lib/libneon.a)
 		set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
 		set(LIBNEON_LIBRARIES ${LIBNEON_LIBRARY})
 		set(CMAKE_PREFIX_PATH ${LIBNEON_DIR} ${CMAKE_PREFIX_PATH})
