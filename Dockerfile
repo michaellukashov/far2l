@@ -73,7 +73,7 @@ RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
   -DCMAKE_TOOLCHAIN_FILE=$VCPKGDIR/scripts/buildsystems/vcpkg.cmake 
 # -DCOLORER=no -DUSEUCD=no
 RUN make neon_project
-RUN make ${MAKE_ARGS} #$(nproc)
+RUN make far2l ${MAKE_ARGS} #$(nproc)
 RUN make install
 #cmake -G Ninja
 # RUN ninja -v
