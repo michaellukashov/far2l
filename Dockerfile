@@ -3,9 +3,7 @@
 # docker run --rm far2l cat /far2l-nowx-static.tar.gz > far2l-nowx-static.tar.gz
 
 #FROM bitnami/debian-base-buildpack:latest
-#FROM debian:stable-slim
-FROM debian:9
-# FROM frolvlad/alpine-glibc
+FROM debian:9.11-slim
 
 ARG PREFIX=/build/far2l
 ARG VCPKG_DEFAULT_TRIPLET=x64-linux
@@ -18,12 +16,6 @@ RUN DEBIAN_FRONTEND=noninteractiv apt-get install -y apt-utils apt-transport-htt
   apt-get install -y perl cmake ninja-build && \
   apt-get install -y gawk m4 curl gettext pkgconf git && \
   apt-get install -y zip unzip xz-utils tar patch
-
-#RUN apt-get install -y libstdc++6 libc6-compat
-#RUN apt-get install -y gcc6 g++6
-#RUN apt-get install -y linux-headers-$(uname -r) 
-# RUN apt-get install -y zlib-static bzip2-static
-#RUN apt-get install -y zip unzip bzip2 xz-utils patch wget autoconf automake libtool gettext xmlto
 
 # setup git
 WORKDIR /build/git
