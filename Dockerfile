@@ -10,6 +10,8 @@ ARG VCPKG_DEFAULT_TRIPLET=x64-linux
 ARG VCPKGDIR=/build/vcpkg
 ARG VCPKG_BUILD_TYPE=release
 
+ARG MAKE_ARGS=
+
 RUN DEBIAN_FRONTEND=noninteractiv apt-get update -y && apt-get upgrade -y
 RUN DEBIAN_FRONTEND=noninteractiv apt-get install -y apt-utils apt-transport-https && \
   apt-get install -y binutils cmake make build-essential gcc g++ && \
@@ -21,7 +23,9 @@ RUN DEBIAN_FRONTEND=noninteractiv apt-get install -y apt-utils apt-transport-htt
 WORKDIR /build/git
 RUN git clone https://github.com/git/git.git --depth=1 .
 RUN apt-get install -y libssl-dev libcurl4-openssl-dev zlib1g-dev libexpat-dev
-RUN make prefix=/usr && make prefix=/usr install
+RUN make -j `nproc` prefix=/usr && make prefix=/usr install
+
+COPY . $PREFIX/
 
 # setup vcpkg
 #ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
@@ -30,7 +34,10 @@ WORKDIR $VCPKGDIR
 RUN git clone https://github.com/Microsoft/vcpkg.git . #--depth=1 .
 
 RUN ./bootstrap-vcpkg.sh
-RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
+#RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
+
+# patch vcpkg libs
+RUN patch -lu -p1 < $PREFIX/patch-liblzma.patch
 
 # setup vcpkg libs
 RUN ./vcpkg install fmt
@@ -50,11 +57,8 @@ RUN apt-get install -y libnfs-dev #libneon27-dev
 RUN apt-get install -y autoconf automake libtool
 # RUN apt-get install -y xmlto #for libneon
 
-ARG MAKE_ARGS=
+WORKDIR $PREFIX
 
-WORKDIR /build/far2l
-
-COPY . $PREFIX/
 #-DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
 RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
   $VCPKGDIR/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake $PREFIX -DEACP=no -DUSEWX=no \
