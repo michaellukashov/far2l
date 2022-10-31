@@ -25,8 +25,6 @@ RUN git clone https://github.com/git/git.git --depth=1 .
 RUN apt-get install -y libssl-dev libcurl4-openssl-dev zlib1g-dev libexpat-dev
 RUN make -j `nproc` prefix=/usr && make prefix=/usr install
 
-COPY . $PREFIX/
-
 # setup vcpkg
 #ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
@@ -37,7 +35,7 @@ RUN ./bootstrap-vcpkg.sh
 #RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 
 # patch vcpkg libs
-RUN patch -lu -p1 < $PREFIX/patch-liblzma.patch
+#RUN patch -lu -p1 < $PREFIX/patch-liblzma.patch
 
 # setup vcpkg libs
 RUN ./vcpkg install fmt
@@ -54,21 +52,24 @@ RUN ./vcpkg install libxml2 zstd liblzma libarchive uchardet
 RUN apt-get install -y libnfs-dev #libneon27-dev
 #RUN sudo apt-get install -y wxGTK3-devel
 #RUN apt-get install -y ninja-build
+#for libneon
 RUN apt-get install -y autoconf automake libtool
-# RUN apt-get install -y xmlto #for libneon
+# RUN apt-get install -y xmlto
 
-WORKDIR $PREFIX
+COPY . $PREFIX/
+
+WORKDIR $PREFIX/build-far2l
 
 #-DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
-RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
-  $VCPKGDIR/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake $PREFIX -DEACP=no -DUSEWX=no \
+RUN rm -rf $PREFIX/CMakeCache.txt $PREFIX/CMakeLists.txt.user 2>&1 && \
+  $VCPKGDIR/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake -S $PREFIX -DUSEWX=no \
   -DCMAKE_CXX_FLAGS="-DPIC" \
   -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
   -Wno-dev -DOPT_USE_STATIC_EXT_LIBS=TRUE -DVCPKG_ROOT=$VCPKGDIR \
   -DCMAKE_TOOLCHAIN_FILE=$VCPKGDIR/scripts/buildsystems/vcpkg.cmake 
 # -DCOLORER=no -DUSEUCD=no
-RUN make neon_project
+#RUN make neon_project
 RUN make far2l ${MAKE_ARGS} #$(nproc)
 RUN make install
 #cmake -G Ninja
