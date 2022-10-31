@@ -522,50 +522,43 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		find_package(LibXml2 CONFIG)
 		find_package(liblzma CONFIG)
 		# TODO: install libtool gettext xmlto
-		set(LIBNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon_${VCPKG_TARGET_TRIPLET}")
+		set(LibNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon")
 
 		#[[TODO: find_program(GETTEXT_PROG NAMES ${GETTEXT_NAME})
 		if(NOT GETTEXT_PROG)
 		    message(FATAL_ERROR "${ColorRed}${GETTEXT_NAME} not found - please install it${ColorNormal}")
 		endif()]]
-		# TODO: apply patch for docs
-		ExternalProject_Add(neon_project
+		ExternalProject_Add(neon-static
 			GIT_REPOSITORY https://github.com/notroj/neon.git
 			GIT_TAG 0.32.4
 			BUILD_IN_SOURCE TRUE
 
 			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
 			CONFIGURE_COMMAND ./autogen.sh
-			COMMAND ./configure --prefix=${LIBNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/x64-linux:${VCPKG_ROOT}/installed/x64-linux
+			COMMAND ./configure --prefix=${LibNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/x64-linux:${VCPKG_ROOT}/installed/x64-linux
 			#BUILD_COMMAND make || exit 0
 			BUILD_COMMAND make
-			#COMMAND make docs
-			#COMMAND make update-po
-			#COMMAND make compile-gmo
 			COMMAND make install-lib install-headers install-config
 			INSTALL_COMMAND ""
 			UPDATE_COMMAND ""
-			BUILD_BYPRODUCTS ${LIBNEON_DIR}/lib/libneon.a #${LIBNEON_DIR}/lib/libneon.a
+			BUILD_BYPRODUCTS ${LibNEON_DIR}/lib/libneon.a
 		)
-		set(LIBNEON_FOUND TRUE)
-		set(LIBNEON_INCLUDE_DIR ${LIBNEON_DIR}/include)
-		set(LIBNEON_LIBRARY ${LIBNEON_DIR}/lib/libneon.a) #${LIBNEON_DIR}/lib/libneon.a)
-		set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
-		set(LIBNEON_LIBRARIES ${LIBNEON_LIBRARY})
-		set(CMAKE_PREFIX_PATH ${LIBNEON_DIR} ${CMAKE_PREFIX_PATH})
+		set(CMAKE_MODULE_PATH ${LibNEON_DIR} ${CMAKE_MODULE_PATH})
+  	set(LibNEON_LIBRARY ${LibNEON_DIR}/lib/libneon.a)
 		add_library(LibNEON STATIC IMPORTED)
-		set_target_properties(LibNEON PROPERTIES IMPORTED_LOCATION ${LIBNEON_LIBRARY})
-		add_dependencies(LibNEON neon_project)
-#		set_source_files_properties(
-#			${LIBNEON_LIBRARY}
-#			PROPERTIES GENERATED TRUE
-#		)
-	endif(OPT_USE_STATIC_EXT_LIBS)
-	#endif(FALSE)
-	find_package(LibNEON)
-	# message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
-	message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
-	message("LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}")
+		set_target_properties(LibNEON PROPERTIES IMPORTED_LOCATION ${LibNEON_LIBRARY})
+		add_dependencies(LibNEON neon-static)
+  	set(LibNEON_FOUND TRUE)
+		set(LibNEON_INCLUDE_DIR ${LibNEON_DIR}/include)
+		set(LibNEON_INCLUDE_DIRS ${LibNEON_INCLUDE_DIR})
+		set(LibNEON_LIBRARIES ${LibNEON_LIBRARY})
+  else()
+	  find_package(LibNEON CONFIG)
+  endif(OPT_USE_STATIC_EXT_LIBS)
+  #endif(FALSE)
+	# message("LibNEON_LIBRARY: ${LibNEON_LIBRARY}")
+	message("LibNEON_FOUND: ${LibNEON_FOUND}")
+	message("LibNEON_LIBRARIES: ${LibNEON_LIBRARIES}")
 	if(LIBNEON_FOUND)
 		message(STATUS "libneon found -> enjoy WebDav support in NetRocks")
 	else()
@@ -575,17 +568,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 	add_subdirectory (NetRocks)
 	if(OPT_USE_STATIC_EXT_LIBS)
 		#add_dependencies(NetRocks-NFS LibNfs)
-		ExternalProject_Get_Property(neon_project install_dir)
-		message("neon_project_install_dir: ${install_dir}")
-		#add_library(neon STATIC IMPORTED)
-		#set_property(TARGET neon PROPERTY IMPORTED_LOCATION ${LIBNEON_LIBRARY}) #${install_dir}/lib/libneon.a)
-		#add_dependencies(neon neon_project)
-		#add_dependencies(NetRocks-WebDAV neon_project)
 		add_dependencies(NetRocks-WebDAV LibNEON)
-		#set_source_files_properties(
-		#	${install_dir}/lib/libneon.a
-		#	PROPERTIES GENERATED TRUE
-		#)
 		target_link_libraries(NetRocks-WebDAV LibNEON)
 		target_link_libraries(NetRocks-WebDAV ${OPENSSL_SSL_LIBRARY} LibXml2::LibXml2 LibLZMA::LibLZMA
 			${VCPKG_INSTALLED_PATH}/lib/libz.a dl)
