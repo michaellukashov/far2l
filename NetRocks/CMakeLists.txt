@@ -138,13 +138,12 @@ endif (LIBNFS_FOUND)
 
 if (LIBNEON_FOUND)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_WEBDAV")
-	# message("LibNEON_INCLUDE_DIRS: ${LibNEON_INCLUDE_DIRS}")
 	message("LIBNEON_INCLUDE_DIRS: ${LIBNEON_INCLUDE_DIRS}")
 	add_executable (NetRocks-WebDAV
 		${PROTOCOL_SOURCES}
 		src/Protocol/WebDAV/ProtocolWebDAV.cpp
 	)
-	target_link_libraries(NetRocks-WebDAV utils) # ${LIBNEON_LIBRARIES})
+	target_link_libraries(NetRocks-WebDAV utils ${LIBNEON_LIBRARIES})
 	target_include_directories(NetRocks-WebDAV PRIVATE src ${LIBNEON_INCLUDE_DIRS})
 	if(OPT_USE_STATIC_EXT_LIBS)
 		target_link_libraries(NetRocks-WebDAV ${OPENSSL_LIBRARIES} ${LIBXML2_LIBRARIES}
