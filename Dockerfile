@@ -66,19 +66,16 @@ RUN rm -rf $PREFIX/CMakeCache.txt $PREFIX/CMakeLists.txt.user 2>&1 && \
   -DCMAKE_CXX_FLAGS="-DPIC" \
   -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
+  -DCMAKE_SHARED_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
   -Wno-dev -DOPT_USE_STATIC_EXT_LIBS=TRUE -DVCPKG_ROOT=$VCPKGDIR \
   -DCMAKE_TOOLCHAIN_FILE=$VCPKGDIR/scripts/buildsystems/vcpkg.cmake 
-# -DCOLORER=no -DUSEUCD=no
-#RUN make neon_project
+
 RUN make far2l ${MAKE_ARGS} #$(nproc)
 RUN make install
 #cmake -G Ninja
 # RUN ninja -v
 RUN cpack
 RUN cat far2l-nowx-*.tar.gz > /far2l-nowx-static.tar.gz
-
-#CMD zip -qXr - far2l-nowx*.tar.gz
-#CMD cat far2l-nowx*.tar.gz
 
 # Install the entry script
 COPY entry.sh /
