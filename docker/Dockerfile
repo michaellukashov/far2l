@@ -1,5 +1,5 @@
 # TODO: build static libsmbclient (needed for NetRocks-SMB)
-# docker build -t far2l -f Dockerfile --build-arg MAKEFLAGS_PARALLEL=-j4 .
+# docker build -t far2l -f docker/Dockerfile --build-arg MAKEFLAGS_PARALLEL=-j4 .
 # docker run --rm far2l cat /far2l-nowx-static.tar.gz > far2l-nowx-static.tar.gz
 
 ARG MY_REGISTRY=
@@ -74,7 +74,7 @@ RUN cpack
 RUN cat far2l-nowx-*.tar.gz > /far2l-nowx-static.tar.gz
 
 # Install the entry script
-COPY entry.sh /
+COPY ./docker/entry.sh /
 ENTRYPOINT ["/entry.sh"]
 # Just run `bash` if no other command is given
 #CMD ["/bin/sh"]
