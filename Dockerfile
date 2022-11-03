@@ -42,9 +42,6 @@ RUN git clone https://github.com/Microsoft/vcpkg.git . #--depth=1 .
 RUN ./bootstrap-vcpkg.sh
 # RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 
-# patch vcpkg libs
-# RUN patch -lu -p1 < ${PREFIX}/patch-liblzma.patch
-
 # setup vcpkg libs
 RUN ./vcpkg install fmt
 RUN ./vcpkg install spdlog xerces-c 
@@ -53,6 +50,7 @@ RUN ./vcpkg install zlib
 #RUN ./vcpkg install mbedtls
 RUN ./vcpkg install libssh[core,mbedtls,zlib]
 RUN ./vcpkg install libxml2 zstd liblzma libarchive uchardet
+RUN ./vcpkg install openssl
 
 COPY . ${PREFIX}/
 
