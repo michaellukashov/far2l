@@ -64,9 +64,8 @@ COPY . ${PREFIX}/
 
 WORKDIR ${PREFIX}/build-far2l
 
-#-DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
 RUN rm -rf ${PREFIX}/CMakeCache.txt ${PREFIX}/CMakeLists.txt.user 2>&1 && \
-  ${VCPKGDIR}/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake ${PREFIX} -DUSEWX=no \
+  ${VCPKGDIR}/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake -G Ninja ${PREFIX} -DUSEWX=no \
   -DCMAKE_CXX_FLAGS="-DPIC" \
   -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
@@ -75,8 +74,10 @@ RUN rm -rf ${PREFIX}/CMakeCache.txt ${PREFIX}/CMakeLists.txt.user 2>&1 && \
   -DCMAKE_PREFIX_PATH=/build/neon \
   -DCMAKE_TOOLCHAIN_FILE=${VCPKGDIR}/scripts/buildsystems/vcpkg.cmake 
 
-RUN make far2l ${MAKEFLAGS_PARALLEL} #$(nproc)
-RUN make install
+#RUN make far2l ${MAKEFLAGS_PARALLEL}
+#RUN make install
+RUN cmake --build . --target all
+RUN cmake --build . --target install
 #cmake -G Ninja
 # RUN ninja -v
 RUN cpack
