@@ -189,12 +189,10 @@ if(PCRE_FOUND)
     target_include_directories(multiarc PRIVATE ${PCRE_INCLUDE_DIRS})
 endif()
 
-#message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
-#message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
+message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
+message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
 if(LibArchive_FOUND)
     target_compile_definitions(multiarc PRIVATE -DHAVE_LIBARCHIVE)
-    target_link_libraries(multiarc ${LibArchive_LIBRARIES})
-    target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
     if(OPT_USE_STATIC_EXT_LIBS)
         target_include_directories(multiarc PRIVATE ${VCPKG_INSTALLED_PATH}/include)
         list(REMOVE_ITEM LibArchive_LIBRARIES OpenSSL::Crypto)
@@ -224,6 +222,8 @@ if(LibArchive_FOUND)
             BZip2::BZip2
         )
     endif(OPT_USE_STATIC_EXT_LIBS)
+    target_link_libraries(multiarc ${LibArchive_LIBRARIES})
+    target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
 endif()
 
 set_target_properties(multiarc
