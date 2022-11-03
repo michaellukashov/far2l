@@ -52,6 +52,14 @@ RUN ./vcpkg install libssh[core,mbedtls,zlib]
 RUN ./vcpkg install libxml2 zstd liblzma libarchive uchardet
 RUN ./vcpkg install openssl
 
+WORKDIR /build/neon
+
+# build neon library
+RUN git clone --branch=0.32.4 --depth=1 https://github.com/notroj/neon.git . && \
+  ./autogen.sh && \
+	./configure --prefix=/build/neon --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKGDIR}/installed/x64-linux && \
+  make && make install-lib install-headers install-config
+
 COPY . ${PREFIX}/
 
 WORKDIR ${PREFIX}/build-far2l
@@ -64,6 +72,7 @@ RUN rm -rf ${PREFIX}/CMakeCache.txt ${PREFIX}/CMakeLists.txt.user 2>&1 && \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
   -DCMAKE_SHARED_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
   -Wno-dev -DOPT_USE_STATIC_EXT_LIBS=TRUE -DVCPKG_ROOT=${VCPKGDIR} \
+  -DCMAKE_PREFIX_PATH=/build/neon \
   -DCMAKE_TOOLCHAIN_FILE=${VCPKGDIR}/scripts/buildsystems/vcpkg.cmake 
 
 RUN make far2l ${MAKEFLAGS_PARALLEL} #$(nproc)

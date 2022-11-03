@@ -39,7 +39,7 @@ if(OPT_USE_STATIC_EXT_LIBS)
 	# message("VCPKG_INSTALLED_PATH: ${VCPKG_INSTALLED_PATH}")
 
 	set(CMAKE_PREFIX_PATH ${VCPKG_INSTALLED_PATH} ${CMAKE_PREFIX_PATH})
-	# message("CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+	message("CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 	#[[vcpkg_add_package(fmt)
 	vcpkg_add_package(spdlog)
@@ -522,37 +522,24 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
 		find_package(LibXml2 CONFIG)
 		find_package(liblzma CONFIG)
 		# TODO: install libtool gettext xmlto
-		set(LibNEON_DIR "${CMAKE_CURRENT_BINARY_DIR}/neon")
 
 		#[[TODO: find_program(GETTEXT_PROG NAMES ${GETTEXT_NAME})
 		if(NOT GETTEXT_PROG)
 		    message(FATAL_ERROR "${ColorRed}${GETTEXT_NAME} not found - please install it${ColorNormal}")
 		endif()]]
-		ExternalProject_Add(neon-static
-			GIT_REPOSITORY https://github.com/notroj/neon.git
-			GIT_TAG 0.32.4
-			BUILD_IN_SOURCE TRUE
-
-			# PREFIX ${CMAKE_CURRENT_BINARY_DIR}/neon
-			CONFIGURE_COMMAND ./autogen.sh
-			COMMAND ./configure --prefix=${LibNEON_DIR} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${CMAKE_CURRENT_BINARY_DIR}/vcpkg_installed/x64-linux:${VCPKG_ROOT}/installed/x64-linux
-			#BUILD_COMMAND make || exit 0
-			BUILD_COMMAND make
-			COMMAND make install-lib install-headers install-config
-			INSTALL_COMMAND ""
-			UPDATE_COMMAND ""
-			BUILD_BYPRODUCTS ${LibNEON_DIR}/lib/libneon.a
-		)
-		set(CMAKE_MODULE_PATH ${LibNEON_DIR} ${CMAKE_MODULE_PATH})
+		#[[set(CMAKE_MODULE_PATH ${LibNEON_DIR} ${CMAKE_MODULE_PATH})]]
+  	set(LibNEON_DIR /build/neon)
   	set(LIBNEON_LIBRARY ${LibNEON_DIR}/lib/libneon.a)
-		add_library(LibNEON STATIC IMPORTED)
-		set_target_properties(LibNEON PROPERTIES IMPORTED_LOCATION ${LIBNEON_LIBRARY})
-		add_dependencies(LibNEON neon-static)
-  	set(LIBNEON_FOUND TRUE)
-		set(LIBNEON_INCLUDE_DIR ${LibNEON_DIR}/include)
-		set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
+		#add_dependencies(LibNEON neon-static)
+    if(EXISTS ${LIBNEON_LIBRARY})
+      set(LIBNEON_FOUND TRUE)
+		  set(LIBNEON_INCLUDE_DIR ${LibNEON_DIR}/include)
+		  set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
+    	add_library(LibNEON STATIC IMPORTED)
+  		set_target_properties(LibNEON PROPERTIES IMPORTED_LOCATION ${LIBNEON_LIBRARY})
+    endif()
   else()
-	  find_package(LibNEON CONFIG)
+    find_package(LibNEON CONFIG)
   endif(OPT_USE_STATIC_EXT_LIBS)
   #endif(FALSE)
 	# message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
