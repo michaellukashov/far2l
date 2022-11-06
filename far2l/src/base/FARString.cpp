@@ -300,6 +300,20 @@ FARString& FARString::Append(wchar_t Ch, size_t Count)
 	return *this;
 }
 
+FARString& FARString::Insert(size_t Pos, wchar_t Ch, size_t Count)
+{
+	if (LIKELY(Pos <= m_pContent->GetLength())) {
+		size_t nNewLength = m_pContent->GetLength() + Count;
+		PrepareForModify(nNewLength);
+		wmemmove(m_pContent->GetData() + Pos + Count, m_pContent->GetData() + Pos, m_pContent->GetLength() - Pos);
+		wmemset(m_pContent->GetData() + Pos, Ch, Count);
+		m_pContent->SetLength(nNewLength);
+	}
+
+	return *this;
+}
+
+
 FARString& FARString::Copy(const FARString &Str)
 {
 	auto prev_pContent = m_pContent;
