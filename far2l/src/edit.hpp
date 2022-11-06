@@ -205,7 +205,6 @@ class Edit:public ScreenObject
 		inline int CalcPosFwd(int LimitPos = -1) const { return CalcPosFwdTo(CurPos, LimitPos); }
 		inline int CalcPosBwd() const { return CalcPosBwdTo(CurPos); }
 
-		inline const wchar_t* WordDiv(void) {return strWordDiv->CPtr();}
 	public:
 		Edit(ScreenObject *pOwner = nullptr, Callback* aCallback = nullptr, bool bAllocateData = true);
 		virtual ~Edit();
@@ -294,7 +293,7 @@ class Edit:public ScreenObject
 		void  GetRealSelection(int &Start,int &End);
 		void  SetEditBeyondEnd(int Mode) {Flags.Change(FEDITLINE_EDITBEYONDEND,Mode);}
 		void  SetEditorMode(int Mode) {Flags.Change(FEDITLINE_EDITORMODE,Mode);}
-		void  ReplaceTabs();
+		void  ExpandTabs();
 
 		void  InsertTab();
 

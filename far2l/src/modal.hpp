@@ -55,7 +55,7 @@ class Modal: public Frame
 		virtual ~Modal() {}
 
 	public:
-        virtual void GetDialogObjectsData() {}
+		virtual void GetDialogObjectsData() {}
 		int Done();
 		void ClearDone();
 		int  GetExitCode();
