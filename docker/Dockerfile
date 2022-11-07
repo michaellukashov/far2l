@@ -40,7 +40,7 @@ WORKDIR ${VCPKGDIR}
 RUN git clone https://github.com/Microsoft/vcpkg.git . #--depth=1 .
 
 RUN ./bootstrap-vcpkg.sh
-# RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
+RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 
 # setup vcpkg libs
 RUN ./vcpkg install fmt
