@@ -57,7 +57,7 @@ WORKDIR /build/neon
 # build neon library
 RUN git clone --branch=0.32.4 --depth=1 https://github.com/notroj/neon.git . && \
   ./autogen.sh && \
-	./configure --prefix=/build/neon --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKGDIR}/installed/x64-linux && \
+	./configure --prefix=/build/neon --enable-static --disable-debug --with-ssl=openssl --with-libxml2 --with-libs=${VCPKGDIR}/installed/x64-linux && \
   make && make install-lib install-headers install-config
 
 COPY . ${PREFIX}/
@@ -67,7 +67,7 @@ WORKDIR ${PREFIX}/build-far2l
 RUN rm -rf ${PREFIX}/CMakeCache.txt ${PREFIX}/CMakeLists.txt.user 2>&1 && \
   ${VCPKGDIR}/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake -G Ninja ${PREFIX} -DUSEWX=no \
   -DCMAKE_CXX_FLAGS="-DPIC" \
-  -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="" \
+  -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
   -DCMAKE_SHARED_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
   -Wno-dev -DOPT_USE_STATIC_EXT_LIBS=TRUE -DVCPKG_ROOT=${VCPKGDIR} \
@@ -83,6 +83,7 @@ RUN cmake --build . --target install
 RUN cpack
 RUN cat far2l-nowx-*.tar.gz > /far2l-nowx-static.tar.gz
 
+WORKDIR /
 # Install the entry script
 COPY ./docker/entry.sh /
 ENTRYPOINT ["/entry.sh"]
