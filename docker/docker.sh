@@ -47,4 +47,4 @@ if [[ "${1-}" == "login" ]] ; then
   exit
 fi
 
-build
+far2l_build
