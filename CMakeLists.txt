@@ -5,6 +5,8 @@ cmake_minimum_required (VERSION 3.14.0)
 option(OPT_USE_STATIC_EXT_LIBS "Build and use static external libraries: libneon, libsmb etc" OFF)
 option(OPT_PVS_ANALYSIS "use PVS static analysis" OFF)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(OPT_USE_STATIC_EXT_LIBS)
 	# include(cmake/xrepo.cmake)
 	# include(cmake/CPM.cmake)
