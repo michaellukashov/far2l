@@ -394,7 +394,7 @@ int Help::ReadHelp(const wchar_t *Mask)
 			lpwszPtr[PosTab]=L' ';
 			strReadStr.ReleaseBuffer();
 
-			if (CtrlTabSize > 1) // заменим табулятор по всем праивилам
+            if (CtrlTabSize > 1) // заменим табулятор по всем правилам
 				strReadStr.Insert(PosTab, strTabSpace.CPtr(), CtrlTabSize - (PosTab % CtrlTabSize));
 		}
 
