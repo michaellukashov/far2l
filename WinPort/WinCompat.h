@@ -82,6 +82,7 @@ typedef unsigned __int64 uint64_t;
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <wchar.h>
 
 static int _wtoi(const wchar_t *w)
 {
