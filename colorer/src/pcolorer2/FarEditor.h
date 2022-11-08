@@ -26,7 +26,7 @@ struct color{
     };
   };
   //color(): concolor(0), fg(0), bk(0), style(0) {};
-  color() {concolor=0; fg = 0; bk = 0; style = 0; };
+  color() {concolor=0; fg = 0; bk = 0; style = 0; }
 };
 
 extern const SString DShowCross;
