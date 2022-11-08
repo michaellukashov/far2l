@@ -258,7 +258,7 @@ int Help::ReadHelp(const wchar_t *Mask)
 		CtrlTabSize=_wtoi(strReadStr);
 	}
 
-	if (CtrlTabSize < 0 || CtrlTabSize > 16)
+    if ((CtrlTabSize < 0) || (CtrlTabSize > 16))
 		CtrlTabSize=Opt.HelpTabSize;
 
 	if (GetOptionsParam(HelpFile,L"CtrlColorChar",strReadStr, nCodePage))
