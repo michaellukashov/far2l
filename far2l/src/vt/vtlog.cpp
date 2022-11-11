@@ -94,8 +94,10 @@ namespace VTLog
 					out+= StrPrintf("48;2;%u;%u;%u;", rgb & 0xff, (rgb >> 8) & 0xff, (rgb >> 16) & 0xff);
 				}
 
-				assert(out.back() == ';');
-				out.back() = 'm';
+//				assert(out.back() == ';'
+				if (out.back() == ';') {
+					out.back() = 'm';
+				}
 				attr_prev = attr_now;
 			}
 
