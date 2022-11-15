@@ -3,7 +3,7 @@
 # docker run --rm far2l > far2l-nowx-static.tar.gz
 # docker run --rm far2l cat /build-far2l/far2l-nowx*.tar.gz > far2l-nowx-static.tar.gz
 
-FROM alpine:3.16.2
+FROM alpine:3.16.3
 # FROM frolvlad/alpine-glibc
 
 ARG PREFIX=/far2l
@@ -35,7 +35,9 @@ RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_
 
 # setup vcpkg libs
 RUN ./vcpkg install fmt spdlog xerces-c pcre
-RUN ./vcpkg install zlib openssl libssh[core,zlib,openssl]
+RUN ./vcpkg install zlib openssl
+#RUN ./vcpkg install mbedtls
+RUN ./vcpkg install libssh[core,mbedtls,zlib]
 RUN ./vcpkg install libxml2 zstd liblzma libarchive uchardet
 
 # setup libs
@@ -55,15 +57,17 @@ RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static -pthread" \
   -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
 # -DCOLORER=no -DUSEUCD=no
-RUN make ${MAKE_ARGS} #$(nproc)
+RUN make ${MAKE_ARGS} -j2
 RUN make install
-#cmake -G Ninja
-# RUN ninja -v
+# cmake -G Ninja
+# RUN ninja
 RUN cpack
-
-#CMD zip -qXr - far2l-nowx*.tar.gz
-#CMD cat far2l-nowx*.tar.gz
+RUN cat far2l-nowx-*.tar.gz > /far2l-nowx-static.tar.gz
 
 # Install the entry script
-COPY entry.sh /
+WORKDIR /
+# Install the entry script
+COPY ./docker/entry.sh /
 ENTRYPOINT ["/entry.sh"]
+# Just run `bash` if no other command is given
+#CMD ["/bin/sh"]

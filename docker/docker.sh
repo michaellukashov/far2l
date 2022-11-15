@@ -15,7 +15,7 @@ far2l_build()
 {
 pushd "${project_dir}"
 
-docker build -t far2l -f docker/Dockerfile \
+docker build -t far2l -f docker/Dockerfile.alpine \
   --build-arg MAKEFLAGS_PARALLEL=-j4 \
   .
 
