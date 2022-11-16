@@ -189,6 +189,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC -Wno-unused-function -Wno-de
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=c99 -fPIC -Wno-unused-function -D_FILE_OFFSET_BITS=64") # -fsanitize=address -fsanitize=bounds
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O2")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS} -O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__MUSL__ -DPIC")
+set(CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_FLAGS} -fpie -static-libgcc -static-libstdc++")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fpie -Os -pthread -static-libgcc -static-libstdc++")
+
 set(TOOLS_DIR ${CMAKE_BINARY_DIR}/tools)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")

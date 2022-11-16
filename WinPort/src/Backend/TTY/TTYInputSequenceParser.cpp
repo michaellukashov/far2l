@@ -56,7 +56,7 @@ void TTYInputSequenceParser::AddStr(WORD vk, DWORD control_keys, const char *fmt
 	int r = vsnprintf (&tmp[0], sizeof(tmp), fmt, va);
 	va_end(va);
 
-	fprintf(stderr, "TTYInputSequenceParser::AddStr(0x%x, 0x%x, '%s'): '%s' r=%d\n", vk, control_keys, fmt, tmp, r);
+	// fprintf(stderr, "TTYInputSequenceParser::AddStr(0x%x, 0x%x, '%s'): '%s' r=%d\n", vk, control_keys, fmt, tmp, r);
 
 	TTYInputKey k = {vk, control_keys};
 	switch (r) {

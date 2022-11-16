@@ -44,18 +44,28 @@ typedef const wchar_t *(*tGetPathTranslationPrefix)();
 
 static bool TranslateInstallPath(std::wstring &path, const wchar_t *dir_from, const wchar_t *dir_to)
 {
+ 
+  void *self = dlopen("/build-far2l/install/far2l", RTLD_GLOBAL | RTLD_NOW);
+fprintf(stderr, "self: %p\n", self);
+  if (self) {
+tGetPathTranslationPrefix pGetPathTranslationPrefix = (tGetPathTranslationPrefix)dlsym(self, "GetPathTranslationPrefix");
+fprintf(stderr, "pGetPathTranslationPrefix: %p\n", pGetPathTranslationPrefix);
+  }
+
+
 	static tGetPathTranslationPrefix pGetPathTranslationPrefix =
 		(tGetPathTranslationPrefix)dlsym(RTLD_DEFAULT, "GetPathTranslationPrefix");
-
-	return TranslateInstallPathT(path, dir_from, dir_to, pGetPathTranslationPrefix());
+fprintf(stderr, "pGetPathTranslationPrefix: %p\n", pGetPathTranslationPrefix);
+fprintf(stderr, "dir_from: %ls, dir_to: %ls\n", dir_from, dir_to);
+	return TranslateInstallPathT(path, dir_from, dir_to, pGetPathTranslationPrefix ? pGetPathTranslationPrefix() : L"");
 }
 
 static bool TranslateInstallPath(std::string &path, const char *dir_from, const char *dir_to)
 {
 	static tGetPathTranslationPrefixA pGetPathTranslationPrefixA =
 		(tGetPathTranslationPrefixA)dlsym(RTLD_DEFAULT, "GetPathTranslationPrefixA");
-
-	return TranslateInstallPathT(path, dir_from, dir_to, pGetPathTranslationPrefixA());
+fprintf(stderr, "pGetPathTranslationPrefixA: %p\n", pGetPathTranslationPrefixA);
+	return TranslateInstallPathT(path, dir_from, dir_to, pGetPathTranslationPrefixA ? pGetPathTranslationPrefixA() : "");
 }
 
 bool TranslateInstallPath_Bin2Share(std::wstring &path)
