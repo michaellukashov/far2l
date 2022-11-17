@@ -31,8 +31,11 @@ RUN apk --no-cache add zip unzip bzip2 xz patch wget which autoconf automake lib
 WORKDIR $VCPKGDIR
 RUN git clone https://github.com/Microsoft/vcpkg.git --depth=1 .
 
+COPY ./docker/arm64-linux.cmake $VCPKGDIR/triplets/
+COPY ./toolchain-aarch64.cmake $VCPKGDIR/
 RUN ./bootstrap-vcpkg.sh
-RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/community/$VCPKG_DEFAULT_TRIPLET.cmake
+RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
+RUN echo "set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE $VCPKGDIR/toolchain-aarch64.cmake)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 
 # setup vcpkg libs
 RUN ./vcpkg install fmt spdlog xerces-c pcre
