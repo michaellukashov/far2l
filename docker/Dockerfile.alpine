@@ -57,7 +57,7 @@ RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -pie -Os -static-libgcc -static-libstdc++ -pthread" \
   -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
 # -DCOLORER=no -DUSEUCD=no
-RUN make ${MAKE_ARGS} -j2
+RUN make -j ${MAKEFLAGS_PARALLEL}
 RUN make install
 # cmake -G Ninja
 # RUN ninja
