@@ -1,7 +1,6 @@
 # TODO: build static libsmbclient (needed for NetRocks-SMB)
-# docker build -t far2l -f Dockerfile .
-# docker run --rm far2l > far2l-nowx-static.tar.gz
-# docker run --rm far2l cat /build-far2l/far2l-nowx*.tar.gz > far2l-nowx-static.tar.gz
+# docker build -t far2l -f Dockerfile --build-arg MAKEFLAGS_PARALLEL=-j4 .
+# docker run --rm far2l cat /far2l-nowx*.tar.gz > far2l-nowx-static-alpine.tar.gz
 
 FROM alpine:3.16.3
 # FROM frolvlad/alpine-glibc
