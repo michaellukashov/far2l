@@ -79,5 +79,5 @@ WORKDIR /
 # Install the entry script
 COPY ./docker/entry.sh /
 ENTRYPOINT ["/entry.sh"]
-# Just run `bash` if no other command is given
+# Just run bash if no other command is given
 #CMD ["/bin/sh"]
