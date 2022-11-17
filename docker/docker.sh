@@ -11,16 +11,30 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_dir=$(dirname "${script_dir}")
 # echo project_dir: ${project_dir}
 
-far2l_build()
+far2l_build_alpine()
 {
 pushd "${project_dir}"
 
-docker build -t far2l -f docker/Dockerfile.alpine \
+docker build -t far2l:alpine -f docker/Dockerfile.alpine \
   --build-arg MAKEFLAGS_PARALLEL=-j4 \
   .
 
 # get built archive
 docker run --rm far2l cat /far2l-nowx-static.tar.gz > far2l-nowx-static-alpine.tar.gz
+
+popd
+}
+
+far2l_build_debian()
+{
+pushd "${project_dir}"
+
+docker build -t far2l:debian -f docker/Dockerfile \
+  --build-arg MAKEFLAGS_PARALLEL=-j4 \
+  .
+
+# get built archive
+docker run --rm far2l cat /far2l-nowx-static.tar.gz > far2l-nowx-static-debian.tar.gz
 
 popd
 }
@@ -47,4 +61,5 @@ if [[ "${1-}" == "login" ]] ; then
   exit
 fi
 
-far2l_build
+# far2l_build_alpine
+far2l_build_debian

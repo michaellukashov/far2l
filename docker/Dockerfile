@@ -33,7 +33,7 @@ RUN env DEBIAN_FRONTEND=noninteractive && apt-get install -y libnfs-dev
 # setup git
 WORKDIR /build/git
 RUN git clone https://github.com/git/git.git --depth=1 . && \
-  make -j ${MAKEFLAGS_PARALLEL} prefix=/usr && make prefix=/usr install
+  make ${MAKEFLAGS_PARALLEL} prefix=/usr && make prefix=/usr install
 
 # setup vcpkg
 WORKDIR ${VCPKGDIR}
@@ -66,17 +66,17 @@ WORKDIR ${PREFIX}/build-far2l
 
 RUN rm -rf ${PREFIX}/CMakeCache.txt ${PREFIX}/CMakeLists.txt.user 2>&1 && \
   ${VCPKGDIR}/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake -G Ninja ${PREFIX} -DUSEWX=no \
-  -DCMAKE_CXX_FLAGS="-DPIC" \
-  -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
-  -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
-  -DCMAKE_SHARED_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++" \
+  -DCMAKE_CXX_FLAGS="-DPIC -fPIE" \
+  -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++ -pthread" \
+  -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++ -pthread" \
+  -DCMAKE_MODULE_LINKER_FLAGS="-fPIC -pie -Os -static-libgcc -static-libstdc++ -pthread" \
   -Wno-dev -DOPT_USE_STATIC_EXT_LIBS=TRUE -DVCPKG_ROOT=${VCPKGDIR} \
   -DCMAKE_PREFIX_PATH=/build/neon \
   -DCMAKE_TOOLCHAIN_FILE=${VCPKGDIR}/scripts/buildsystems/vcpkg.cmake 
 
 #RUN make far2l ${MAKEFLAGS_PARALLEL}
 #RUN make install
-RUN cmake --build . --target all
+RUN cmake --build . --target all -- ${MAKEFLAGS_PARALLEL}
 RUN cmake --build . --target install
 #cmake -G Ninja
 # RUN ninja -v
