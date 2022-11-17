@@ -20,7 +20,7 @@ docker build -t far2l -f docker/Dockerfile.alpine \
   .
 
 # get built archive
-docker run --rm far2l cat /far2l-nowx-static.tar.gz > far2l-nowx-static.tar.gz
+docker run --rm far2l cat /far2l-nowx-static.tar.gz > far2l-nowx-static-alpine.tar.gz
 
 popd
 }

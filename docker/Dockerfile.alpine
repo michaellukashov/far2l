@@ -10,7 +10,7 @@ ARG PREFIX=/far2l
 ARG VCPKG_DEFAULT_TRIPLET=x64-linux
 ARG VCPKGDIR=/vcpkg
 ARG VCPKG_BUILD_TYPE=release
-ARG MAKE_ARGS=
+ARG MAKEFLAGS_PARALLEL=-j2
 
 ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
@@ -53,8 +53,8 @@ COPY . $PREFIX/
 RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
   cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE \
   -DCMAKE_CXX_FLAGS="-D__MUSL__ -DPIC -fPIC -fPIE" \
-  -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="-fPIC -pie -static-libgcc -static-libstdc++" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -pie -Os -static-libgcc -static-libstdc++ -pthread" \
+  -DCMAKE_MODULE_LINKER_FLAGS="-fPIC -pie -Os -static-libgcc -static-libstdc++ -pthread" \
   -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
 # -DCOLORER=no -DUSEUCD=no
 RUN make ${MAKEFLAGS_PARALLEL}
