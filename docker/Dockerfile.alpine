@@ -46,16 +46,26 @@ RUN ./vcpkg install libxml2 zstd liblzma libarchive uchardet
 #RUN sudo apk --no-cache add wxGTK3-devel
 #RUN apk --no-cache add ninja-build
 
+WORKDIR /build/neon
+
+# build neon library
+RUN git clone --branch=0.32.4 --depth=1 https://github.com/notroj/neon.git . && \
+  ./autogen.sh && \
+	./configure --prefix=/build/neon --enable-static --disable-debug --with-ssl=openssl --with-libxml2 --with-libs=${VCPKGDIR}/installed/x64-linux && \
+  make && make install-lib install-headers install-config
+
 WORKDIR /build-far2l
 
 COPY . $PREFIX/
 #-DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
 RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
-  cmake $PREFIX -DEACP=no -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE \
+  cmake $PREFIX -DEACP=yes -DUSEWX=no -DOPT_USE_STATIC_EXT_LIBS=TRUE \
   -DCMAKE_CXX_FLAGS="-D__MUSL__ -DPIC -fPIC -fPIE" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -pie -Os -static-libgcc -static-libstdc++ -pthread" \
   -DCMAKE_MODULE_LINKER_FLAGS="-fPIC -pie -Os -static-libgcc -static-libstdc++ -pthread" \
-  -Wno-dev -DVCPKG_ROOT=$VCPKGDIR
+  -Wno-dev -DVCPKG_ROOT=$VCPKGDIR \
+  -DCMAKE_PREFIX_PATH=/build/neon \
+  -DCMAKE_TOOLCHAIN_FILE=${VCPKGDIR}/scripts/buildsystems/vcpkg.cmake
 # -DCOLORER=no -DUSEUCD=no
 RUN make ${MAKEFLAGS_PARALLEL}
 RUN make install
