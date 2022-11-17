@@ -247,9 +247,8 @@ void CopyProgress::Flush()
 		{
 			if (CheckForEscSilent())
 			{
-				(*FrameManager)[0]->Lock();
+				LockFrame LF((*FrameManager)[0]);
 				IsCancelled=ConfirmAbortOp()!=0;
-				(*FrameManager)[0]->Unlock();
 			}
 		}
 
@@ -540,7 +539,7 @@ static void GenerateName(FARString &strName,const wchar_t *Path=nullptr)
 	FARString strExt=PointToExt(strName);
 	size_t NameLength=strName.GetLength()-strExt.GetLength();
 
-	for (int i=1; apiGetFileAttributes(strName)!=INVALID_FILE_ATTRIBUTES; i++)
+	for (int i=1; apiPathExists(strName); i++)
 	{
 		WCHAR Suffix[20]=L"_";
 		_itow(i,Suffix+1,10);
@@ -1199,9 +1198,6 @@ ShellCopy::ShellCopy(Panel *SrcPanel,        // исходная панель (�
 			{
 				CurCopiedSize=0;
 				strNameTmp = NamePtr;
-
-				if ((strNameTmp.GetLength() == 2) && IsAlpha(strNameTmp.At(0)) && (strNameTmp.At(1) == L':'))
-					PrepareDiskPath(strNameTmp);
 
 				if (!StrCmp(strNameTmp,L"..") && IsLocalRootPath(strSrcDir))
 				{

@@ -589,7 +589,7 @@ struct Options
 	ScreenSizes ScrSize;
 	MacroOptions Macro;
 
-	int FindCodePage;
+	DWORD FindCodePage;
 
 	TreeOptions Tree;
 	InfoPanelOptions InfoPanel;
@@ -617,10 +617,7 @@ void SetDizConfig();
 void ViewerConfig(ViewerOptions &ViOpt,bool Local=false);
 void EditorConfig(EditorOptions &EdOpt,bool Local=false);
 void NotificationsConfig(NotificationsOptions &NotifOpt);
-void ReadConfig();
 void ApplyConfig();
-void AssertConfigLoaded();
-void SaveConfig(int Ask);
 void SetFolderInfoFiles();
 void InfoPanelSettings();
 void AutoCompleteSettings();

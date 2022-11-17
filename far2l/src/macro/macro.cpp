@@ -726,11 +726,11 @@ uint32_t KeyMacro::ProcessKey(uint32_t Key)
 			int WaitInMainLoop0=WaitInMainLoop;
 			InternalInput=TRUE;
 			WaitInMainLoop=FALSE;
-			// Залочить _текущий_ фрейм, а не _последний немодальный_
-			FrameManager->GetCurrentFrame()->Lock(); // отменим прорисовку фрейма
-			MacroKey=AssignMacroKey();
-			FrameManager->ResetLastInputRecord();
-			FrameManager->GetCurrentFrame()->Unlock(); // теперь можно :-)
+			{ // Залочить _текущий_ фрейм, а не _последний немодальный_
+				LockCurrentFrame LCF;  // временно отменим прорисовку фрейма
+				MacroKey=AssignMacroKey();
+				FrameManager->ResetLastInputRecord();
+			}
 			// выставляем флаги по умолчанию.
 			DWORD Flags=MFLAGS_DISABLEOUTPUT; // ???
 			// добавим проверку на удаление
@@ -5478,7 +5478,7 @@ bool KeyMacro::UnregMacroFunction(size_t Index)
 	}
 	else
 	{
-		if (AMacroFunction && Index >=0 && Index < CMacroFunction)
+		if (AMacroFunction && Index < CMacroFunction)
 			AMacroFunction[Index].Code=MCODE_F_NOFUNC;
 		else
 			return false;
@@ -5489,7 +5489,7 @@ bool KeyMacro::UnregMacroFunction(size_t Index)
 
 const TMacroFunction *KeyMacro::GetMacroFunction(size_t Index)
 {
-	if (AMacroFunction && Index >= 0 && Index < CMacroFunction)
+	if (AMacroFunction && Index < CMacroFunction)
 		return AMacroFunction+Index;
 
 	return nullptr;
@@ -6126,15 +6126,9 @@ int KeyMacro::GetMacroSettings(uint32_t Key,DWORD &Flags)
 	Dialog Dlg(MacroSettingsDlg,ARRAYSIZE(MacroSettingsDlg),ParamMacroDlgProc,(LONG_PTR)&Param);
 	Dlg.SetPosition(-1,-1,73,19);
 	Dlg.SetHelp(L"KeyMacroSetting");
-	Frame* BottomFrame = FrameManager->GetBottomFrame();
-	if(BottomFrame)
 	{
-		BottomFrame->Lock(); // отменим прорисовку фрейма
-	}
-	Dlg.Process();
-	if(BottomFrame)
-	{
-		BottomFrame->Unlock(); // теперь можно :-)
+		LockBottomFrame LBF;// временно отменим прорисовку фрейма
+		Dlg.Process();
 	}
 
 	if (Dlg.GetExitCode()!=MS_BUTTON_OK)
