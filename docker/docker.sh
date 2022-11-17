@@ -20,7 +20,7 @@ docker build -t far2l:alpine -f docker/Dockerfile.alpine \
   .
 
 # get built archive
-docker run --rm far2l cat /far2l-nowx-static.tar.gz > far2l-nowx-static-alpine.tar.gz
+docker run --rm far2l:alpine cat /far2l-nowx-static.tar.gz > far2l-nowx-static-alpine.tar.gz
 
 popd
 }
@@ -34,7 +34,7 @@ docker build -t far2l:debian -f docker/Dockerfile \
   .
 
 # get built archive
-docker run --rm far2l cat /far2l-nowx-static.tar.gz > far2l-nowx-static-debian.tar.gz
+docker run --rm far2l:debian cat /far2l-nowx-static.tar.gz > far2l-nowx-static-debian.tar.gz
 
 popd
 }
