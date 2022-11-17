@@ -1,0 +1,20 @@
+set(CMAKE_CROSSCOMPILING TRUE)
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR x64)
+
+set(CMAKE_AR                    /usr/bin/aarch64-none-elf-ar)
+set(CMAKE_ASM_COMPILER          /usr/bin/aarch64-none-elf-as)
+set(CMAKE_C_COMPILER            /usr/bin/aarch64-none-elf-gcc)
+set(CMAKE_CXX_COMPILER          /usr/bin/aarch64-none-elf-g++)
+set(CMAKE_LINKER                /usr/bin/aarch64-none-elf-ld)
+set(CMAKE_OBJCOPY               /usr/bin/aarch64-none-elf-objcopy)
+set(CMAKE_RANLIB                /usr/bin/aarch64-none-elf-ranlib)
+set(CMAKE_SIZE                  /usr/bin/aarch64-none-elf-size)
+set(CMAKE_STRIP                 /usr/bin/aarch64-none-elf-strip)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
+
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)

@@ -25,6 +25,21 @@ docker run --rm far2l:alpine cat /far2l-nowx-static.tar.gz > far2l-nowx-static-a
 popd
 }
 
+far2l_build_aarch64_alpine()
+{
+pushd "${project_dir}"
+
+docker build -t far2l:aarch64-alpine -f docker/Dockerfile.aarch64-alpine \
+  --build-arg MAKEFLAGS_PARALLEL=-j4 \
+  .
+
+# get built archive
+docker run --rm far2l:alpine cat /far2l-nowx-static.tar.gz > far2l-nowx-static-alpine.tar.gz
+
+popd
+}
+
+
 far2l_build_debian()
 {
 pushd "${project_dir}"
@@ -52,7 +67,12 @@ popd
 }
 
 if [[ "${1-}" == "build" ]] ; then
-  far2l_build
+  far2l_build_debian
+  exit
+fi
+
+if [[ "${1-}" == "build-aarch64-alpine" ]] ; then
+  far2l_build_aarch64_alpine
   exit
 fi
 
