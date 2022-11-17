@@ -7,7 +7,7 @@ FROM alpine:3.16.3
 
 
 ARG PREFIX=/far2l
-ARG VCPKG_DEFAULT_TRIPLET=arm64-linux
+ENV VCPKG_DEFAULT_TRIPLET=arm64-linux
 ARG VCPKGDIR=/vcpkg
 ARG VCPKG_BUILD_TYPE=release
 ARG MAKEFLAGS_PARALLEL=-j2
@@ -17,7 +17,7 @@ ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 # RUN apk upgrade
 #RUN apk --no-cache add binutils cmake make libgcc musl-dev gcc g++
 RUN apk --no-cache add cmake make
-RUN apk --no-cache add binutils-aarch64-none-elf gcc-aarch64-none-elf
+RUN apk --no-cache add binutils-aarch64-none-elf gcc-aarch64-none-elf newlib-aarch64-none-elf
 
 RUN apk --no-cache add linux-headers perl cmake ninja #build-base
 # RUN apk --no-cache add zlib-static bzip2-static
@@ -34,13 +34,18 @@ RUN git clone https://github.com/Microsoft/vcpkg.git --depth=1 .
 
 COPY ./docker/arm64-linux.cmake $VCPKGDIR/triplets/
 COPY ./toolchain-aarch64.cmake $VCPKGDIR/
-RUN export VCPKG_DEFAULT_TRIPLET=$VCPKG_DEFAULT_TRIPLET
+ENV VCPKG_DEFAULT_TRIPLET=$VCPKG_DEFAULT_TRIPLET
+ENV VCPKG_TARGET_TRIPLET=$VCPKG_DEFAULT_TRIPLET
+#ENV CMAKE_C_COMPILER=/usr/bin/aarch64-none-elf-gcc
+#ENV CMAKE_CXX_COMPILER=/usr/bin/aarch64-none-elf-g++ 
+ENV CC="/usr/bin/aarch64-none-elf-gcc --specs=nosys.specs -flto -ffreestanding -nostdlib"
+ENV CXX="/usr/bin/aarch64-none-elf-g++ --specs=nosys.specs -flto -ffreestanding -nostdlib"
 RUN ./bootstrap-vcpkg.sh
 RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 RUN echo "set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE $VCPKGDIR/toolchain-aarch64.cmake)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 
 # setup vcpkg libs
-RUN ./vcpkg install fmt:arm64-linux spdlog xerces-c pcre
+RUN ./vcpkg install fmt spdlog xerces-c pcre
 RUN ./vcpkg install zlib openssl
 #RUN ./vcpkg install mbedtls
 RUN ./vcpkg install libssh[core,mbedtls,zlib]
