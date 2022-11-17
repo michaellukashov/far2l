@@ -216,7 +216,6 @@ if(LibArchive_FOUND)
         find_package(BZip2 REQUIRED)
         #target_link_libraries(main PRIVATE BZip2::BZip2)
         target_link_libraries(multiarc
-            ${OPENSSL_LIBRARIES}
             # OpenSSL::SSL OpenSSL::Crypto
             ZLIB::ZLIB
             zstd::libzstd_static
@@ -226,7 +225,7 @@ if(LibArchive_FOUND)
             BZip2::BZip2
         )
     endif(OPT_USE_STATIC_EXT_LIBS)
-    target_link_libraries(multiarc ${LibArchive_LIBRARIES})
+    target_link_libraries(multiarc ${LibArchive_LIBRARIES} ${OPENSSL_LIBRARIES})
     target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
 endif()
 
