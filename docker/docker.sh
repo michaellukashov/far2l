@@ -11,7 +11,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_dir=$(dirname "${script_dir}")
 # echo project_dir: ${project_dir}
 
-far2l_build_alpine()
+far2l_build_x86_64_alpine()
 {
 pushd "${project_dir}"
 
@@ -71,6 +71,11 @@ if [[ "${1-}" == "build" ]] ; then
   exit
 fi
 
+if [[ "${1-}" == "build-x86_64-alpine" ]] ; then
+  far2l_build_x86_64_alpine
+  exit
+fi
+
 if [[ "${1-}" == "build-aarch64-alpine" ]] ; then
   far2l_build_aarch64_alpine
   exit
@@ -81,5 +86,5 @@ if [[ "${1-}" == "login" ]] ; then
   exit
 fi
 
-# far2l_build_alpine
+# far2l_build_x86_64_alpine
 far2l_build_debian
