@@ -1,4 +1,4 @@
-/*
+﻿/*
 help.cpp
 
 Помощь
@@ -110,8 +110,6 @@ static const wchar_t *FoundContents=L"__FoundContents__";
 static const wchar_t *PluginContents=L"__PluginContents__";
 static const wchar_t *HelpOnHelpTopic=L":Help";
 static const wchar_t *HelpContents=L"Contents";
-
-static int RunURL(const wchar_t *Protocol, const wchar_t *URLPath);
 
 Help::Help(const wchar_t *Topic, const wchar_t *Mask,DWORD Flags):
 	CMM(MACRO_HELP),
@@ -1392,15 +1390,10 @@ int Help::JumpTopic(const wchar_t *JumpTopic)
 	// URL активатор - это ведь так просто :-)))
 	{
 		strNewTopic = StackData.strSelTopic;
-
-		if (strNewTopic.Pos(pos,L':') && strNewTopic.At(0) != L':') // наверное подразумевается URL
-		{
-			strNewTopic.ReplaceChar(pos, 0);
-			if (RunURL(strNewTopic.CPtr(), StackData.strSelTopic.CPtr()))
-			{
-				return FALSE;
-			}
-			strNewTopic.ReplaceChar(pos, L':');
+		if (strNewTopic.Begins("http:") || strNewTopic.Begins("https:") || strNewTopic.Begins("mailto:"))
+		{ // наверное подразумевается URL
+			farExecuteA(strNewTopic.GetMB().c_str(), EF_NOWAIT | EF_HIDEOUT | EF_NOCMDPRINT | EF_OPEN);
+			return FALSE;
 		}
 	}
 	// а вот теперь попробуем...
@@ -2020,24 +2013,6 @@ void Help::InitKeyBar()
 	HelpKeyBar.ReadRegGroup(L"Help",Opt.strLanguage);
 	HelpKeyBar.SetAllRegGroup();
 	SetKeyBar(&HelpKeyBar);
-}
-
-/* $ 25.08.2000 SVS
-   Запуск URL-ссылок... ;-)
-   Это ведь так просто... ась?
-   Вернет:
-     0 - это не URL ссылка (не похожа)
-     1 - CreateProcess вернул FALSE
-     2 - Все Ок
-
-   Параметры (например):
-     Protocol="mailto"
-     URLPath ="mailto:vskirdin@mail.ru?Subject=Reversi"
-*/
-static int RunURL(const wchar_t *Protocol, const wchar_t *URLPath)
-{
-	fprintf(stderr, "TODO: %s('%ls', '%ls')\n", __FUNCTION__, Protocol, URLPath);
-	return 0;
 }
 
 void Help::OnChangeFocus(int Focus)
