@@ -1967,6 +1967,16 @@ upd:"Disable antialiasing"
 upd:"Disable antialiasing"
 "Відключити згладжування"
 
+ConfigOSC52ClipSet
+"Исп. OSC&52 для записи в буфер обмена"
+"Use OSC&52 to set clipboard data"
+upd:"Use OSC&52 to set clipboard data"
+upd:"Use OSC&52 to set clipboard data"
+upd:"Use OSC&52 to set clipboard data"
+upd:"Use OSC&52 to set clipboard data"
+upd:"Use OSC&52 to set clipboard data"
+upd:"Use OSC&52 to set clipboard data"
+
 ConfigExclusiveKeys
 "&Экслюзивная обработка нажатий, включающих:"
 "&Exclusively handle hotkeys that include:"
@@ -22721,6 +22731,36 @@ upd:"Clipboard access"
 upd:"Clipboard access"
 upd:"Clipboard access"
 "Доступ до буфера обміну"
+
+TerminalClipboardSetText
+"Приложение хочет записать в буфер обмена."
+"Application wants to set clipboard data."
+upd:"Application wants to set clipboard data."
+upd:"Application wants to set clipboard data."
+upd:"Application wants to set clipboard data."
+upd:"Application wants to set clipboard data."
+upd:"Application wants to set clipboard data."
+upd:"Application wants to set clipboard data."
+
+TerminalClipboardSetAllowOnce
+"&Разрешить однократно"
+"&Allow once"
+upd:"&Allow once"
+upd:"&Allow once"
+upd:"&Allow once"
+upd:"&Allow once"
+upd:"&Allow once"
+upd:"&Allow once"
+
+TerminalClipboardSetAllowForCommand
+"Разрешить &этой команде"
+"Allow for &this command"
+upd:"Allow for &this command"
+upd:"Allow for &this command"
+upd:"Allow for &this command"
+upd:"Allow for &this command"
+upd:"Allow for &this command"
+upd:"Allow for &this command"
 
 TerminalClipboardAccessText
 "Укажите как это приложение может пользоваться буфером обмена."
