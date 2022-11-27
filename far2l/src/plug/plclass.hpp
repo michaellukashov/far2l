@@ -92,7 +92,7 @@ class Plugin
 
 		virtual ~Plugin();
 
-		virtual bool IsOemPlugin() = 0;
+		virtual bool IsPluginMB() = 0;
 
 		virtual bool Load() = 0;
 		virtual bool LoadFromCache() = 0;
