@@ -1,4 +1,4 @@
-project(NetRocks)
+﻿project(NetRocks)
 
 set(SOURCES
 src/Erroring.cpp
@@ -76,7 +76,7 @@ set_target_properties(NetRocks-FILE
 	SUFFIX ".broker")
 target_compile_options(NetRocks-FILE PUBLIC -DNETROCKS_PROTOCOL)
 
-if (LIBSSH_FOUND)
+if (LIBSSH_FOUND AND ((NOT DEFINED NR_SFTP) OR NR_SFTP))
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_SFTP")
 	add_executable (NetRocks-SFTP
 		${PROTOCOL_SOURCES}
@@ -103,7 +103,7 @@ if (LIBSSH_FOUND)
 		SUFFIX ".broker")
 endif (LIBSSH_FOUND)
 
-if (LIBSMBCLIENT_FOUND)
+if (LIBSMBCLIENT_FOUND AND ((NOT DEFINED NR_SMB) OR NR_SMB))
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_SMB")
 	add_executable (NetRocks-SMB
 		${PROTOCOL_SOURCES}
@@ -119,7 +119,7 @@ if (LIBSMBCLIENT_FOUND)
 		SUFFIX ".broker")
 endif (LIBSMBCLIENT_FOUND)
 
-if (LIBNFS_FOUND)
+if (LIBNFS_FOUND AND ((NOT DEFINED NR_NFS) OR NR_NFS))
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_NFS")
 	add_executable (NetRocks-NFS
 		${PROTOCOL_SOURCES}
@@ -137,7 +137,8 @@ if (LIBNFS_FOUND)
 		SUFFIX ".broker")
 endif (LIBNFS_FOUND)
 
-if (LIBNEON_FOUND)
+
+if (LIBNEON_FOUND AND ((NOT DEFINED NR_WEBDAV) OR NR_WEBDAV))
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_WEBDAV")
 	message("LIBNEON_INCLUDE_DIRS: ${LIBNEON_INCLUDE_DIRS}")
 	add_executable (NetRocks-WebDAV
@@ -172,8 +173,7 @@ endif (LIBNEON_FOUND)
 		${VCPKG_INSTALLED_PATH}/lib/libz.a dl)
 	endif(OPT_USE_STATIC_EXT_LIBS)
 	target_include_directories(NetRocks-FTP PRIVATE src)
-message("OPENSSL_FOUND: ${OPENSSL_FOUND}")
-if (OPENSSL_FOUND)
+if (OPENSSL_FOUND AND ((NOT DEFINED NR_OPENSSL) OR NR_OPENSSL))
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENSSL")
 	target_link_libraries(NetRocks-FTP ${OPENSSL_LIBRARIES})
 	target_include_directories(NetRocks-FTP PRIVATE ${OPENSSL_INCLUDE_DIRS})

@@ -5407,14 +5407,14 @@ upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
 
 VTStartTipPendCmdMouse
 l:
-" MouseScrollUp - автозавершающийся просмотр лога терминала.               "
-" MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" MouseScrollUp - pause and open autoclosing viewer with console log.      "
-" MouseScrollUp - перегляд лога терміналу, що завершується автоматично.    "
+" Ctrl+Shift+MouseScrollUp - автозавершающийся просмотр лога терминала.               "
+" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
+upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
+upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
+upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
+upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
+upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
+" Ctrl+Shift+MouseScrollUp - перегляд лога терміналу, що завершується автоматично.    "
 
 BookmarkBottom
 "Редактирование: Del,Ins,F4,Shift+Вверх,Shift+Вниз"
@@ -15769,16 +15769,6 @@ upd:"Plugins manager settings"
 upd:"Plugins manager settings"
 upd:"Plugins manager settings"
 "Параметри менеджера зовнішніх модулів"
-
-PluginsManagerOEMPluginsSupport
-"Поддержка OEM-плагинов"
-"OEM plugins support"
-upd:"OEM plugins support"
-upd:"OEM plugins support"
-upd:"OEM plugins support"
-upd:"OEM plugins support"
-upd:"OEM plugins support"
-"Підтримка OEM-плагінів"
 
 PluginsManagerScanSymlinks
 "Ск&анировать символические ссылки"

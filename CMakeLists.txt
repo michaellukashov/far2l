@@ -1,4 +1,4 @@
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
+﻿set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 cmake_minimum_required (VERSION 3.14.0)
 
@@ -193,7 +193,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__MUSL__ -DPIC")
 set(CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_FLAGS} -fpie -static-libgcc -static-libstdc++")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fpie -Os -pthread -static-libgcc -static-libstdc++")
 
-set(TOOLS_DIR ${CMAKE_BINARY_DIR}/tools)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	set(APP_DIR ${CMAKE_BINARY_DIR}/install)
@@ -236,16 +235,9 @@ endif()
 
 include_directories(utils/include)
 
-add_subdirectory (farlng)
 add_subdirectory (WinPort)
 add_subdirectory (utils)
 add_subdirectory (far2l)
-add_dependencies (far2l farlng)
-
-set_target_properties(farlng
-  PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${TOOLS_DIR}"
-)
 
 if (NOT ${USEWX})
 	message(STATUS "Building without GUI/wxWidgets backend due to USEWX=${USEWX}")
