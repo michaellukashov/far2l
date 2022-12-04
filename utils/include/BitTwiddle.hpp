@@ -1,5 +1,13 @@
 #pragma once
 
+#ifdef __APPLE__
+# include <machine/endian.h>  // __BYTE_ORDER
+#elif defined(__FreeBSD__)
+# include <sys/endian.h>  // __BYTE_ORDER
+#else
+# include <endian.h>  // __BYTE_ORDER
+#endif
+
 template <class POD_T>
 	inline void ZeroFill(POD_T &dst)
 {
@@ -49,3 +57,20 @@ template <class V>
 		dst_values[i] = RevBytes(src_values[i]);
 	}
 }
+
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+# define LITEND(V)   (RevBytes(V))
+#else
+# define LITEND(V)   (V)
+#endif
+
+#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+# define LITEND_FILETIME_CONVERT(FT) { \
+	std::swap(FT.dwLowDateTime, dwHighDateTime); \
+	FT.dwLowDateTime = __builtin_bswap32(FT.dwLowDateTime); \
+	FT.dwHighDateTime = __builtin_bswap32(FT.dwHighDateTime); \
+}
+#else
+# define LITEND_FILETIME_CONVERT(FT)
+#endif
+
