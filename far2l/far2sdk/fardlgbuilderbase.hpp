@@ -347,8 +347,8 @@ class DialogBuilderBase
 		}
 
 		DialogBuilderBase()
-			: DialogItems(nullptr), DialogItemsCount(0), DialogItemsAllocated(0), NextY(2),
-			  ColumnStartIndex(-1), ColumnBreakIndex(-1), ColumnMinWidth(0)
+				: DialogItems(nullptr), Bindings(nullptr), DialogItemsCount(0), DialogItemsAllocated(0), NextY(2),
+				OKButtonID(0), ColumnStartIndex(-1), ColumnBreakIndex(-1), ColumnStartY(0), ColumnEndY(0), ColumnMinWidth(0)
 		{
 		}
 
