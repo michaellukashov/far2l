@@ -2636,7 +2636,7 @@ void *VMenu::_GetUserData(MenuItemEx *PItem, void *Data, int Size)
 			}
 			// else а иначе... в PtrData уже указатель сидит!
 		}
-		else // ... данных нет, значит лудим имя пункта!
+		else // ... данных нет, значит копируем имя пункта!
 		{
 			memcpy(Data,PItem->strName.CPtr(),Min(Size,static_cast<int>((PItem->strName.GetLength()+1)*sizeof(wchar_t))));
 		}
