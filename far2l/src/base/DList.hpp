@@ -69,7 +69,7 @@ class DList : public CDList
 {
 		struct TNode : Node
 		{
-			Type type;
+			Type type{};
 			TNode(Type *t) {if (t) type=*t;}
 		};
 		Node *AllocNode(void *key) {return new TNode((Type*)key);}
