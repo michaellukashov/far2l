@@ -2244,8 +2244,8 @@ int Edit::RealPosToCell(int PrevLength, int PrevPos, int Pos, int* CorrectPos)
 			// Обрабатываем табы
 			if (Str[Index] == L'\t' && TabExpandMode != EXPAND_ALLTABS)
 			{
-				// Если есть необходимость делать корректировку табов и эта коректировка
-				// ещё не проводилась, то увеличиваем длину обрабатываемой строки на еденицу
+				// Если есть необходимость делать корректировку табов и эта корректировка
+				// ещё не проводилась, то увеличиваем длину обрабатываемой строки на единицу
 				if (bCorrectPos)
 				{
 					++Pos;
@@ -2434,7 +2434,7 @@ void Edit::DeleteBlock()
 	SelEnd=0;
 	Flags.Clear(FEDITLINE_MARKINGBLOCK);
 
-	// OT: Проверка на корректность поведени строки при удалении и вставки
+	// OT: Проверка на корректность строки при удалении и вставке
 	if (Flags.Check((FEDITLINE_PARENT_SINGLELINE|FEDITLINE_PARENT_MULTILINE)))
 	{
 		if (LeftPos>CurPos)
