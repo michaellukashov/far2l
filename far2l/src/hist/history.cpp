@@ -156,7 +156,7 @@ void History::AddToHistoryLocal(const wchar_t *Str, const wchar_t *Prefix, int T
 			else
 			{
 				HistoryItem=HistoryList.Next(HistoryItem);
-		    }
+			}
 		}
 	}
 
