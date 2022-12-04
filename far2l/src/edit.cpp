@@ -1495,11 +1495,11 @@ int Edit::ProcessCtrlQ()
 	return InsertKey(rec.Event.KeyEvent.uChar.AsciiChar);
 }
 
-int Edit::ProcessInsPlainText(const wchar_t *str)
+int Edit::ProcessInsPlainText(const wchar_t *Str)
 {
-	if (*str)
+	if (*Str)
 	{
-		InsertString(str);
+		InsertString(Str);
 		return TRUE;
 	}
 
