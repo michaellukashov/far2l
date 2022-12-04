@@ -717,8 +717,8 @@ IUnmakeWritablePtr apiMakeWritable(LPCWSTR lpFileName)
 		mode_t target_mode, dir_mode;
 		unsigned long target_flags, dir_flags;
 		bool target_flags_modified, dir_flags_modified;
-		UnmakeWritable() : 
-			target_mode(0), dir_mode(0), target_flags_modified(false), dir_flags_modified(false)
+		UnmakeWritable() :
+			target_mode(0), dir_mode(0), target_flags(0), dir_flags(0), target_flags_modified(false), dir_flags_modified(false)
 		{
 		}
 		
