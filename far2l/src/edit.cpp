@@ -78,7 +78,7 @@ class DisableCallback
 	bool OldState;
 	bool *CurState;
 public:
-	DisableCallback(bool &State){OldState=State;CurState=&State;State=false;}
+	explicit DisableCallback(bool &State){OldState=State;CurState=&State;State=false;}
 	void Restore(){*CurState=OldState;}
 	~DisableCallback(){Restore();}
 };
@@ -2532,7 +2532,7 @@ void Edit::ApplyColor()
 			RealStart = RealPosToCell(CurItem.StartPos);
 			Start = RealStart-LeftPos;
 		}
-		// Для отптимизации делаем вычисление относительно предыдущей позиции
+		// Для оптимизации делаем вычисление относительно предыдущей позиции
 		else
 		{
 			RealStart = RealPosToCell(TabPos, Pos, CurItem.StartPos, nullptr);
@@ -2585,7 +2585,7 @@ void Edit::ApplyColor()
 			EndPos += CorrectPos;
 			End = RealEnd-LeftPos;
 		}
-		// Для отптимизации делаем вычисление относительно предыдущей позиции (с учётом
+		// Для оптимизации делаем вычисление относительно предыдущей позиции (с учётом
 		// корректировки относительно табов)
 		else
 		{
