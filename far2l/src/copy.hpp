@@ -120,7 +120,7 @@ class ShellFileTransfer
 	clock_t _Stopwatch = 0;
 	int64_t _AppendPos = -1;
 	DWORD _DstFlags = 0;
-	DWORD _ModeToCreateWith;
+	DWORD _ModeToCreateWith = 0;
 
 	File _SrcFile, _DestFile;
 	bool _LastWriteWasHole = false;
