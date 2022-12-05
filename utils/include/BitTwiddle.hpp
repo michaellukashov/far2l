@@ -33,13 +33,14 @@ template <class V, class A>
 template <class V>
 	inline V RevBytes(const V &value)
 {
+	static_assert(sizeof(V) == 1 || sizeof(V) == 2 || sizeof(V) == 4 || sizeof(V) == 8, "RevBytes works only with sane-sized integers");
 	switch (sizeof(V)) {
-		case 1: return value;
-		case 2: return (V)__builtin_bswap16((uint16_t)value);
-		case 4: return (V)__builtin_bswap32((uint32_t)value);
 		case 8: return (V)__builtin_bswap64((uint64_t)value);
+		case 4: return (V)__builtin_bswap32((uint32_t)value);
+		case 2: return (V)__builtin_bswap16((uint16_t)value);
+		default: // case 1:
+			return value;
 	}
-	abort();
 }
 
 template <class V>
@@ -59,18 +60,25 @@ template <class V>
 }
 
 #if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+# define ENDIAN_IS_BIG
+#endif
+
+#ifdef ENDIAN_IS_BIG
 # define LITEND(V)   (RevBytes(V))
-#else
-# define LITEND(V)   (V)
-#endif
-
-#if defined(__BYTE_ORDER__) && (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-# define LITEND_FILETIME_CONVERT(FT) { \
-	std::swap(FT.dwLowDateTime, dwHighDateTime); \
-	FT.dwLowDateTime = __builtin_bswap32(FT.dwLowDateTime); \
-	FT.dwHighDateTime = __builtin_bswap32(FT.dwHighDateTime); \
+# define LITEND_INPLACE(V)   V = LITEND(V)
+# define BIGEND(V)   (V)
+# define BIGEND_INPLACE(V)
+# define LITEND_INPLACE_FILETIME(FT) { \
+	std::swap((FT).dwLowDateTime, (FT).dwHighDateTime); \
+	(FT).dwLowDateTime = __builtin_bswap32((FT).dwLowDateTime); \
+	(FT).dwHighDateTime = __builtin_bswap32((FT).dwHighDateTime); \
 }
-#else
-# define LITEND_FILETIME_CONVERT(FT)
-#endif
 
+#else // #ifdef ENDIAN_IS_BIG
+# define LITEND(V)   (V)
+# define LITEND_INPLACE(V) 
+# define BIGEND(V)   (RevBytes(V))
+# define BIGEND_INPLACE(V)   V = BIGEND(V)
+# define LITEND_INPLACE_FILETIME(FT)
+
+#endif // #ifdef ENDIAN_IS_BIG

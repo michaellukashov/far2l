@@ -1,9 +1,11 @@
 #pragma once
 #include <stdint.h>
+#include <stdio.h>
 #include <string>
 #include <vector>
 #include <elf.h>
 #include <fcntl.h> // for O_RDONLY
+#include <BitTwiddle.hpp>
 
 #include "../../../WinPort/sudo.h" // for sdc_open
 
@@ -24,22 +26,16 @@ struct ELFInfo
 };
 
 
-struct ELF_EndianessSame
+struct ELF_EndianessBig
 {
 	template <class T>
-		static T C(T v) { return v; }
+		static T C(const T &v) { return BIGEND(v); }
 };
 
-struct ELF_EndianessReverse
+struct ELF_EndianessLittle
 {
 	template <class T>
-		static T C(T v)
-	{
-		for (size_t i = 0; i< sizeof(v) / 2; ++i) {
-			std::swap( ((char *)&v)[i], ((char *)&v)[sizeof(v) - 1 - i]);
-		}
-		return v; 
-	}
+		static T C(const T &v) { return LITEND(v); }
 };
 
 template <class E, class Ehdr, class Phdr, class Shdr>
@@ -80,13 +76,19 @@ template <class E, class Ehdr, class Phdr, class Shdr>
 		if (eh.e_shnum) {
 			Shdr sh = {};
 			std::vector<char> strings;
-			E::C(eh.e_shstrndx);
 			if (sdc_lseek(fd, E::C(eh.e_shoff) + off_t(E::C(eh.e_shstrndx)) * E::C(eh.e_shentsize), SEEK_SET) != (off_t)-1
-			&& sdc_read(fd, &sh, sizeof(sh)) == sizeof(sh)) {
-				strings.resize(E::C(sh.sh_size) + 1);
-				if (sdc_lseek(fd, E::C(sh.sh_offset), SEEK_SET) != -1) {
-					sdc_read(fd, &strings[0], strings.size() - 1);
+			&& sdc_read(fd, &sh, sizeof(sh)) == sizeof(sh)
+			&& E::C(sh.sh_offset) <= s.st_size && E::C(sh.sh_offset) + E::C(sh.sh_size) <= s.st_size) {
+				try {
+					strings.resize(E::C(sh.sh_size) + 1);
+					if (sdc_lseek(fd, E::C(sh.sh_offset), SEEK_SET) != -1) {
+						sdc_read(fd, strings.data(), strings.size() - 1);
+					}
+				} catch (std::exception &e) {
+					fprintf(stderr, "ELFInfo: failed to read strings - %s\n", e.what());
 				}
+			} else {
+				fprintf(stderr, "ELFInfo: bad strings boundaries\n");
 			}
 
 			tmp = E::C(eh.e_shoff) + uint64_t(E::C(eh.e_shnum)) * E::C(eh.e_shentsize);
