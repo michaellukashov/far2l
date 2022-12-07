@@ -5,6 +5,7 @@
 # include <sys/types.h>
 # include <sys/event.h>
 # include <sys/time.h>
+#elif defined(__HAIKU__)
 #elif !defined(__CYGWIN__)
 # include <sys/inotify.h>
 #endif
@@ -21,11 +22,12 @@
 #include <utils.h>
 #include "../../WinPort/WinCompat.h"
 
-#if defined(__CYGWIN__)
+#if defined(__CYGWIN__) || defined(__HAIKU__)
 
 class FSNotify : public IFSNotify
 { // dummy implementation that doesnt watch for changes
-	FSNotify(const std::string &pathname, bool watch_subtree, FSNotifyWhat what) {}
+  public:
+    FSNotify(const std::string &pathname, bool watch_subtree, FSNotifyWhat what) {}
 	virtual bool Check() const noexcept { return false; }
 };
 
