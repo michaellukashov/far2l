@@ -65,7 +65,7 @@ COPY . ${PREFIX}/
 WORKDIR ${PREFIX}/build-far2l
 
 RUN rm -rf ${PREFIX}/CMakeCache.txt ${PREFIX}/CMakeLists.txt.user 2>&1 && \
-  ${VCPKGDIR}/downloads/tools/cmake-3.24.0-linux/cmake-3.24.0-linux-x86_64/bin/cmake -G Ninja ${PREFIX} -DUSEWX=no \
+  ${VCPKGDIR}/downloads/tools/cmake-3.25.0-linux/cmake-3.25.0-linux-x86_64/bin/cmake -G Ninja ${PREFIX} -DUSEWX=no \
   -DCMAKE_CXX_FLAGS="-DPIC -fPIE" \
   -DCMAKE_SHARED_LIBRARY_LINK_DYNAMIC_C_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++ -pthread" \
   -DCMAKE_EXE_LINKER_FLAGS="-fPIC -Os -static-libgcc -static-libstdc++ -pthread" \
