@@ -234,7 +234,6 @@ class VMenu: public Modal
 		ConsoleTitle *OldTitle;     // предыдущий заголовок
 
 		CriticalSection CS;
-		bool *Used;
 
 		bool bFilterEnabled;
 		bool bFilterLocked;
