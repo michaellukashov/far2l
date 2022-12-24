@@ -9,7 +9,7 @@ ARG PREFIX=/far2l
 ARG VCPKG_DEFAULT_TRIPLET=x64-linux
 ARG VCPKGDIR=/vcpkg
 ARG VCPKG_BUILD_TYPE=release
-ARG MAKEFLAGS_PARALLEL=-j2
+ARG MAKEFLAGS_PARALLEL="-j`nproc`"
 
 ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
@@ -33,11 +33,10 @@ RUN ./bootstrap-vcpkg.sh
 RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 
 # setup vcpkg libs
-RUN ./vcpkg install fmt spdlog xerces-c pcre
-RUN ./vcpkg install zlib openssl
-#RUN ./vcpkg install mbedtls
+RUN ./vcpkg install zlib fmt spdlog xerces-c pcre
 RUN ./vcpkg install libssh[core,mbedtls,zlib]
 RUN ./vcpkg install libxml2 zstd liblzma libarchive uchardet
+RUN ./vcpkg install openssl
 
 # setup libs
 #RUN apk --no-cache add samba-dev

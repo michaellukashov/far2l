@@ -16,7 +16,7 @@ far2l_build_x86_64_alpine()
 pushd "${project_dir}"
 
 docker build -t far2l:alpine -f docker/Dockerfile.alpine \
-  --build-arg MAKEFLAGS_PARALLEL=-j4 \
+  --build-arg MAKEFLAGS_PARALLEL=-j`nproc` \
   .
 
 # get built archive
@@ -30,7 +30,7 @@ far2l_build_aarch64_alpine()
 pushd "${project_dir}"
 
 docker build -t far2l:aarch64-alpine -f docker/Dockerfile.aarch64-alpine \
-  --build-arg MAKEFLAGS_PARALLEL=-j4 \
+  --build-arg MAKEFLAGS_PARALLEL=-j`nproc` \
   .
 
 # get built archive
@@ -45,7 +45,7 @@ far2l_build_debian()
 pushd "${project_dir}"
 
 docker build -t far2l:debian -f docker/Dockerfile \
-  --build-arg MAKEFLAGS_PARALLEL=-j4 \
+  --build-arg MAKEFLAGS_PARALLEL=-j`nproc` \
   .
 
 # get built archive
