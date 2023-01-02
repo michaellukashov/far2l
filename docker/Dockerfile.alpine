@@ -9,7 +9,6 @@ ARG PREFIX=/far2l
 ARG VCPKG_DEFAULT_TRIPLET=x64-linux
 ARG VCPKGDIR=/vcpkg
 ARG VCPKG_BUILD_TYPE=release
-ARG MAKEFLAGS_PARALLEL="-j`nproc`"
 
 ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
 
@@ -24,6 +23,8 @@ RUN apk --no-cache add gawk m4 curl gettext pkgconf git
 #for libneon build
 RUN apk --no-cache add zip unzip bzip2 xz patch wget which autoconf automake libtool gettext xmlto
 
+
+ARG MAKEFLAGS_PARALLEL="-j`nproc`"
 
 # setup vcpkg
 WORKDIR $VCPKGDIR

@@ -9,7 +9,6 @@ FROM ${MY_REGISTRY}debian:9.11-slim
 
 ARG PREFIX=/build/far2l
 ARG VCPKG_BUILD_TYPE=release
-ARG MAKEFLAGS_PARALLEL="-j`nproc`"
 
 ENV VCPKG_DEFAULT_TRIPLET=x64-linux
 ENV VCPKGDIR=/build/vcpkg
@@ -29,6 +28,8 @@ RUN env DEBIAN_FRONTEND=noninteractive && apt-get install -y libssl-dev libcurl4
 #RUN apt-get install -y samba-dev
 RUN env DEBIAN_FRONTEND=noninteractive && apt-get install -y libnfs-dev
 #RUN sudo apt-get install -y wxGTK3-devel
+
+ARG MAKEFLAGS_PARALLEL="-j`nproc`"
 
 # setup git
 WORKDIR /build/git
