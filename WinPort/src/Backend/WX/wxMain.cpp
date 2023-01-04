@@ -462,8 +462,9 @@ void WinPortPanel::OnInitialized( wxCommandEvent& event )
 	
 	cw*= _paint_context.FontWidth();
 	ch*= _paint_context.FontHeight();
-	if ( w != (int)cw || h != (int)ch)
+	if ( w != (int)cw || h != (int)ch) {
 		_frame->SetClientSize(cw, ch);
+	}
 	if (isMaximized)
 		_frame->Maximize(true);
 		
@@ -785,15 +786,18 @@ COORD WinPortPanel::OnConsoleGetLargestWindowSize()
 		return CallInMain<COORD>(fn);
 	}
 	
+	wxSize sz = GetClientSize();
+	if (_frame->IsMaximized()) {
+		return COORD{(SHORT)(sz.GetWidth() / _paint_context.FontWidth()),
+			(SHORT)(sz.GetHeight() / _paint_context.FontHeight())};
+	}
+
 	wxDisplay disp(GetDisplayIndex());
-	wxRect rc = disp.GetClientArea();
-	wxSize outer_size = _frame->GetSize();
-	wxSize inner_size = GetClientSize();
-	rc.SetWidth(rc.GetWidth() - (outer_size.GetWidth() - inner_size.GetWidth()));
-	rc.SetHeight(rc.GetHeight() - (outer_size.GetHeight() - inner_size.GetHeight()));
-	COORD size = {(SHORT)(rc.GetWidth() / _paint_context.FontWidth()), (SHORT)(rc.GetHeight() / _paint_context.FontHeight())};
-//	fprintf(stderr, "OnConsoleGetLargestWindowSize: %u x %u\n", size.X, size.Y);
-	return size;
+	wxRect rc_disp = disp.GetClientArea();
+	wxSize sz_frame = _frame->GetSize();
+
+	return COORD {SHORT((rc_disp.GetWidth() - (sz_frame.GetWidth() - sz.GetWidth())) / _paint_context.FontWidth()),
+		SHORT((rc_disp.GetHeight() - (sz_frame.GetHeight() - sz.GetHeight())) / _paint_context.FontHeight())};
 }
 
 void WinPortPanel::OnConsoleSetMaximized(bool maximized)
