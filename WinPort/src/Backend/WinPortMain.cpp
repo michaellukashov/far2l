@@ -22,6 +22,7 @@
 #include <os_call.hpp>
 
 #include "Backend.h"
+#include "WinPortRGB.h"
 #include "ConsoleOutput.h"
 #include "ConsoleInput.h"
 #include "WinPortHandle.h"
@@ -228,6 +229,8 @@ extern "C" void WinPortHelp()
 	printf("\t--immortal - go to background instead of terminating on getting SIGHUP (default if not in Linux TTY)\n");
 	printf("\t--ee or --ee=N - ESC expiration in msec (100 if unspecified) to avoid need for double ESC presses (valid only in TTY mode without FAR2L extensions)\n");
 	printf("\t--primary-selection - use PRIMARY selection instead of CLIPBOARD X11 selection (only for GUI backend)\n");
+	printf("\t--maximize - force maximize window upon launch (only for GUI backend)\n");
+	printf("\t--nomaximize - dont maximize window upon launch even if its has saved maximized state (only for GUI backend)\n");
 }
 
 struct ArgOptions
@@ -294,6 +297,8 @@ extern "C" int WinPortMain(const char *full_exe_path, int argc, char **argv, int
 	g_winport_con_out = winport_con_out.get();
 	g_winport_con_in = winport_con_in.get();
 	ArgOptions arg_opts;
+
+	InitPalette();
 
 #if defined(__linux__) || defined(__FreeBSD__)
 	unsigned long int leds = 0;

@@ -95,7 +95,6 @@ class WinPortPanel: public wxPanel, protected IConsoleOutputBackend
 	DWORD _mouse_state, _mouse_qedit_start_ticks, _mouse_qedit_moved;
 	COORD _mouse_qedit_start, _mouse_qedit_last;
 	
-	int _last_valid_display;
 	DWORD _refresh_rects_throttle;
 	unsigned int _pending_refreshes;
 	struct RefreshRects : std::vector<SMALL_RECT>, std::mutex {} _refresh_rects;
@@ -105,6 +104,7 @@ class WinPortPanel: public wxPanel, protected IConsoleOutputBackend
 	std::atomic<unsigned int> _last_title_ticks{0};
 	bool _extra_refresh{false};
 
+	void SetConsoleSizeFromWindow();
 	void CheckForResizePending();
 	void CheckPutText2CLip();
 	void OnInitialized( wxCommandEvent& event );
@@ -117,6 +117,7 @@ class WinPortPanel: public wxPanel, protected IConsoleOutputBackend
 	void OnConsoleAdhocQuickEditSync( wxCommandEvent& event );
 	void OnConsoleSetTweaksSync( wxCommandEvent& event );
 	void OnConsoleChangeFontSync(wxCommandEvent& event);
+	void OnConsoleSaveWindowStateSync(wxCommandEvent& event);
 	void OnConsoleExitSync( wxCommandEvent& event );
 	void OnKeyDown( wxKeyEvent& event );
 	void OnKeyUp( wxKeyEvent& event );
@@ -131,7 +132,6 @@ class WinPortPanel: public wxPanel, protected IConsoleOutputBackend
 	void ResetInputState();
 	COORD TranslateMousePosition( wxMouseEvent &event );
 	void DamageAreaBetween(COORD c1, COORD c2);
-	int GetDisplayIndex();
 	void ResetTimerIdling();
 
 	virtual void OnConsoleOutputUpdated(const SMALL_RECT *areas, size_t count);
@@ -143,6 +143,7 @@ class WinPortPanel: public wxPanel, protected IConsoleOutputBackend
 	virtual void OnConsoleAdhocQuickEdit();
 	virtual DWORD64 OnConsoleSetTweaks(DWORD64 tweaks);
 	virtual void OnConsoleChangeFont();
+	virtual void OnConsoleSaveWindowState();
 	virtual void OnConsoleExit();
 	virtual bool OnConsoleIsActive();
 	virtual void OnConsoleDisplayNotification(const wchar_t *title, const wchar_t *text);
@@ -185,6 +186,6 @@ class WinPortFrame: public wxFrame
 	void OnClose(wxCloseEvent &show);
 
 public:
-    WinPortFrame(const wxString& title, const wxPoint& pos, const wxSize& size);
+    WinPortFrame(const wxString& title);
 	virtual ~WinPortFrame();
 };

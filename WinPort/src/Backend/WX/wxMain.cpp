@@ -27,7 +27,7 @@ IConsoleOutput *g_winport_con_out = nullptr;
 IConsoleInput *g_winport_con_in = nullptr;
 bool g_broadway = false, g_wayland = false, g_remote = false;
 static int g_exit_code = 0;
-
+static int g_maximize = 0;
 static WinPortAppThread *g_winport_app_thread = NULL;
 static WinPortFrame *g_winport_frame = nullptr;
 
@@ -116,19 +116,16 @@ extern "C" __attribute__ ((visibility("default"))) bool WinPortMainBackend(WinPo
 
 	DetectHostAbilities();
 
-	if (!InitPalettes()) {
-		uint xc,yc;
-		g_winport_con_out->GetSize(xc, yc);
-		g_winport_con_out->SetCursor( COORD {SHORT((xc>>1) - 5), SHORT(yc>>1)});
-		WCHAR msg[] = L"ERROR IN PALETTE FILE";
-		g_winport_con_out->WriteString(msg, wcslen(msg));
-	}
-
 	bool primary_selection = false;
 	for (int i = 0; i < a->argc; ++i) {
 		if (strcmp(a->argv[i], "--primary-selection") == 0) {
 			primary_selection = true;
-			break;
+
+		} else if (strcmp(a->argv[i], "--maximize") == 0) {
+			g_maximize = 1;
+
+		} else if (strcmp(a->argv[i], "--nomaximize") == 0) {
+			g_maximize = -1;
 		}
 	}
 	if (primary_selection) {
@@ -153,38 +150,69 @@ extern "C" __attribute__ ((visibility("default"))) bool WinPortMainBackend(WinPo
 
 ///////////////
 
-
-static void SaveSize(unsigned int width, unsigned int height, bool isMaximized)
+struct WinState
 {
-	std::ofstream os;
-	os.open(InMyConfig("consolesize").c_str());
-	if (os.is_open()) {
-		os << width << std::endl;
-		os << height << std::endl;
-		os << isMaximized << std::endl;
-	}
-}
+	wxPoint pos {40, 40};
+	wxSize size {600, 440};
+	bool maximized{false};
+	bool fullscreen{false};
 
-static void LoadSize(unsigned int &width, unsigned int &height, bool &isMaximized)
-{
-	std::ifstream is;
-	is.open(InMyConfig("consolesize").c_str());
-	if (is.is_open()) {
+	WinState()
+	{
+		std::ifstream is;
+		is.open(InMyConfig("winstate").c_str());
+		if (!is.is_open()) {
+			fprintf(stderr, "WinState: can't open\n");
+			return;
+		}
 		std::string str;
 		getline (is, str);
-		if (!str.empty()) {
-			width = atoi(str.c_str());
+		int i = atoi(str.c_str());
+		if ((i & 1) == 0) {
+			fprintf(stderr, "WinState: bad flags field [%d]\n", i);
+			return;
 		}
-		getline (is, str);
-		if (!str.empty()) {
-			height = atoi(str.c_str());
+		maximized = (i & 2) != 0;
+		fullscreen = (i & 4) != 0;
+
+		getline(is, str);
+		i = atoi(str.c_str());
+		if (i >= 100) {
+			size.SetWidth(i);
 		}
-		getline (is, str);
-		if (!str.empty()) {
-			isMaximized = std::stoi(str.c_str());
+
+		getline(is, str);
+		i = atoi(str.c_str());
+		if (i >= 100) {
+			size.SetHeight(i);
 		}
+
+		getline(is, str);
+		pos.x = atoi(str.c_str());
+		getline(is, str);
+		pos.y = atoi(str.c_str());
 	}
-}
+
+	void Save()
+	{
+		std::ofstream os;
+		os.open(InMyConfig("winstate").c_str());
+		if (!os.is_open()) {
+			fprintf(stderr, "WinState: can't create\n");
+		}
+		int flags = 1;
+		if (maximized) flags|= 2;
+		if (fullscreen) flags|= 4;
+		os << flags << std::endl;
+		os << size.GetWidth() << std::endl;
+		os << size.GetHeight() << std::endl;
+		os << pos.x << std::endl;
+		os << pos.y << std::endl;
+		fprintf(stderr, "WinState: saved flags=%d size={%d, %d} pos={%d, %d}\n",
+			flags, size.GetWidth(), size.GetHeight(), pos.x, pos.y);
+	}
+};
+
 
 template <class COOKIE_T>
 	struct EventWith : wxCommandEvent
@@ -222,6 +250,7 @@ wxDEFINE_EVENT(WX_CONSOLE_SET_MAXIMIZED, wxCommandEvent);
 wxDEFINE_EVENT(WX_CONSOLE_ADHOC_QEDIT, wxCommandEvent);
 wxDEFINE_EVENT(WX_CONSOLE_SET_TWEAKS, wxCommandEvent);
 wxDEFINE_EVENT(WX_CONSOLE_CHANGE_FONT, wxCommandEvent);
+wxDEFINE_EVENT(WX_CONSOLE_SAVE_WIN_STATE, wxCommandEvent);
 wxDEFINE_EVENT(WX_CONSOLE_EXIT, wxCommandEvent);
 
 
@@ -240,7 +269,7 @@ wxEvtHandler *WinPort_EventHandler()
 
 bool WinPortApp::OnInit()
 {
-	g_winport_frame = new WinPortFrame("WinPortApp", wxDefaultPosition, wxDefaultSize );
+	g_winport_frame = new WinPortFrame("WinPortApp");
 //    WinPortFrame *frame = new WinPortFrame( "WinPortApp", wxPoint(50, 50), wxSize(800, 600) );
 	g_winport_frame->Show( true );
 	if (g_broadway)
@@ -262,16 +291,61 @@ wxBEGIN_EVENT_TABLE(WinPortFrame, wxFrame)
 	EVT_MENU_RANGE(ID_ALT_BASE, ID_ALT_END, WinPortFrame::OnAccelerator)
 wxEND_EVENT_TABLE()
 
-WinPortFrame::WinPortFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
+WinPortFrame::WinPortFrame(const wxString& title)
         : _shown(false),  _menu_bar(nullptr)
 {
+	WinState ws;
+
+	long style = wxDEFAULT_FRAME_STYLE;
+	if (g_maximize >= 0 && (ws.maximized || g_maximize > 0)) {
+		style|= wxMAXIMIZE;
+	}
+
+	int disp_index = wxDisplay::GetFromPoint(ws.pos);
+	if (disp_index < 0 || disp_index >= (int)wxDisplay::GetCount()) {
+		disp_index = 0;
+	}
+
+	wxDisplay disp(disp_index);
+	wxRect rc = disp.GetClientArea();
+	fprintf(stderr, "WinPortFrame: display %d from %d.%d area %d.%d - %d.%d\n",
+		disp_index, ws.pos.x, ws.pos.y, rc.GetLeft(), rc.GetTop(), rc.GetRight(), rc.GetBottom());
+
+	if (ws.size.GetWidth() > rc.GetWidth()) {
+		ws.size.SetWidth(rc.GetWidth());
+	}
+	if (ws.size.GetHeight() > rc.GetHeight()) {
+		ws.size.SetHeight(rc.GetHeight());
+	}
+	if (ws.pos.x + ws.size.GetWidth() > rc.GetRight()) {
+		ws.pos.x = rc.GetRight() - ws.size.GetWidth();
+	}
+	if (ws.pos.y + ws.size.GetHeight() > rc.GetBottom()) {
+		ws.pos.y = rc.GetBottom() - ws.size.GetHeight();
+	}
+	if (ws.pos.x < rc.GetLeft()) {
+		ws.pos.x = rc.GetLeft();
+	}
+	if (ws.pos.y < rc.GetTop()) {
+		ws.pos.y = rc.GetTop();
+	}
+
 	// far2l doesn't need special erase background
 	SetBackgroundStyle(wxBG_STYLE_PAINT);
-	Create(NULL, wxID_ANY, title, pos, size);
+	Create(NULL, wxID_ANY, title, ws.pos, ws.size, style);
 	SetBackgroundColour(*wxBLACK);
 
 	_panel = new WinPortPanel(this, wxPoint(0, 0), GetClientSize());
 	_panel->SetFocus();
+
+#ifdef __APPLE__
+	if (style & wxMAXIMIZE) { // under MacOS wxMAXIMIZE doesn't do what should do...
+		Maximize();
+	}
+#endif
+	if (ws.fullscreen && g_maximize >= 0) {
+		ShowFullScreen(true);
+	}
 }
 
 WinPortFrame::~WinPortFrame()
@@ -398,6 +472,7 @@ wxBEGIN_EVENT_TABLE(WinPortPanel, wxPanel)
 	EVT_COMMAND(wxID_ANY, WX_CONSOLE_ADHOC_QEDIT, WinPortPanel::OnConsoleAdhocQuickEditSync)
 	EVT_COMMAND(wxID_ANY, WX_CONSOLE_SET_TWEAKS, WinPortPanel::OnConsoleSetTweaksSync)
 	EVT_COMMAND(wxID_ANY, WX_CONSOLE_CHANGE_FONT, WinPortPanel::OnConsoleChangeFontSync)
+	EVT_COMMAND(wxID_ANY, WX_CONSOLE_SAVE_WIN_STATE, WinPortPanel::OnConsoleSaveWindowStateSync)
 	EVT_COMMAND(wxID_ANY, WX_CONSOLE_EXIT, WinPortPanel::OnConsoleExitSync)
 	
 	EVT_KEY_DOWN(WinPortPanel::OnKeyDown)
@@ -419,7 +494,7 @@ WinPortPanel::WinPortPanel(WinPortFrame *frame, const wxPoint& pos, const wxSize
         :
 		_paint_context(this), _has_focus(true), _prev_mouse_event_ts(0), _frame(frame), _periodic_timer(NULL),
 		_last_keydown_enqueued(false), _initialized(false), _adhoc_quickedit(false),
-		_resize_pending(RP_NONE),  _mouse_state(0), _mouse_qedit_start_ticks(0), _mouse_qedit_moved(false), _last_valid_display(0),
+		_resize_pending(RP_NONE),  _mouse_state(0), _mouse_qedit_start_ticks(0), _mouse_qedit_moved(false),
 		_refresh_rects_throttle(0), _pending_refreshes(0), _timer_idling_counter(0), _stolen_key(0)
 {
 	// far2l doesn't need special erase background
@@ -431,6 +506,7 @@ WinPortPanel::WinPortPanel(WinPortFrame *frame, const wxPoint& pos, const wxSize
 	_periodic_timer = new wxTimer(this, TIMER_ID);
 	_periodic_timer->Start(TIMER_PERIOD);
 	OnConsoleOutputTitleChanged();
+	_resize_pending = RP_INSTANT;
 }
 
 WinPortPanel::~WinPortPanel()
@@ -448,27 +524,8 @@ void WinPortPanel::OnInitialized( wxCommandEvent& event )
 	int w, h;
 	GetClientSize(&w, &h);
 	fprintf(stderr, "OnInitialized: client size = %u x %u\n", w, h);
-	unsigned int cw, ch;
-	bool isMaximized = false;
-	g_winport_con_out->GetSize(cw, ch);
-	LoadSize(cw, ch, isMaximized);
-	wxDisplay disp(GetDisplayIndex());
-	wxRect rc = disp.GetClientArea();
-	if ((unsigned)rc.GetWidth() >= cw * _paint_context.FontWidth() 
-		&& (unsigned)rc.GetHeight() >= ch * _paint_context.FontHeight()) {
-		g_winport_con_out->SetSize(cw, ch);		
-	}
-	g_winport_con_out->GetSize(cw, ch);
-	
-	cw*= _paint_context.FontWidth();
-	ch*= _paint_context.FontHeight();
-	if ( w != (int)cw || h != (int)ch) {
-		_frame->SetClientSize(cw, ch);
-	}
-	if (isMaximized)
-		_frame->Maximize(true);
-		
 	_initialized = true;
+	SetConsoleSizeFromWindow();
 
 	if (g_winport_app_thread) {
 #ifdef __APPLE__
@@ -543,6 +600,36 @@ void WinPortPanel::OnTouchbarKey(bool alternate, int index)
 
 }
 
+void WinPortPanel::SetConsoleSizeFromWindow()
+{
+	unsigned int prev_width = 0, prev_height = 0;
+
+	g_winport_con_out->GetSize(prev_width, prev_height);
+
+	int width = 0, height = 0;
+	_frame->GetClientSize(&width, &height);
+	const unsigned int font_width = _paint_context.FontWidth();
+	const unsigned int font_height = _paint_context.FontHeight();
+#ifndef __APPLE__
+	fprintf(stderr, "Current client size: %u %u font %u %u\n",
+		width, height, font_width, font_height);
+#endif
+	width/= font_width;
+	height/= font_height;
+	if (width != (int)prev_width || height != (int)prev_height) {
+		fprintf(stderr, "Changing size: %u x %u\n", width, height);
+#ifdef __APPLE__
+		SetSize(width * font_width, height * font_height);
+#endif
+		g_winport_con_out->SetSize(width, height);
+		INPUT_RECORD ir = {0};
+		ir.EventType = WINDOW_BUFFER_SIZE_EVENT;
+		ir.Event.WindowBufferSizeEvent.dwSize.X = width;
+		ir.Event.WindowBufferSizeEvent.dwSize.Y = height;
+		g_winport_con_in->Enqueue(&ir, 1);
+	}
+}
+
 void WinPortPanel::CheckForResizePending()
 {
 #ifndef __APPLE__
@@ -550,38 +637,12 @@ void WinPortPanel::CheckForResizePending()
 #endif
 	{
 #ifndef __APPLE__
-		fprintf(stderr, "CheckForResizePending\n");
+		fprintf(stderr, "%lu CheckForResizePending\n", GetProcessUptimeMSec());
 #endif
 		DWORD conmode = 0;
 		if (WINPORT(GetConsoleMode)(NULL, &conmode) && (conmode&ENABLE_WINDOW_INPUT)!=0) {
-			unsigned int prev_width = 0, prev_height = 0;
 			_resize_pending = RP_NONE;
-
-			g_winport_con_out->GetSize(prev_width, prev_height);
-	
-			int width = 0, height = 0;
-			_frame->GetClientSize(&width, &height);
-#ifndef __APPLE__			
-			fprintf(stderr, "Current client size: %u %u font %u %u\n", 
-				width, height, _paint_context.FontWidth(), _paint_context.FontHeight());
-#endif
-			width/= _paint_context.FontWidth(); 
-			height/= _paint_context.FontHeight();
-			if (width!=(int)prev_width || height!=(int)prev_height) {
-				fprintf(stderr, "Changing size: %u x %u\n", width, height);
-#ifdef __APPLE__
-				this->SetSize(width * _paint_context.FontWidth(), height * _paint_context.FontHeight());
-#endif
-				g_winport_con_out->SetSize(width, height);
-				if (!_frame->IsFullScreen() && !_frame->IsMaximized() && _frame->IsShown()) {
-					SaveSize(width, height, false);
-				}
-				INPUT_RECORD ir = {0};
-				ir.EventType = WINDOW_BUFFER_SIZE_EVENT;
-				ir.Event.WindowBufferSizeEvent.dwSize.X = width;
-				ir.Event.WindowBufferSizeEvent.dwSize.Y = height;
-				g_winport_con_in->Enqueue(&ir, 1);
-			}
+			SetConsoleSizeFromWindow();
 #ifndef __APPLE__
 			Refresh(false);
 #endif
@@ -589,7 +650,7 @@ void WinPortPanel::CheckForResizePending()
 			_resize_pending = RP_INSTANT;
 			//fprintf(stderr, "RP_INSTANT\n");
 		}
-	}	
+	}
 }
 
 void WinPortPanel::OnTimerPeriodic(wxTimerEvent& event)
@@ -769,16 +830,6 @@ void WinPortPanel::OnConsoleOutputWindowMoved(bool absolute, COORD pos)
 		wxQueueEvent	(this, event);
 }
 
-int WinPortPanel::GetDisplayIndex()
-{
-	int index = wxDisplay::GetFromWindow(_frame);
-	if (index < 0 || index >= (int)wxDisplay::GetCount()) {
-		fprintf(stderr, "OnConsoleGetLargestWindowSize: bad display %d, will use %d\n", index, _last_valid_display);
-		index = _last_valid_display;
-	}
-	return index;
-}
-
 COORD WinPortPanel::OnConsoleGetLargestWindowSize()
 {
 	if (!wxIsMainThread()){
@@ -792,7 +843,14 @@ COORD WinPortPanel::OnConsoleGetLargestWindowSize()
 			(SHORT)(sz.GetHeight() / _paint_context.FontHeight())};
 	}
 
-	wxDisplay disp(GetDisplayIndex());
+
+	int disp_index = wxDisplay::GetFromWindow(this);
+	if (disp_index < 0 || disp_index >= (int)wxDisplay::GetCount()) {
+		fprintf(stderr, "OnConsoleGetLargestWindowSize: bad display %d\n", disp_index);
+		disp_index = 0;
+	}
+
+	wxDisplay disp(disp_index);
 	wxRect rc_disp = disp.GetClientArea();
 	wxSize sz_frame = _frame->GetSize();
 
@@ -1477,6 +1535,53 @@ void WinPortPanel::OnConsoleChangeFont()
 		wxQueueEvent(this, event);
 }
 
+void WinPortPanel::OnConsoleSaveWindowStateSync(wxCommandEvent& event)
+{
+	if (_frame->IsShown()) {
+		WinState ws;
+		ws.maximized = _frame->IsMaximized();
+		ws.fullscreen = _frame->IsFullScreen();
+
+		if (!ws.maximized && !ws.fullscreen) {
+			ws.pos = _frame->GetPosition();
+			ws.size = _frame->GetSize();
+
+			// align saved size by font dimensions to avoid blank edges on next start
+			int width = 0, height = 0;
+			_frame->GetClientSize(&width, &height);
+			const unsigned int font_width = _paint_context.FontWidth();
+			const unsigned int font_height = _paint_context.FontHeight();
+			if (width % font_width) {
+				ws.size.SetWidth(ws.size.GetWidth() - (width % font_width));
+			}
+			if (height % font_height) {
+				ws.size.SetHeight(ws.size.GetHeight() - (height % font_height));
+			}
+
+		} else {
+			// if window maximized on different display - have to save its position anyway
+			// however dont save frame's position in such case but save workarea left.top instead
+			// cuz maximized window's pos can be outside of related display
+			const int prev_disp_index = wxDisplay::GetFromPoint(ws.pos);
+			const int disp_index = wxDisplay::GetFromWindow(_frame);
+//			fprintf(stderr, "prev_disp_index=%d disp_index=%d\n", prev_disp_index, disp_index);
+			if (prev_disp_index != disp_index && disp_index >= 0 && disp_index < (int)wxDisplay::GetCount()) {
+				wxDisplay disp(disp_index);
+				wxRect rc = disp.GetClientArea();
+				ws.pos.x = rc.GetLeft();
+				ws.pos.y = rc.GetTop();
+			}
+		}
+		ws.Save();
+	}
+}
+
+void WinPortPanel::OnConsoleSaveWindowState()
+{
+	wxCommandEvent *event = new(std::nothrow) wxCommandEvent(WX_CONSOLE_SAVE_WIN_STATE);
+	if (event)
+		wxQueueEvent(this, event);
+}
 
 void WinPortPanel::OnConsoleExitSync( wxCommandEvent& event )
 {
