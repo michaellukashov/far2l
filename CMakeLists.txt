@@ -1,8 +1,64 @@
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 
-cmake_minimum_required (VERSION 3.0.2)
+cmake_minimum_required (VERSION 3.14.0)
 
-project (far2l)
+option(OPT_USE_STATIC_EXT_LIBS "Build and use static external libraries: libneon, libsmb etc" OFF)
+option(OPT_PVS_ANALYSIS "use PVS static analysis" OFF)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+if(OPT_USE_STATIC_EXT_LIBS)
+	# include(cmake/xrepo.cmake)
+	# include(cmake/CPM.cmake)
+	include(ExternalProject)
+	include(FetchContent)
+
+	if(NOT DEFINED VCPKG_ROOT)
+		set(VCPKG_ROOT "${CMAKE_BINARY_DIR}/vcpkg")
+	endif()
+	#message("VCPKG_ROOT: ${VCPKG_ROOT}")
+	if(NOT DEFINED VCPKG_PARENT_DIR)
+		get_filename_component(PARENT_DIR "${VCPKG_ROOT}" DIRECTORY)
+		set(VCPKG_PARENT_DIR "${PARENT_DIR}")
+	endif()
+	#message("VCPKG_PARENT_DIR: ${VCPKG_PARENT_DIR}")
+	#include(cmake/vcpkg.cmake)
+
+	if(DEFINED VCPKG_ROOT AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) #OR DEFINED ${VCPKG_ROOT}
+	set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+	endif()
+	#message("CMAKE_TOOLCHAIN_FILE: ${CMAKE_TOOLCHAIN_FILE}")
+
+	if(NOT DEFINED VCPKG_TARGET_TRIPLET)
+		set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_DEFAULT_TRIPLET})
+	endif()
+
+	if(NOT DEFINED VCPKG_TARGET_TRIPLET)
+		set(VCPKG_TARGET_TRIPLET "x64-linux")
+	endif()
+	# message("VCPKG_TARGET_TRIPLET: ${VCPKG_TARGET_TRIPLET}")
+	set(VCPKG_INSTALLED_PATH "${VCPKG_ROOT}/installed/${VCPKG_TARGET_TRIPLET}")
+	# message("VCPKG_INSTALLED_PATH: ${VCPKG_INSTALLED_PATH}")
+
+	set(CMAKE_PREFIX_PATH ${VCPKG_INSTALLED_PATH} ${CMAKE_PREFIX_PATH})
+	message("CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+
+	#[[vcpkg_add_package(fmt)
+	vcpkg_add_package(spdlog)
+	vcpkg_add_package(xerces-c)
+	vcpkg_add_package(zlib)
+	vcpkg_add_package(bzip2)
+	vcpkg_add_package(mbedtls)
+	vcpkg_add_package(libssh[core,zlib,mbedtls])
+	vcpkg_add_package(pcre)
+	vcpkg_add_package(liblzma)
+	vcpkg_add_package(libarchive)
+	vcpkg_add_package(uchardet)
+	vcpkg_add_package(libxml2)]]
+
+endif(OPT_USE_STATIC_EXT_LIBS)
+
+project (far2l LANGUAGES C CXX)
 
 set(APP_NAME "far2l")
 set(APP_IDENTIFIER "com.far2l")
@@ -136,6 +192,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC -Wno-unused-function -D_FILE
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=c99 -fPIC -Wno-unused-function -D_FILE_OFFSET_BITS=64") #  -fsanitize=address
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O2")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS} -O2")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -D_FILE_OFFSET_BITS=64") #-Wno-c++11-narrowing -fsanitize=address -fsanitize=bounds
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64") # -fsanitize=address -fsanitize=bounds
+set(CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_FLAGS} -fpie -Os") # -static-libgcc -static-libstdc++")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fpie -Os") # -static-libgcc -static-libstdc++") #-Os -pthread
+
+set(TOOLS_DIR ${CMAKE_BINARY_DIR}/tools)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(APP_DIR ${CMAKE_BINARY_DIR}/install)
@@ -373,6 +435,33 @@ else()
         " COMPONENT system)
 endif()
 
+#set(OPENSSL_USE_STATIC_LIBS TRUE)
+if(OPT_USE_STATIC_EXT_LIBS)
+  find_library(OPENSSL_LIBRARY
+    NAMES
+      libcrypto.a
+    HINTS ${OPENSSL_ROOT_DIR} ENV OPENSSL_ROOT_DIR
+    NAMES_PER_DIR
+    PATHS
+      ${OPENSSL_ROOT_DIR}/lib
+    NO_CMAKE_SYSTEM_PATH
+    NO_DEFAULT_PATH
+  )
+  #message("OPENSSL_LIBRARY: ${OPENSSL_LIBRARY}")
+  #message("OPENSSL_FOUND: ${OPENSSL_FOUND}")
+  if(EXISTS ${OPENSSL_LIBRARY})
+    set(OPENSSL_FOUND TRUE)
+    set(OPENSSL_LIBRARIES ${OPENSSL_LIBRARY})
+    set(OPENSSL_INCLUDE_DIR ${OPENSSL_ROOT_DIR}/include)
+    set(OPENSSL_INCLUDE_DIRS ${OPENSSL_INCLUDE_DIR})
+    add_library(OPENSSL STATIC IMPORTED)
+    set_target_properties(OPENSSL PROPERTIES IMPORTED_LOCATION ${OPENSSL_LIBRARY})
+  endif()
+else()
+  include(${CMAKE_ROOT}/Modules/FindOpenSSL.cmake)
+  find_package(OpenSSL REQUIRED)
+endif(OPT_USE_STATIC_EXT_LIBS)
+#message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
 if (NOT DEFINED MULTIARC OR MULTIARC)
     message(STATUS "MULTIARC plugin enabled")
     find_package(PkgConfig REQUIRED)
@@ -417,6 +506,89 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
         message(WARNING "${ColorRed}libsmbclient not found, NetRocks will not have SMB protocol support. Install libsmbclient-dev if you want SMB protocol available in NetRocks.${ColorNormal}")
     endif(LIBSMBCLIENT_FOUND)
 
+    if (FALSE)
+    if (OPT_USE_STATIC_EXT_LIBS)
+    #TODO: get and build https://github.com/samba-team/samba.git
+    set(LIBSMBCLIENT_ROOT "${CMAKE_CURRENT_BINARY_DIR}/samba_${VCPKG_TARGET_TRIPLET}")
+    #message("VCPKG_INSTALLED_PATH: ${VCPKG_INSTALLED_PATH}")
+    #TODO: install libtool gettext xmlto
+    ExternalProject_Add(smbclient-static
+        GIT_REPOSITORY https://github.com/samba-team/samba.git
+        GIT_TAG samba-4.16.4 #samba-4.15.4
+        BUILD_IN_SOURCE TRUE
+        CONFIGURE_COMMAND ./autogen.sh
+        COMMAND ./configure --prefix=${LIBSMBCLIENT_FOUND} --enable-static --with-ssl=openssl --with-libxml2 --with-libs=${VCPKG_INSTALLED_PATH}:${VCPKG_ROOT}/packages/zlib_${VCPKG_TARGET_TRIPLET}:${VCPKG_ROOT}/packages/libxml2_${VCPKG_TARGET_TRIPLET}
+        BUILD_COMMAND make
+    COMMAND make docs
+    COMMAND make update-po
+    COMMAND make compile-gmo
+        INSTALL_COMMAND make install
+        UPDATE_COMMAND ""
+    )
+    endif (OPT_USE_STATIC_EXT_LIBS)
+    endif (FALSE)
+
+    if (FALSE)
+    if (OPT_USE_STATIC_EXT_LIBS)
+        set(LibNfs_DIR "${CMAKE_BINARY_DIR}/nfs_${VCPKG_TARGET_TRIPLET}")
+        ExternalProject_Add(nfs-static
+            GIT_REPOSITORY https://github.com/sahlberg/libnfs.git
+            SOURCE_SUBDIR "src"
+            GIT_TAG libnfs-5.0.1
+
+            # BUILD_IN_SOURCE TRUE
+            PREFIX ${CMAKE_BINARY_DIR}/nfs
+            INSTALL_DIR ${LibNfs_DIR}
+            CONFIGURE_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && ./bootstrap
+            COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && ./configure --prefix=${LibNfs_DIR} --enable-static --enable-shared=no
+            BUILD_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make || exit 0
+            INSTALL_COMMAND cd ${CMAKE_BINARY_DIR}/nfs/src/nfs-static && make install || exit 0
+            UPDATE_COMMAND ""
+        )
+        # ExternalProject_Get_Property(nfs-static install_dir)
+        # message("install_dir: ${install_dir}")
+        set(LIBNFS_FOUND TRUE)
+        set(LIBNFS_INCLUDE_DIR ${LibNfs_DIR}/include)
+        set(LIBNFS_LIBRARY ${LibNfs_DIR}/lib/libnfs.a)
+        set(LIBNFS_LIBRARIES ${LIBNFS_LIBRARY})
+        set(LIBNFS_INCLUDE_DIRS ${LIBNFS_INCLUDE_DIR})
+        set(LIBNFS_LIBRARIES ${LIBNFS_LIBRARY})
+        set(CMAKE_PREFIX_PATH ${LibNfs_DIR} ${CMAKE_PREFIX_PATH})
+        add_library(LibNfs STATIC IMPORTED)
+        set_target_properties(LibNfs PROPERTIES IMPORTED_LOCATION ${LIBNFS_LIBRARY})
+        add_dependencies(LibNfs nfs-static)
+        set_source_files_properties(
+            ${LIBNFS_LIBRARY}
+            PROPERTIES GENERATED TRUE
+        )
+    endif (OPT_USE_STATIC_EXT_LIBS)
+    endif (FALSE)
+
+    if(OPT_USE_STATIC_EXT_LIBS)
+      find_library(LIBNEON_LIBRARY
+        NAMES
+          neon
+        HINTS ENV LIBNEON_ROOT_DIR
+        PATHS
+          ${LIBNEON_ROOT_DIR}/lib
+        NO_CMAKE_SYSTEM_PATH
+      )
+      #message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
+      #message("LIBNEON_ROOT_DIR: ${LIBNEON_ROOT_DIR}")
+      #message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
+      if(EXISTS ${LIBNEON_LIBRARY})
+        set(LIBNEON_FOUND TRUE)
+        set(LIBNEON_LIBRARIES ${LIBNEON_LIBRARY})
+        set(LIBNEON_INCLUDE_DIR ${LIBNEON_ROOT_DIR}/include)
+        set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
+        add_library(LibNEON STATIC IMPORTED)
+          set_target_properties(LibNEON PROPERTIES IMPORTED_LOCATION ${LIBNEON_LIBRARY})
+      endif()
+    else()
+      include(cmake/modules/FindLibNEON.cmake)
+      find_package(LibNEON CONFIG)
+    endif(OPT_USE_STATIC_EXT_LIBS)
+
     find_package(LibNfs)
     if(LIBNFS_FOUND)
         message(STATUS "libnfs found -> enjoy NFS support in NetRocks")
@@ -432,6 +604,22 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
     endif(LIBNEON_FOUND)
 
     add_subdirectory (NetRocks)
+
+    #message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
+    if(OPT_USE_STATIC_EXT_LIBS)
+        #add_dependencies(NetRocks-NFS LibNfs)
+        if(LIBNEON_FOUND)
+        add_dependencies(NetRocks-WebDAV LibNEON)
+        target_link_libraries(NetRocks-WebDAV ${LIBNEON_LIBRARY})
+        target_link_libraries(NetRocks-WebDAV ${OPENSSL_LIBRARIES} #${OPENSSL_SSL_LIBRARY} #LibXml2::LibXml2 LibLZMA::LibLZMA
+            ${VCPKG_INSTALLED_PATH}/lib/libz.a
+            ${VCPKG_INSTALLED_PATH}/lib/libxml2.a
+            ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
+            #${VCPKG_INSTALLED_PATH}/lib/liproxy.a
+            dl)
+        endif(LIBNEON_FOUND)
+    endif(OPT_USE_STATIC_EXT_LIBS)
+
 else()
     message(STATUS "${ColorRed}NETROCKS plugin disabled due to NETROCKS=${NETROCKS}${ColorNormal}")
     install(CODE "
@@ -538,6 +726,35 @@ install(DIRECTORY "${INSTALL_DIR}/" DESTINATION "share/far2l" USE_SOURCE_PERMISS
     PATTERN "*"
 )
 
+#[[get_cmake_property(_variableNames VARIABLES)
+list (SORT _variableNames)
+foreach (_variableName ${_variableNames})
+    message(STATUS "${_variableName}=${${_variableName}}")
+endforeach()]]
+
+if(OPT_PVS_ANALYSIS)
+
+include(FetchContent)
+FetchContent_Declare(
+    PVS_CMakeModule
+    GIT_REPOSITORY "https://github.com/viva64/pvs-studio-cmake-module.git"
+    GIT_TAG "master"
+)
+
+FetchContent_MakeAvailable(PVS_CMakeModule)
+include("${pvs_cmakemodule_SOURCE_DIR}/PVS-Studio.cmake")
+
+pvs_studio_add_target(TARGET far2l.analyze ALL
+    OUTPUT FORMAT json
+    ANALYZE far2l
+    COMPILE_COMMANDS
+    MODE GA:1,2
+    LOG target.err
+    # ARGS -e CMakeFiles/far2l.dir/far2l_autogen)
+)
+
+endif(OPT_PVS_ANALYSIS)
+
 # setup some symlinks and remove deprecated stuff from previous installation
 execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ../../bin/far2l ${PROJECT_BINARY_DIR}/far2l/far2l_askpass)
 execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ../../bin/far2l ${PROJECT_BINARY_DIR}/far2l/far2l_sudoapp)
@@ -548,3 +765,4 @@ install(FILES "${PROJECT_BINARY_DIR}/far2l/far2ledit" DESTINATION "bin" COMPONEN
 install(CODE "
     execute_process(COMMAND ${CMAKE_COMMAND} -E remove -f \"\${CMAKE_INSTALL_PREFIX}/lib/far2l/Plugins/objinfo/plug/objinfo.far-plug-mb\")
     " COMPONENT system)
+

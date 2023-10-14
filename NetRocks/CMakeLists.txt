@@ -115,8 +115,16 @@ if (LIBSSH_FOUND AND ((NOT DEFINED NR_SFTP) OR NR_SFTP))
         src/Protocol/FileStatsOverride.cpp
         src/Protocol/ShellParseUtils.cpp
     )
+    #message("LIBSSH_LIBRARIES: ${LIBSSH_LIBRARIES}")
+    #message("MBEDTLS_LIBRARIES: ${MBEDTLS_LIBRARIES}")
     target_link_libraries(NetRocks-SFTP utils ${LIBSSH_LIBRARIES})
     target_include_directories(NetRocks-SFTP PRIVATE src ${LIBSSH_INCLUDE_DIRS})
+    if(OPT_USE_STATIC_EXT_LIBS)
+        target_link_libraries(NetRocks-SFTP ${LIBSSH_LIBRARIES} ${MBEDTLS_LIBRARIES}
+            ${VCPKG_INSTALLED_PATH}/lib/libz.a ${VCPKG_INSTALLED_PATH}/lib/libmbedx509.a ${VCPKG_INSTALLED_PATH}/lib/libmbedtls.a ${VCPKG_INSTALLED_PATH}/lib/libmbedcrypto.a dl)
+        target_include_directories(NetRocks-SFTP PRIVATE src ${LIBSSH_INCLUDE_DIRS})
+        target_include_directories(NetRocks-SFTP PRIVATE ${LIBSSH_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS})
+    endif(OPT_USE_STATIC_EXT_LIBS)
     set_target_properties(NetRocks-SFTP
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${INSTALL_DIR}/Plugins/NetRocks/plug"
@@ -148,6 +156,9 @@ if (LIBNFS_FOUND AND ((NOT DEFINED NR_NFS) OR NR_NFS))
     )
     target_link_libraries(NetRocks-NFS utils ${LIBNFS_LIBRARIES})
     target_include_directories(NetRocks-NFS PRIVATE src ${LIBNFS_INCLUDE_DIRS})
+    if(OPT_USE_STATIC_EXT_LIBS)
+        # add_dependencies(NetRocks-NFS nfs-static)
+    endif(OPT_USE_STATIC_EXT_LIBS)
     set_target_properties(NetRocks-NFS
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${INSTALL_DIR}/Plugins/NetRocks/plug"
@@ -164,6 +175,11 @@ if (LIBNEON_FOUND AND ((NOT DEFINED NR_WEBDAV) OR NR_WEBDAV))
     )
     target_link_libraries(NetRocks-WebDAV utils ${LIBNEON_LIBRARIES})
     target_include_directories(NetRocks-WebDAV PRIVATE src ${LIBNEON_INCLUDE_DIRS})
+    if(OPT_USE_STATIC_EXT_LIBS)
+        target_link_libraries(NetRocks-WebDAV ${OPENSSL_LIBRARIES} ${LIBXML2_LIBRARIES}
+            ${VCPKG_INSTALLED_PATH}/lib/libz.a dl)
+        #add_dependencies(NetRocks-WebDAV neon-static)
+    endif(OPT_USE_STATIC_EXT_LIBS)
     set_target_properties(NetRocks-WebDAV
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${INSTALL_DIR}/Plugins/NetRocks/plug"
@@ -180,6 +196,10 @@ endif ()
         src/Protocol/DirectoryEnumCache.cpp
     )
     target_link_libraries(NetRocks-FTP utils)
+    if(OPT_USE_STATIC_EXT_LIBS)
+    target_link_libraries(NetRocks-FTP
+        ${VCPKG_INSTALLED_PATH}/lib/libz.a dl)
+    endif(OPT_USE_STATIC_EXT_LIBS)
     target_include_directories(NetRocks-FTP PRIVATE src)
 if (OPENSSL_FOUND AND ((NOT DEFINED NR_OPENSSL) OR NR_OPENSSL))
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_OPENSSL")

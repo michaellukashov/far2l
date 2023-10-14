@@ -171,9 +171,21 @@ else()
     )
 endif()
 
+if(OPT_USE_STATIC_EXT_LIBS)
+    list(REMOVE_ITEM SOURCES # already exist in static libarchive.a
+        src/formats/7z/C/Ppmd8.c
+        src/formats/7z/C/Ppmd8Enc.c
+        src/formats/7z/C/Ppmd8Dec.c
+    )
+endif(OPT_USE_STATIC_EXT_LIBS)
+
 add_library (multiarc MODULE ${SOURCES})
 
+if(OPT_USE_STATIC_EXT_LIBS)
+target_compile_definitions(multiarc PRIVATE -DRARDLL -D_7ZIP_ST -D_7ZIP_PPMD_SUPPPORT)
+else()
 target_compile_definitions(multiarc PRIVATE -D_7ZIP_ST -D_7ZIP_PPMD_SUPPPORT)
+endif(OPT_USE_STATIC_EXT_LIBS)
 
 target_link_libraries(multiarc utils far2l)
 
@@ -203,9 +215,39 @@ if(PCRE_FOUND)
     target_include_directories(multiarc PRIVATE ${PCRE_INCLUDE_DIRS})
 endif()
 
+message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
+message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
 if(LibArchive_FOUND)
     target_compile_definitions(multiarc PRIVATE -DHAVE_LIBARCHIVE)
-    target_link_libraries(multiarc ${LibArchive_LIBRARIES})
+    if(OPT_USE_STATIC_EXT_LIBS)
+        target_include_directories(multiarc PRIVATE ${VCPKG_INSTALLED_PATH}/include)
+        list(REMOVE_ITEM LibArchive_LIBRARIES OpenSSL::Crypto)
+        #[[vcpkg_add_package(openssl)
+        vcpkg_add_package(zlib)
+        vcpkg_add_package(zstd)
+        vcpkg_add_package(lz4)
+        vcpkg_add_package(libxml2)
+        vcpkg_add_package(liblzma)
+        vcpkg_add_package(bzip2)]]
+        # find_package(openssl CONFIG)
+        # find_package(ZLIB CONFIG)
+        find_package(zstd CONFIG)
+        find_package(lz4 CONFIG)
+        #find_package(LibXml2) # CONFIG)
+        #find_package(liblzma) # CONFIG)
+        find_package(BZip2 REQUIRED)
+        #target_link_libraries(main PRIVATE BZip2::BZip2)
+        target_link_libraries(multiarc
+            # OpenSSL::SSL OpenSSL::Crypto
+            #ZLIB::ZLIB
+            zstd::libzstd_static
+            lz4::lz4
+            #LibXml2::LibXml2
+            #LibLZMA::LibLZMA
+            BZip2::BZip2
+        )
+    endif(OPT_USE_STATIC_EXT_LIBS)
+    target_link_libraries(multiarc ${LibArchive_LIBRARIES} ${OPENSSL_LIBRARIES})
     target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
 endif()
 

@@ -245,6 +245,8 @@ else()
     SET (WINPORT -Wl,--whole-archive WinPort -Wl,--no-whole-archive)
 endif()
 
+target_compile_features(far2l PRIVATE cxx_std_17)
+
 set_target_properties(far2l
     PROPERTIES
     ENABLE_EXPORTS TRUE)

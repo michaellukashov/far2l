@@ -18,7 +18,7 @@ add_custom_target(debian-package-controls ALL DEPENDS ${DEB_CONTROLS})
 
 add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/copyright
-    COMMAND ./generate.pl ${CMAKE_BINARY_DIR}/copyright
+    COMMAND perl ./generate.pl ${CMAKE_BINARY_DIR}/copyright
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/copyright"
     COMMENT ${CMAKE_BINARY_DIR}/copyright
 )
