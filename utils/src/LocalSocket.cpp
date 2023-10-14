@@ -7,8 +7,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
+#include <cstring>
 
 #include "os_call.hpp"
 #include "LocalSocket.h"

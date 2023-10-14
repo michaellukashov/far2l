@@ -4,7 +4,9 @@
 #include <stdlib.h>
 #include <signal.h>
 #include "IPC.h"
+#include "FileInformation.h"
 #include "Protocol/Protocol.h"
+#include <fstream>
 
 static const std::string s_empty_string;
 
@@ -404,6 +406,11 @@ extern "C" int main(int argc, char *argv[])
 
 	fprintf(stderr, "%d: HostRemoteBrokerMain: BEGIN\n", getpid());
 	try {
+		std::ofstream dbgstream;
+
+		dbgstream.open("/home/user/ic.log", std::ios_base::out|std::ios_base::trunc);
+		if (!dbgstream.bad())
+			icecream::ic.output(dbgstream);
 		HostRemoteBroker(atoi(argv[1]), atoi(argv[2]), atoi(argv[3])).Loop();
 
 	} catch (std::exception &e) {
