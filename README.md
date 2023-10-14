@@ -196,6 +196,10 @@ emerge -avn net-libs/neon net-libs/libssh net-fs/libnfs net-fs/samba
 ```
 After installing, follow Clone and Build section above.
 
+#### Building on Fedora
+``` sh
+sudo dnf install -y git cmake cpp g++ gawk m4 wxGTK3-devel pcre2-devel xerces-c-devel spdlog-devel uchardet-devel libssh-devel openssl-devel libsmbclient-devel libnfs-devel neon-devel libarchive-devel
+```
 #### Installing and Building on [NixOS](https://nixos.org/)
 
 To install system-wide, add the `far2l` package to your [`configuration.nix`](https://nixos.org/manual/nixos/stable/index.html#sec-changing-config) `environment.systemPackages` list. To run the application on-demand without affecting the system state, execute `nix-shell -p far2l --command far2l`. These use a package version from your current [channel](https://nixos.wiki/wiki/Nix_channels).
