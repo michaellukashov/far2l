@@ -920,7 +920,7 @@ bool CmdExtract::ExtractCurrentFile(Archive &Arc,size_t HeaderSize,bool &Repeat)
       bool SetAttrOnly=LinkEntry && Arc.FileHead.RedirType==FSREDIR_HARDLINK && LinkSuccess;
 
       if (!TestMode && (Command=='X' || Command=='E') &&
-          (!LinkEntry || SetAttrOnly || Arc.FileHead.RedirType==FSREDIR_FILECOPY && LinkSuccess) && 
+          (!LinkEntry || SetAttrOnly || (Arc.FileHead.RedirType==FSREDIR_FILECOPY && LinkSuccess)) &&
           (!BrokenFile || Cmd->KeepBroken))
       {
         // Below we use DestFileName instead of CurFile.FileName,

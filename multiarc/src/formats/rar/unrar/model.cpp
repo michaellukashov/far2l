@@ -199,7 +199,7 @@ inline RARPPM_CONTEXT* ModelPPM::CreateSuccessors(bool Skip,RARPPM_STATE* p1)
     else
       p=&(pc->OneState);
 LOOP_ENTRY:
-    if (p->Successor != UpBranch) 
+    if (p && p->Successor != UpBranch) 
     {
       pc=p->Successor;
       break;
