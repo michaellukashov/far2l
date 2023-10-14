@@ -1,0 +1,22 @@
+{
+  // "cmake.buildDirectory": "/home/user/build/far2l-wx", // sudo dnf install -y wxGTK3-devel
+  "cmake.buildDirectory": "/home/user/build/far2l-nowx",
+  "cmake.buildArgs": [
+    "-j1"
+  ],
+  "cmake.configureOnEdit": false,
+  "cmake.clearOutputBeforeBuild": true,
+  // "cmake.environment": {"VCPKG_ROOT": "/home/user/vcpkg"},
+  "cmake.configureArgs": [
+    //"-DCMAKE_TOOLCHAIN_FILE:STRING=/home/user/vcpkg/scripts/buildsystems/vcpkg.cmake",
+    // "-DVCPKG_ROOT_PATH:STRING=/home/user/vcpkg",
+    "-DOPT_USE_STATIC_EXT_LIBS=ON",
+    "-DEACP:STRING=no",
+    // "-DUSEUCD:STRING=no",
+    "-DVCPKG_ROOT=/home/user/vcpkg",
+    "-DUSEWX:STRING=no",
+    "-Wno-dev",
+    "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+  ],
+  "cmake.configureOnOpen": false
+}
