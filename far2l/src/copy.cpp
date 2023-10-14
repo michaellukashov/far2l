@@ -869,7 +869,7 @@ ShellCopy::ShellCopy(Panel *SrcPanel,		// исходная панель (акт�
 		DLG_HEIGHT-= 3;
 	}
 
-	// корректирем позицию " to"
+	// корректируем позицию " to"
 	CopyDlg[ID_SC_TARGETTITLE].X1 = CopyDlg[ID_SC_TARGETTITLE].X2 =
 			CopyDlg[ID_SC_SOURCEFILENAME].X1 + (int)CopyDlg[ID_SC_SOURCEFILENAME].strData.GetLength();
 

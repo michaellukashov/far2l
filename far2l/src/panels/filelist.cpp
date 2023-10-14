@@ -2051,7 +2051,7 @@ int FileList::ProcessKey(int Key)
 					&& (Key & ~KEY_ALTSHIFT_BASE) != KEY_ENTER && (Key & ~KEY_ALTSHIFT_BASE) != KEY_ESC
 					&& !(Key & EXTENDED_KEY_BASE)) {
 				//_SVS(SysLog(L">FastFind: Key=%ls",_FARKEY_ToName(Key)));
-				// Скорректирем уже здесь нужные клавиши, т.к. WaitInFastFind
+				// Скорректируем уже здесь нужные клавиши, т.к. WaitInFastFind
 				// в это время еще равно нулю.
 				static const char Code[] = ")!@#$%^&*(";
 
@@ -2690,7 +2690,7 @@ int FileList::ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent)
 
 			/*
 				$ 21.02.2001 SKV
-				Если пришел DOUBLE_CLICK без предшевствующего ему
+				Если пришел DOUBLE_CLICK без предшествующего ему
 				простого клика, то курсор не перерисовывается.
 				Перересуем его.
 				По идее при нормальном DOUBLE_CLICK, будет

@@ -149,7 +149,7 @@ void FileList::ReadFileNames(int KeepSelection, int IgnoreVisible, int DrawMessa
 	apiGetCurrentDirectory(strSaveDir);
 	{
 		if (!SetCurPath()) {
-			FlushInputBuffer();		// Очистим буффер ввода, т.к. мы уже можем быть в другом месте...
+			FlushInputBuffer();		// Очистим буфер ввода, т.к. мы уже можем быть в другом месте...
 			return;
 		}
 	}

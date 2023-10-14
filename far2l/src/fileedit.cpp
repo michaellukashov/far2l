@@ -792,7 +792,7 @@ int FileEditor::ReProcessKey(int Key, int CalledFromControl)
 
 				// проверка на "а может это говно удалили уже?"
 				// возможно здесь она и не нужна!
-				// хотя, раз уж были изменени, то
+				// хотя, раз уж были изменения, то
 				if (m_editor->IsFileChanged() &&												// в текущем сеансе были изменения?
 						apiGetFileAttributes(strFullFileName) == INVALID_FILE_ATTRIBUTES)		// а файл еще существует?
 				{
@@ -2294,7 +2294,7 @@ DWORD FileEditor::EditorGetFileAttributes(const wchar_t *Name)
 }
 
 /*
-	Return TRUE - панель обовили
+	Return TRUE - панель обновили
 */
 BOOL FileEditor::UpdateFileList()
 {
