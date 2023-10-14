@@ -19,6 +19,7 @@ protected:
 	void SetFD(int fd);
 
 public:
+	PipeIPCSender() = delete;
 	PipeIPCSender(int fd = -1);
 	~PipeIPCSender();
 
