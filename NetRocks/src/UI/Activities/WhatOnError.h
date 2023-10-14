@@ -1,4 +1,5 @@
 #pragma once
+#include <icecream.hpp>
 #include <string>
 #include <map>
 #include <mutex>
@@ -44,6 +45,7 @@ template <WhatOnErrorKind WEK, class FN, class FN_ON_RETRY = void(*)(bool &)>
 	static void WhatOnErrorWrap(std::shared_ptr<WhatOnErrorState> &wea_state,
 		ProgressState &progress_state, IHost *indicted, const std::string &object, FN fn, FN_ON_RETRY fn_on_retry = WhatOnErrorWrap_DummyOnRetry, bool may_recovery = false)
 {
+	icecream::ic.output(std::cerr);
 	for (;;) try {
 		fn();
 		wea_state->ResetAutoRetryDelay();

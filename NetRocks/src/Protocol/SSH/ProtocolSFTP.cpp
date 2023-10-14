@@ -159,6 +159,10 @@ struct SFTPFileNonblockinScope
 ProtocolSFTP::ProtocolSFTP(const std::string &host, unsigned int port,
 	const std::string &username, const std::string &password, const std::string &options)
 {
+//	std::ofstream dbgstream;
+//	dbgstream.open("/home/user/ic.log", std::ios_base::out|std::ios_base::trunc);
+//	if (!dbgstream.bad())
+//		icecream::ic.output(dbgstream);
 	StringConfig protocol_options(options);
 	_conn = std::make_shared<SFTPConnection>(host, port, username, password, protocol_options);
 }
