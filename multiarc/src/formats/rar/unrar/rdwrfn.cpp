@@ -1,4 +1,4 @@
-#include "rar.hpp"
+﻿#include "rar.hpp"
 
 ComprDataIO::ComprDataIO()
 {
