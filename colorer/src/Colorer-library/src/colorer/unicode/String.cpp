@@ -7,15 +7,25 @@
 #ifdef __unix__
 #include <strings.h>
 
+#ifndef XERCES_STATIC_LIBRARY
+
+#ifndef HAVE_STRICMP
 extern "C" int stricmp(const char* c1, const char* c2)
 {
   return strcasecmp(c1, c2);
 }
+#endif
 
+#ifndef HAVE_STRNICMP
 extern "C" int strnicmp(const char* c1, const char* c2, unsigned int len)
 {
   return strncasecmp(c1, c2, len);
 }
+#endif
+
+#endif
+
+
 #endif
 
 String::String()
