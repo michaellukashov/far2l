@@ -66,10 +66,10 @@ public:
 	virtual std::string SiteName();
 	virtual void GetIdentity(Identity &identity);
 
-	virtual void ReInitialize();
-	virtual void Abort();
+	virtual void ReInitialize() override;
+	virtual void Abort() override;
 
-	virtual void GetModes(bool follow_symlink, size_t count, const std::string *pathes, mode_t *modes) noexcept;
+	virtual void GetModes(bool follow_symlink, size_t count, const std::string *paths, mode_t *modes) noexcept;
 	virtual mode_t GetMode(const std::string &path, bool follow_symlink = true);
 
 	virtual unsigned long long GetSize(const std::string &path, bool follow_symlink = true);
@@ -94,5 +94,5 @@ public:
 
 	virtual void ExecuteCommand(const std::string &working_dir, const std::string &command_line, const std::string &fifo);
 
-	virtual bool Alive();
+	virtual bool Alive() override;
 };
