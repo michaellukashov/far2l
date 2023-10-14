@@ -1,0 +1,83 @@
+# TODO: build static libsmbclient (needed for NetRocks-SMB)
+# docker build -t far2l -f Dockerfile --build-arg MAKEFLAGS_PARALLEL=-j4 .
+# docker run --rm far2l cat /far2l-nowx*.tar.gz > far2l-nowx-static-alpine.tar.gz
+
+FROM alpine:3.17.3
+# FROM frolvlad/alpine-glibc
+
+ARG PREFIX=/far2l
+ARG VCPKG_DEFAULT_TRIPLET=x64-linux-release
+ARG VCPKGDIR=/vcpkg
+#ARG VCPKG_BUILD_TYPE=release
+
+ENV VCPKG_FORCE_SYSTEM_BINARIES="1"
+
+# RUN apk upgrade
+RUN apk --no-cache add binutils cmake make libgcc musl-dev gcc g++
+#RUN apk --no-cache add libstdc++6 libc6-compat
+#RUN apk --no-cache add gcc6 g++6
+RUN apk --no-cache add linux-headers perl cmake ninja #build-base
+# RUN apk --no-cache add zlib-static bzip2-static
+
+RUN apk --no-cache add gawk m4 curl gettext pkgconf dpkg git
+#for libneon build
+RUN apk --no-cache add zip unzip bzip2 patch wget which autoconf automake libtool gettext xmlto
+
+
+ARG MAKEFLAGS_PARALLEL="-j`nproc`"
+
+# setup vcpkg
+WORKDIR $VCPKGDIR
+RUN git clone https://github.com/Microsoft/vcpkg.git --depth=1 .
+
+RUN ./bootstrap-vcpkg.sh
+#RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
+
+# setup vcpkg libs
+RUN ./vcpkg install zlib fmt spdlog xerces-c pcre
+RUN ./vcpkg install libssh[core,mbedtls,zlib]
+RUN ./vcpkg install libxml2 zstd liblzma uchardet
+RUN ./vcpkg install openssl libarchive[crypto]
+
+# setup libs
+#RUN apk --no-cache add samba-dev
+#RUN sudo apk --no-cache add libnfs-devel neon-devel pcre-devel libssh-devel openssl-devel libarchive-devel uchardet-devel
+#RUN sudo apk --no-cache add wxGTK3-devel
+#RUN apk --no-cache add ninja-build
+
+WORKDIR /build/neon
+
+# build neon library
+RUN git clone --branch=0.32.5 --depth=1 https://github.com/notroj/neon.git . && \
+  ./autogen.sh && \
+	./configure --prefix=/build/neon --enable-static --disable-debug --with-ssl=openssl --with-libxml2 --with-libs=${VCPKGDIR}/installed/${VCPKG_DEFAULT_TRIPLET} && \
+  make && make install-lib install-headers install-config
+
+WORKDIR /build-far2l
+
+COPY . $PREFIX/
+#-DCMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++" \
+RUN rm -rf $PREFIX/CMakeCache.txt 2>&1 && \
+  cmake $PREFIX -DEACP=yes -DUSEWX=no -DMUSL=1 -DOPT_USE_STATIC_EXT_LIBS=TRUE \
+  -DCMAKE_CXX_FLAGS:STRING="-D__MUSL__ -D_7ZIP_AFFINITY_DISABLE=1 -DPIC -fPIC -fPIE" \
+  -DCMAKE_C_FLAGS:STRING="-D__MUSL__ -D_7ZIP_AFFINITY_DISABLE=1 -DPIC -fPIC -fPIE" \
+  -DCMAKE_EXE_LINKER_FLAGS="-fPIC -pie -Os -static-libgcc -static-libstdc++ -pthread" \
+  -DCMAKE_MODULE_LINKER_FLAGS="-fPIC -pie -Os -static-libgcc -static-libstdc++ -pthread" \
+  -Wno-dev -DVCPKG_ROOT=$VCPKGDIR \
+  -DCMAKE_PREFIX_PATH=/build/neon \
+  -DCMAKE_TOOLCHAIN_FILE=${VCPKGDIR}/scripts/buildsystems/vcpkg.cmake
+# -DCOLORER=no -DUSEUCD=no
+RUN make ${MAKEFLAGS_PARALLEL}
+RUN make install
+# cmake -G Ninja
+# RUN ninja
+RUN cpack
+RUN cat far2l-nowx-*.tar.gz > /far2l-nowx-static.tar.gz
+
+# Install the entry script
+WORKDIR /
+# Install the entry script
+COPY ./docker/entry.sh /
+ENTRYPOINT ["/entry.sh"]
+# Just run bash if no other command is given
+#CMD ["/bin/sh"]
