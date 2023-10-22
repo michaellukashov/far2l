@@ -43,7 +43,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Modal::Modal()
 	:
-	ReadKey(-1), WriteKey(-1), ExitCode(-1), EndLoop(0)
+	ReadKey(-1), WriteKey(-1), EndLoop(0)
 {}
 
 void Modal::Process()
@@ -109,11 +109,6 @@ int Modal::Done()
 void Modal::ClearDone()
 {
 	EndLoop = 0;
-}
-
-int Modal::GetExitCode()
-{
-	return (ExitCode);
 }
 
 void Modal::SetExitCode(int Code)
