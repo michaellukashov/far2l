@@ -32,7 +32,7 @@ class WhatOnErrorState
 	WhatOnErrorAction Query(ProgressState &progress_state, WhatOnErrorKind wek, const std::string &error, const std::string &object, const std::string &site, bool may_recovery = false);
 	void ResetAutoRetryDelay();
 
-	bool IsShowingUIRightNow() const { return _showing_ui != 0; };
+	bool IsShowingUIRightNow() const { return _showing_ui != 0; }
 
 	bool HasAnyAutoAction() const;
 	void ResetAutoActions();

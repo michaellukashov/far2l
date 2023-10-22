@@ -66,8 +66,8 @@ public:
 	void AllocBuf(int X, int Y);
 	void Lock();
 	void Unlock();
-	int GetLockCount() { return (LockCount); };
-	void SetLockCount(int Count) { LockCount = Count; };
+	int GetLockCount() { return (LockCount); }
+	void SetLockCount(int Count) { LockCount = Count; }
 	void ResetShadow();
 	void MoveCursor(int X, int Y);
 	void GetCursorPos(SHORT &X, SHORT &Y);

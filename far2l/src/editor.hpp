@@ -338,9 +338,9 @@ public:
 	void SetTitle(const wchar_t *Title);
 	long GetCurPos();
 	int EditorControl(int Command, void *Param);
-	void SetHostFileEditor(FileEditor *Editor) { HostFileEditor = Editor; };
+	void SetHostFileEditor(FileEditor *Editor) { HostFileEditor = Editor; }
 	static void SetReplaceMode(int Mode);
-	FileEditor *GetHostFileEditor() { return HostFileEditor; };
+	FileEditor *GetHostFileEditor() { return HostFileEditor; }
 	void PrepareResizedConsole() { Flags.Set(FEDITOR_ISRESIZEDCONSOLE); }
 
 	void SetTabSize(int NewSize);
@@ -405,8 +405,8 @@ public:
 	InsertString(const wchar_t *lpwszStr, int nLength, Edit *pAfter = nullptr, int AfterLineNumber = -1);
 
 	void SetDialogParent(DWORD Sets);
-	void SetReadOnly(int NewReadOnly) { Flags.Change(FEDITOR_LOCKMODE, NewReadOnly); };
-	int GetReadOnly() { return Flags.Check(FEDITOR_LOCKMODE); };
+	void SetReadOnly(int NewReadOnly) { Flags.Change(FEDITOR_LOCKMODE, NewReadOnly); }
+	int GetReadOnly() { return Flags.Check(FEDITOR_LOCKMODE); }
 	void SetOvertypeMode(int Mode);
 	int GetOvertypeMode();
 	void SetEditBeyondEnd(int Mode);

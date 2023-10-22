@@ -133,5 +133,5 @@ public:
 	TTYInputSequenceParser(ITTYInputSpecialSequenceHandler *handler);
 
 	size_t Parse(const char *s, size_t l, bool idle_expired); // 0 - need more, -1 - not sequence, -2 - unrecognized sequence, >0 - sequence
-	char UsingExtension() const { return _using_extension; };
+	char UsingExtension() const { return _using_extension; }
 };

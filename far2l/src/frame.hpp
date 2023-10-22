@@ -82,16 +82,16 @@ public:
 	// virtual int ProcessKey(int Key);
 	// virtual int ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent);
 
-	virtual int GetCanLoseFocus(int DynamicMode = FALSE) { return (CanLoseFocus); };
-	void SetCanLoseFocus(int Mode) { CanLoseFocus = Mode; };
+	virtual int GetCanLoseFocus(int DynamicMode = FALSE) { return (CanLoseFocus); }
+	void SetCanLoseFocus(int Mode) { CanLoseFocus = Mode; }
 	void SetRegularIdle(bool enabled);
-	int GetExitCode() { return ExitCode; };
-	virtual void SetExitCode(int Code) { ExitCode = Code; };
+	int GetExitCode() { return ExitCode; }
+	virtual void SetExitCode(int Code) { ExitCode = Code; }
 
-	virtual BOOL IsFileModified() const { return FALSE; };
+	virtual BOOL IsFileModified() const { return FALSE; }
 
-	virtual const wchar_t *GetTypeName() { return L"[FarModal]"; };
-	virtual int GetTypeAndName(FARString &strType, FARString &strName) { return (MODALTYPE_VIRTUAL); };
+	virtual const wchar_t *GetTypeName() { return L"[FarModal]"; }
+	virtual int GetTypeAndName(FARString &strType, FARString &strName) { return (MODALTYPE_VIRTUAL); }
 	virtual int GetType() { return MODALTYPE_VIRTUAL; }
 
 	virtual void OnDestroy();						// вызывается перед уничтожением окна
@@ -102,29 +102,29 @@ public:
 	virtual void InitKeyBar() {}
 	void SetKeyBar(KeyBar *FrameKeyBar);
 	void UpdateKeyBar();
-	virtual void RedrawKeyBar() { Frame::UpdateKeyBar(); };
+	virtual void RedrawKeyBar() { Frame::UpdateKeyBar(); }
 
-	int IsTitleBarVisible() const { return TitleBarVisible; };
+	int IsTitleBarVisible() const { return TitleBarVisible; }
 
 	/* $ 12.05.2001 DJ */
 	int IsTopFrame();
 	virtual int GetMacroMode() { return MacroMode; }
 	/* DJ $ */
 	void Push(Frame *Modalized);
-	Frame *GetTopModal() { return NextModal; };
+	Frame *GetTopModal() { return NextModal; }
 	// bool Pop();
 	// Frame *operator[](int Index);
 	// int operator[](Frame *ModalFarame);
 	// int ModalCount() {return ModalStackCount;}
 	void DestroyAllModal();
 	void SetDynamicallyBorn(int Born) { DynamicallyBorn = Born; }
-	int GetDynamicallyBorn() { return DynamicallyBorn; };
+	int GetDynamicallyBorn() { return DynamicallyBorn; }
 	virtual int FastHide();
 	// int IndexOf(Frame *aFrame);
 	bool RemoveModal(Frame *aFrame);
 	virtual void ResizeConsole();
 	bool HasSaveScreen();
 	// bool ifFullConsole();
-	virtual FARString &GetTitle(FARString &Title, int SubLen = -1, int TruncSize = 0) { return Title; };
-	virtual bool ProcessEvents() { return true; };
+	virtual FARString &GetTitle(FARString &Title, int SubLen = -1, int TruncSize = 0) { return Title; }
+	virtual bool ProcessEvents() { return true; }
 };

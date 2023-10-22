@@ -390,7 +390,7 @@ public:
 	void SetModeMoving(int IsMoving) { DialogMode.Change(DMODE_ISCANMOVE, IsMoving); }
 	int GetModeMoving() { return DialogMode.Check(DMODE_ISCANMOVE); }
 	void SetDialogData(LONG_PTR NewDataDialog);
-	LONG_PTR GetDialogData() { return DataDialog; };
+	LONG_PTR GetDialogData() { return DataDialog; }
 
 	void InitDialog();
 	void Process();
@@ -406,7 +406,7 @@ public:
 
 	virtual int GetTypeAndName(FARString &strType, FARString &strName);
 	virtual int GetType() { return MODALTYPE_DIALOG; }
-	virtual const wchar_t *GetTypeName() { return L"[Dialog]"; };
+	virtual const wchar_t *GetTypeName() { return L"[Dialog]"; }
 
 	virtual int GetMacroMode();
 
@@ -416,9 +416,9 @@ public:
 	//		virtual void OnDestroy();
 
 	// For MACRO
-	const DialogItemEx **GetAllItem() { return (const DialogItemEx **)Item; };
-	unsigned GetAllItemCount() { return ItemCount; };	// количество элементов диалога
-	unsigned GetDlgFocusPos() { return FocusPos; };
+	const DialogItemEx **GetAllItem() { return (const DialogItemEx **)Item; }
+	unsigned GetAllItemCount() { return ItemCount; }	// количество элементов диалога
+	unsigned GetDlgFocusPos() { return FocusPos; }
 
 	int SetAutomation(WORD IDParent, WORD id, FarDialogItemFlags UncheckedSet,
 			FarDialogItemFlags UncheckedSkip, FarDialogItemFlags CheckedSet, FarDialogItemFlags CheckedSkip,

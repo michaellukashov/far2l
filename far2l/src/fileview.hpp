@@ -89,7 +89,7 @@ public:
 	virtual void OnChangeFocus(int focus);
 
 	virtual int GetTypeAndName(FARString &strType, FARString &strName);
-	virtual const wchar_t *GetTypeName() { return L"[FileView]"; };		///
+	virtual const wchar_t *GetTypeName() { return L"[FileView]"; }		///
 	virtual int GetType() { return MODALTYPE_VIEWER; }
 
 	void SetEnableF6(int AEnable)

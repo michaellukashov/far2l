@@ -151,7 +151,7 @@ public:
 	BOOL ExitAll();
 	BOOL IsAnyFrameModified(int Activate);
 
-	int GetFrameCount() { return (FrameCount); };
+	int GetFrameCount() { return (FrameCount); }
 	int GetFrameCountByType(int Type);
 
 	/*
@@ -218,7 +218,7 @@ public:
 		if (RegularIdleWanters)
 			RegularIdleWanters--;
 	}
-	unsigned int RegularIdleWantersCount() const { return RegularIdleWanters; };
+	unsigned int RegularIdleWantersCount() const { return RegularIdleWanters; }
 };
 
 extern Manager *FrameManager;
