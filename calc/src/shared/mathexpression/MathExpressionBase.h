@@ -52,7 +52,7 @@ enum PARSER_ERROR
 
 template<class T>
 class MathExpressionBase
-  {
+{
 
 
 protected:
