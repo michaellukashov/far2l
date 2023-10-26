@@ -1,6 +1,6 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
 
-cmake_minimum_required (VERSION 3.14.0)
+cmake_minimum_required (VERSION 3.16.0)
 
 option(OPT_USE_STATIC_EXT_LIBS "Build and use static external libraries: libneon, libsmb etc" OFF)
 option(OPT_PVS_ANALYSIS "use PVS static analysis" OFF)
