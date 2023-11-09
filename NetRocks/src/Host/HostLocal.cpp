@@ -245,7 +245,7 @@ public:
 			}
 
 			name = de->d_name;
-			
+
 			_subpath = _path;
 			_subpath+= name;
 			struct stat s = {};
@@ -266,7 +266,7 @@ public:
 			file_info.mode = s.st_mode;
 			return true;
 		}
-  	}
+	}
 };
 
 std::shared_ptr<IDirectoryEnumer> HostLocal::DirectoryEnum(const std::string &path)
