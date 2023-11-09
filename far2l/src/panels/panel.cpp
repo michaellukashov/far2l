@@ -93,7 +93,7 @@ public:
 	WCHAR HotKey;
 
 	ChDiskPluginItem() { Clear(); }
-	~ChDiskPluginItem() {}
+	~ChDiskPluginItem() = default;
 
 	void Clear()
 	{

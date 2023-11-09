@@ -54,7 +54,7 @@ protected:
 	void OnBroken();
 
 public:
-	inline HostRemote() {}
+	inline HostRemote() = default;
 
 	HostRemote(const SiteSpecification &site_specification);
 	HostRemote(const std::string &protocol, const std::string &host,
