@@ -169,7 +169,7 @@ template <class CodePointT>
 	bool _whole_words;
 	bool _foreign_endian;
 
-	virtual bool SameAs(const IScannedPattern *other) const noexcept
+	virtual bool SameAs(const IScannedPattern *other) const noexcept override
 	{
 		if (Summary() != other->Summary()) {
 			return false;
@@ -185,22 +185,22 @@ template <class CodePointT>
 		return true;
 	}
 
-	virtual uint64_t Summary() const noexcept
+	virtual uint64_t Summary() const noexcept override
 	{
 		return uint64_t(sizeof(CodeUnit) | (CodePointT::MaxCodeUnits << 8) | (_seq.size() << 16));
 	}
 
-	virtual const Metrics &GetMetrics() const noexcept
+	virtual const Metrics &GetMetrics() const noexcept override
 	{
 		return _metrics;
 	}
 
-	virtual size_t GetCapacity() const noexcept
+	virtual size_t GetCapacity() const noexcept override
 	{
 		return CodePointT::MaxCodeUnits * CodePointT::CodeUnitSize;
 	}
 
-	virtual void AppendCodePoint(const void *base, size_t base_size, const void *alt, size_t alt_size)
+	virtual void AppendCodePoint(const void *base, size_t base_size, const void *alt, size_t alt_size) override
 	{
 		_seq.emplace_back();
 		_seq.back().Setup(_seq.size() - 1,
@@ -208,7 +208,7 @@ template <class CodePointT>
 			(const CodeUnit *)alt, alt_size / sizeof(CodeUnit));
 	}
 
-	virtual void GetReady()
+	virtual void GetReady() override
 	{
 		if (_seq.size() > std::numeric_limits<uint16_t>::max()) {
 			ThrowPrintf("too many codepoints");

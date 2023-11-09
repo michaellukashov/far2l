@@ -388,7 +388,7 @@ public:
 			throw ProtocolError(ssh_get_error(_conn->ssh));
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		for (;;) {
 #if SIMULATED_ENUM_FAILS_RATE

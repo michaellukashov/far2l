@@ -264,7 +264,7 @@ public:
 		}
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		std::string subpath;
 		owner.clear();
@@ -361,7 +361,7 @@ public:
 	}
 
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		if (_net.empty())
 			return false;
