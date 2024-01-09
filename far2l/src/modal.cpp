@@ -111,6 +111,11 @@ void Modal::ClearDone()
 	EndLoop = 0;
 }
 
+int Modal::GetExitCode()
+{
+	return (ExitCode);
+}
+
 void Modal::SetExitCode(int Code)
 {
 	ExitCode = Code;

@@ -46,6 +46,7 @@ private:
 protected:
 	INPUT_RECORD ReadRec;
 	FARString strHelpTopic;
+	int ExitCode;
 	int EndLoop;
 
 public:
@@ -56,6 +57,7 @@ public:
 	virtual void GetDialogObjectsData(){}
 	int Done();
 	void ClearDone();
+	int GetExitCode();
 	virtual void SetExitCode(int Code);
 
 	virtual void Process();
