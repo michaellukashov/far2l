@@ -39,8 +39,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class Modal : public Frame
 {
 private:
-	int ReadKey;
-	int WriteKey;
+	FarKey ReadKey;
+	FarKey WriteKey;
 	typedef ScreenObject inherited;
 
 protected:
@@ -60,8 +60,8 @@ public:
 
 	virtual void Process();
 
-	virtual int ReadInput(INPUT_RECORD *GetReadRec = nullptr);
-	void WriteInput(int Key);
+	virtual FarKey ReadInput(INPUT_RECORD *GetReadRec = nullptr);
+	void WriteInput(FarKey Key);
 	void ProcessInput();
 
 	void SetHelp(const wchar_t *Topic);

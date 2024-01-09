@@ -79,7 +79,7 @@ public:
 	Frame();
 	virtual ~Frame();
 
-	// virtual int ProcessKey(int Key);
+	// virtual int ProcessKey(FarKey Key);
 	// virtual int ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent);
 
 	virtual int GetCanLoseFocus(int DynamicMode = FALSE) { return (CanLoseFocus); }

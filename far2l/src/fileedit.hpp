@@ -117,7 +117,7 @@ public:
 	int EditorControl(int Command, void *Param);
 	void SetCodePage(UINT codepage);	// BUGBUG
 	BOOL IsFileChanged() const { return m_editor->IsFileChanged(); }
-	virtual int64_t VMProcess(int OpCode, void *vParam = nullptr, int64_t iParam = 0);
+	virtual int64_t VMProcess(MacroOpcode OpCode, void *vParam = nullptr, int64_t iParam = 0);
 	void GetEditorOptions(EditorOptions &EdOpt);
 	void SetEditorOptions(EditorOptions &EdOpt);
 	void CodepageChangedByUser() { Flags.Set(FFILEEDIT_CODEPAGECHANGEDBYUSER); }
@@ -137,7 +137,7 @@ private:
 	FARString strPluginData;
 	FARString strLoadedFileName;
 	FAR_FIND_DATA_EX FileInfo;
-	wchar_t AttrStr[4];		// 13.02.2001 IS - Сюда запомним буквы атрибутов, чтобы не вычислять их много раз
+	FARString AttrStr;		// 13.02.2001 IS - Сюда запомним буквы атрибутов, чтобы не вычислять их много раз
 	IUnmakeWritablePtr FileUnmakeWritable;
 	DWORD SysErrorCode{false};
 	bool m_bClosing{false};	// 28.04.2005 AY: true когда редактор закрывается (т.е. в деструкторе)
@@ -154,12 +154,12 @@ private:
 	int ProcessQuitKey(int FirstSave, BOOL NeedQuestion = TRUE);
 	BOOL UpdateFileList();
 	bool DecideAboutSignature();
-	int ReProcessKey(int Key, int CalledFromControl = TRUE);
+	int ReProcessKey(FarKey Key, int CalledFromControl = TRUE);
 	bool AskOverwrite(const FARString &FileName);
 	void Init(FileHolderPtr NewFileHolder, UINT codepage, const wchar_t *Title, DWORD InitFlags, int StartLine,
 			int StartChar, const wchar_t *PluginData, int OpenModeExstFile);
 	virtual void InitKeyBar();
-	virtual int ProcessKey(int Key);
+	virtual int ProcessKey(FarKey Key);
 	virtual int ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent);
 	virtual void ShowConsoleTitle();
 	virtual void OnChangeFocus(int focus);

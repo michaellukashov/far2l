@@ -54,7 +54,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "interf.hpp"
 #include "syslog.hpp"
 #include "config.hpp"
-#include "ConfigSaveLoad.hpp"
+#include "ConfigOptEdit.hpp"
+#include "ConfigOptSaveLoad.hpp"
 #include "usermenu.hpp"
 #include "datetime.hpp"
 #include "pathmix.hpp"
@@ -142,7 +143,7 @@ void CommandLine::SetCurPos(int Pos, int LeftPos)
 	CmdStr.Redraw();
 }
 
-int64_t CommandLine::VMProcess(int OpCode, void *vParam, int64_t iParam)
+int64_t CommandLine::VMProcess(MacroOpcode OpCode, void *vParam, int64_t iParam)
 {
 	if (OpCode >= MCODE_C_CMDLINE_BOF && OpCode <= MCODE_C_CMDLINE_SELECTED)
 		return CmdStr.VMProcess(OpCode - MCODE_C_CMDLINE_BOF + MCODE_C_BOF, vParam, iParam);
@@ -234,7 +235,7 @@ void CommandLine::ChangeDirFromHistory(bool PluginPath, int SelectType, FARStrin
 	}
 }
 
-int CommandLine::ProcessKey(int Key)
+int CommandLine::ProcessKey(FarKey Key)
 {
 	const wchar_t *PStr;
 	FARString strStr;
@@ -330,7 +331,7 @@ int CommandLine::ProcessKey(int Key)
 
 	switch (Key) {
 		case KEY_CTRLE:
-		case KEY_CTRLX: {
+		case KEY_CTRLX:
 			if (Key == KEY_CTRLE) {
 				CtrlObject->CmdHistory->GetPrev(strStr);
 			} else {
@@ -339,19 +340,16 @@ int CommandLine::ProcessKey(int Key)
 			CmdStr.DisableAC();
 			SetString(strStr);
 			CmdStr.RevertAC();
-		}
 			return TRUE;
 
 		case KEY_ESC:
-
 			if (Key == KEY_ESC) {
 				// $ 24.09.2000 SVS - Если задано поведение по "Несохранению при Esc", то позицию в хистори не меняем и ставим в первое положение.
 				if (Opt.CmdHistoryRule)
 					CtrlObject->CmdHistory->ResetPosition();
 
 				PStr = L"";
-			} else
-				PStr = strStr;
+			}
 
 			SetString(PStr);
 			return TRUE;
@@ -397,7 +395,7 @@ int CommandLine::ProcessKey(int Key)
 		}
 			return TRUE;
 		case KEY_SHIFTF9:
-			SaveConfig(1);
+			ConfigOptSave(1);
 			return TRUE;
 		case KEY_F10:
 			FrameManager->ExitMainLoop(TRUE);
@@ -529,7 +527,7 @@ int CommandLine::ProcessKey(int Key)
 
 			// Сбрасываем выделение на некоторых клавишах
 			if (!Opt.CmdLine.EditBlock) {
-				static int UnmarkKeys[] = {KEY_LEFT, KEY_NUMPAD4, KEY_CTRLS, KEY_RIGHT, KEY_NUMPAD6,
+				static FarKey UnmarkKeys[] = {KEY_LEFT, KEY_NUMPAD4, KEY_CTRLS, KEY_RIGHT, KEY_NUMPAD6,
 						KEY_CTRLD, KEY_CTRLLEFT, KEY_CTRLNUMPAD4, KEY_CTRLRIGHT, KEY_CTRLNUMPAD6,
 						KEY_CTRLHOME, KEY_CTRLNUMPAD7, KEY_CTRLEND, KEY_CTRLNUMPAD1, KEY_HOME, KEY_NUMPAD7,
 						KEY_END, KEY_NUMPAD1};
@@ -857,18 +855,17 @@ void CommandLine::RedrawWithoutComboBoxMark()
 
 void FarAbout(PluginManager &Plugins)
 {
-	FARString fs, fs2;
 	int npl;
+	FARString fs, fs2;
+	MenuItemEx mi, mis;
+	mis.Flags = LIF_SEPARATOR;
 
 	VMenu ListAbout(L"far:about",nullptr,0,ScrY-4);
 	ListAbout.SetFlags(VMENU_SHOWAMPERSAND | VMENU_IGNORE_SINGLECLICK);
 	ListAbout.ClearFlags(VMENU_MOUSEREACTION);
 	//ListAbout.SetFlags(VMENU_WRAPMODE);
-	//ListAbout.SetHelp(L"FarAbout");
+	ListAbout.SetHelp(L"SpecCmd");//L"FarAbout");
 	ListAbout.SetBottomTitle(L"ESC or F10 to close, Ctrl-Alt-F - filtering");
-
-	MenuItemEx mis;
-	mis.Flags = LIF_SEPARATOR;
 
 	fs.Format(L"      FAR2L Version: %s", FAR_BUILD);
 	ListAbout.AddItem(fs);
@@ -940,26 +937,25 @@ void FarAbout(PluginManager &Plugins)
 
 	for(int i = 0; i < npl; i++)
 	{
-		fs.Format(L"Plugin#%02d | ",  i+1);
+		fs.Format(L"Plugin#%02d ",  i+1);
 		mis.strName = fs;
+		mi.PrefixLen = fs.GetLength()-1;
 
 		Plugin *pPlugin = Plugins.GetPlugin(i);
 		if(pPlugin == nullptr) {
 			ListAbout.AddItem(&mis);
-			fs.Append(L"!!! ERROR get plugin");
-			ListAbout.AddItem(fs);
+			mi.strName = fs + L"!!! ERROR get plugin";
+			ListAbout.AddItem(&mi);
 			continue;
 		}
-		//fs.AppendFormat(L"%ls | ", PointToName(pPlugin->GetModuleName()));
 		mis.strName = fs + PointToName(pPlugin->GetModuleName());
 		ListAbout.AddItem(&mis);
-		fs2 = fs;
-		fs2.Append( pPlugin->GetModuleName() );
-		ListAbout.AddItem(fs2);
 
-		fs2 = fs + L"Settings Name: ";
-		fs2.Append(pPlugin->GetSettingsName());
-		ListAbout.AddItem(fs2);
+		mi.strName = fs + pPlugin->GetModuleName();
+		ListAbout.AddItem(&mi);
+
+		mi.strName = fs + L"Settings Name: " + pPlugin->GetSettingsName();
+		ListAbout.AddItem(&mi);
 
 		int iFlags;
 		PluginInfo pInfo{};
@@ -1015,38 +1011,40 @@ void FarAbout(PluginManager &Plugins)
 				iFlags = -1;
 		}
 
-		fs2 = fs + L"    ";
-		fs2.AppendFormat(L" %s Cached ", pPlugin->CheckWorkFlags(PIWF_CACHED) ? "[x]" : "[ ]");
-		fs2.AppendFormat(L" %s Loaded ", pPlugin->GetFuncFlags() & PICFF_LOADED ? "[x]" : "[ ]");
-		ListAbout.AddItem(fs2);
+		mi.strName.Format(L"%ls     %s Cached  %s Loaded ",
+			fs.CPtr(),
+			pPlugin->CheckWorkFlags(PIWF_CACHED) ? "[x]" : "[ ]",
+			pPlugin->GetFuncFlags() & PICFF_LOADED ? "[x]" : "[ ]");
+		ListAbout.AddItem(&mi);
 
 		if (iFlags >= 0) {
-			fs2 = fs + L"F11:";
-			fs2.AppendFormat(L" %s Panel  ", iFlags & PF_DISABLEPANELS ? "[ ]" : "[x]");
-			fs2.AppendFormat(L" %s Dialog ", iFlags & PF_DIALOG ? "[x]" : "[ ]");
-			fs2.AppendFormat(L" %s Viewer ", iFlags & PF_VIEWER ? "[x]" : "[ ]");
-			fs2.AppendFormat(L" %s Editor ", iFlags & PF_EDITOR ? "[x]" : "[ ]");
-			ListAbout.AddItem(fs2);
+			mi.strName.Format(L"%lsF11: %s Panel   %s Dialog  %s Viewer  %s Editor ",
+				fs.CPtr(),
+				iFlags & PF_DISABLEPANELS ? "[ ]" : "[x]",
+				iFlags & PF_DIALOG ? "[x]" : "[ ]",
+				iFlags & PF_VIEWER ? "[x]" : "[ ]",
+				iFlags & PF_EDITOR ? "[x]" : "[ ]");
+			ListAbout.AddItem(&mi);
 		}
-		fs2 = fs + L"    ";
-		fs2.AppendFormat(L" %s EditorInput ", pPlugin->HasProcessEditorInput() ? "[x]" : "[ ]");
-		ListAbout.AddItem(fs2);
+
+		mi.strName.Format(L"%ls     %s EditorInput ", fs.CPtr(), pPlugin->HasProcessEditorInput() ? "[x]" : "[ ]");
+		ListAbout.AddItem(&mi);
 
 		if ( !fsDiskMenuStrings.IsEmpty() ) {
-			fs2 = fs + L"    DiskMenuStrings:" + fsDiskMenuStrings;
-			ListAbout.AddItem(fs2);
+			mi.strName = fs + L"    DiskMenuStrings:" + fsDiskMenuStrings;
+			ListAbout.AddItem(&mi);
 		}
 		if ( !fsPluginMenuStrings.IsEmpty() ) {
-			fs2 = fs + L"  PluginMenuStrings:" + fsPluginMenuStrings;
-			ListAbout.AddItem(fs2);
+			mi.strName = fs + L"  PluginMenuStrings:" + fsPluginMenuStrings;
+			ListAbout.AddItem(&mi);
 		}
 		if ( !fsPluginConfigStrings.IsEmpty() ) {
-			fs2 = fs + L"PluginConfigStrings:" + fsPluginConfigStrings;
-			ListAbout.AddItem(fs2);
+			mi.strName = fs + L"PluginConfigStrings:" + fsPluginConfigStrings;
+			ListAbout.AddItem(&mi);
 		}
 		if ( !fsCommandPrefix.IsEmpty() ) {
-			fs2.Format(L"%ls      CommandPrefix: \"%ls\"", fs.CPtr(), fsCommandPrefix.CPtr());
-			ListAbout.AddItem(fs2);
+			mi.strName.Format(L"%ls      CommandPrefix: \"%ls\"", fs.CPtr(), fsCommandPrefix.CPtr());
+			ListAbout.AddItem(&mi);
 		}
 		
 	}
@@ -1081,7 +1079,7 @@ bool CommandLine::ProcessFarCommands(const wchar_t *CmdLine)
 	}
 
 	if (b_far && str_command == L"far:config") {
-		AdvancedConfig();
+		ConfigOptEdit();
 		return true; // prefix correct and was processed
 	}
 

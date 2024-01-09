@@ -65,8 +65,12 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "vtshell.h"
 #include "ConfigRW.hpp"
 #include "AllXLats.hpp"
+#include "ConfigOpt.hpp"
+#include "ConfigOptSaveLoad.hpp"
 
 void SanitizeHistoryCounts();
+
+static bool g_config_ready = false;
 
 // Стандартный набор разделителей
 static constexpr const wchar_t *WordDiv0 = L"~!%^&*()+|{}:\"<>?`-=\\[];',./";
@@ -76,6 +80,7 @@ static constexpr const wchar_t *WordDivForXlat0 = L" \t!#$%^&*()+|=\\/@?";
 
 static constexpr const wchar_t *szCtrlDot = L"Ctrl.";
 static constexpr const wchar_t *szCtrlShiftDot = L"CtrlShift.";
+
 
 // Section
 static constexpr const char *NSecColors = "Colors";
@@ -112,305 +117,8 @@ static constexpr const char *NParamHistoryCount = "HistoryCount";
 static constexpr const char *NSecVMenu = "VMenu";
 
 static FARString strKeyNameConsoleDetachKey;
-static bool g_config_ready = false;
 
-static constexpr class OptSerializer
-{
-	const char *_section;
-	const char *_key;
-	WORD  _bin_size;  // used only with _type == T_BIN
-	bool  _save;   // =true - будет записываться в SaveConfig()
-
-	enum T
-	{
-		T_STR = 0,
-		T_BIN,
-		T_DWORD,
-		T_INT,
-		T_BOOL
-	} _type : 8;
-
-	union V
-	{
-		FARString *str;
-		BYTE *bin;
-		DWORD *dw;
-		int *i;
-		bool *b;
-	} _value;
-
-	union D
-	{
-		const wchar_t *str;
-		const BYTE *bin;
-		DWORD dw;
-		int i;
-		bool b;
-	} _default;
-
-public:
-	constexpr OptSerializer(bool save, const char *section, const char *key, WORD size, BYTE *data_bin, const BYTE *def_bin)
-		: _section{section}, _key{key}, _bin_size{size}, _save{save},
-		_type{T_BIN}, _value{.bin = data_bin}, _default{.bin = def_bin}
-	{ }
-
-	constexpr OptSerializer(bool save, const char *section, const char *key, FARString *data_str, const wchar_t *def_str)
-		: _section{section}, _key{key}, _bin_size{0}, _save{save},
-		_type{T_STR}, _value{.str = data_str}, _default{.str = def_str}
-	{ }
-
-	constexpr OptSerializer(bool save, const char *section, const char *key, DWORD *data_dw, DWORD def_dw)
-		: _section{section}, _key{key}, _bin_size{0}, _save{save},
-		_type{T_DWORD}, _value{.dw = data_dw}, _default{.dw = def_dw}
-	{ }
-
-	constexpr OptSerializer(bool save, const char *section, const char *key, int *data_i, int def_i)
-		: _section{section}, _key{key}, _bin_size{0}, _save{save},
-		_type{T_INT}, _value{.i = data_i}, _default{.i = def_i}
-	{ }
-
-	constexpr OptSerializer(bool save, const char *section, const char *key, bool *data_b, bool def_b)
-		: _section{section}, _key{key}, _bin_size{0}, _save{save},
-		_type{T_BOOL}, _value{.b = data_b}, _default{.b = def_b}
-	{ }
-
-	void Load(ConfigReader &cfg_reader) const
-	{
-		cfg_reader.SelectSection(_section);
-		switch (_type)
-		{
-			case T_INT:
-				*_value.i = cfg_reader.GetInt(_key, _default.i);
-				break;
-			case T_DWORD:
-				*_value.dw = cfg_reader.GetUInt(_key, _default.dw);
-				break;
-			case T_BOOL:
-				*_value.b = cfg_reader.GetInt(_key, _default.b ? 1 : 0) != 0;
-				break;
-			case T_STR:
-				*_value.str = cfg_reader.GetString(_key, _default.str);
-				break;
-			case T_BIN:
-				{
-					const size_t Size = cfg_reader.GetBytes(_value.bin, _bin_size, _key, _default.bin);
-					if (Size < (size_t)_bin_size)
-						memset(_value.bin + Size, 0, (size_t)_bin_size - Size);
-				}
-				break;
-		}
-	}
-
-	void Save(ConfigWriter &cfg_writer) const
-	{
-		if (!_save)
-			return;
-
-		cfg_writer.SelectSection(_section);
-		switch (_type)
-		{
-			case T_BOOL:
-				cfg_writer.SetInt(_key, *_value.b ? 1 : 0);
-				break;
-			case T_INT:
-				cfg_writer.SetInt(_key, *_value.i);
-				break;
-			case T_DWORD:
-				cfg_writer.SetUInt(_key, *_value.dw);
-				break;
-			case T_STR:
-				cfg_writer.SetString(_key, _value.str->CPtr());
-				break;
-			case T_BIN:
-				cfg_writer.SetBytes(_key, _value.bin, _bin_size);
-				break;
-		}
-	}
-
-	//  0 - is default
-	//  1 - not default
-	// -1 - error or has not default
-	int IsNotDefault() const
-	{
-		switch (_type)
-		{
-			case T_BOOL:
-				return (*_value.b != _default.b);
-			case T_INT:
-				return (*_value.i != _default.i);
-			case T_DWORD:
-				return (*_value.dw != _default.dw);
-			case T_STR:
-				return (*_value.str != _default.str);
-			case T_BIN:
-				return (_default.bin == nullptr || _value.bin == nullptr ? -1
-						: ( memcmp(_value.bin, _default.bin, _bin_size) == 0 ? 0 : 1 ));
-			default:
-				return -1; // can not process unknown type
-		}
-	}
-
-	// 0 - was default, not changed
-	// 1 - changed to default
-	// -1 - error or has not default
-	int ToDefault() const
-	{
-		switch (_type)
-		{
-			case T_BOOL:
-				if (*_value.b == _default.b)
-					return 0;
-				*_value.b = _default.b;
-				return 1;
-			case T_INT:
-				if (*_value.i == _default.i)
-					return 0;
-				*_value.i = _default.i;
-				return 1;
-			case T_DWORD:
-				if (*_value.dw == _default.dw)
-					return 0;
-				*_value.dw = _default.dw;
-				return 1;
-			case T_STR:
-				if (*_value.str == _default.str)
-					return 0;
-				*_value.str = _default.str;
-				return 1;
-			case T_BIN:
-				return -1; // can not process binary
-			default:
-				return -1; // can not process unknown type
-		}
-	}
-
-	void GetMaxLengthSectKeys(size_t &len_sections, size_t &len_keys, size_t &len_sections_keys) const
-	{
-		size_t tmp1, tmp2;
-		tmp1 = strlen(_section);
-		if (tmp1 > len_sections )
-			len_sections = tmp1;
-		tmp2 = strlen(_key);
-		if (tmp2 > len_keys )
-			len_keys = tmp2;
-		tmp1 += 1 + tmp2;
-		if (tmp1 > len_sections_keys )
-			len_sections_keys = tmp1;
-	}
-
-	void MenuListAppend(VMenu &vm,
-					size_t len_sections, size_t len_keys, size_t len_sections_keys,
-					bool hide_unchanged, bool align_dot,
-					int update_id = -1) const
-	{
-		MenuItemEx mi;
-		FARString fsn;
-		if (align_dot)
-		 fsn.Format(L"%*s.%-*s", len_sections, _section, len_keys, _key);
-		else {
-			mi.strName.Format(L"%s.%s", _section, _key);
-			fsn.Format(L"%-*ls", len_sections_keys, mi.strName.CPtr());
-		}
-		switch (_type)
-		{
-			case T_BOOL:
-				mi.strName.Format(L"%s %ls |  bool|%s", (*_value.b == _default.b ? " " : "*"), fsn.CPtr(), (*_value.b ? "true" : "false"));
-				break;
-			case T_INT:
-				mi.strName.Format(L"%s %ls |   int|%d = 0x%x", (*_value.i == _default.i ? " " : "*"), fsn.CPtr(), *_value.i, *_value.i);
-				break;
-			case T_DWORD:
-				mi.strName.Format(L"%s %ls | dword|%u = 0x%x", (*_value.dw == _default.dw ? " " : "*"), fsn.CPtr(), *_value.dw, *_value.dw);
-				break;
-			case T_STR:
-				mi.strName.Format(L"%s %ls |string|%ls", (*_value.str == _default.str ? " " : "*"), fsn.CPtr(), _value.str->CPtr());
-				break;
-			case T_BIN:
-				mi.strName.Format(L"%s %ls |binary|(binary has length %u bytes)",
-					(_default.bin == nullptr || _value.bin == nullptr ? "?"
-						: ( memcmp(_value.bin, _default.bin, _bin_size) == 0 ? " " : "*")),
-					fsn.CPtr(), _bin_size );
-				break;
-			default:
-				mi.strName.Format(L"? %ls |unknown type ???", fsn.CPtr());
-		}
-		if (update_id < 0) {
-			if (hide_unchanged && mi.strName.At(0)==L' ') // no hide after change item to default value
-				mi.Flags |= LIF_HIDDEN;
-			vm.AddItem(&mi);
-		}
-		else {
-			vm.DeleteItem(update_id);
-			vm.AddItem(&mi, update_id);
-			vm.SetSelectPos(update_id, 0);
-		}
-	}
-
-	int Msg(const wchar_t *title) const
-	{
-		const char *type_psz;
-		FARString def_str, val_str;
-		switch (_type) {
-			case T_BOOL:
-				type_psz = "bool";
-				def_str = _default.b ? L"true" : L"false";
-				val_str = (*_value.b) ? L"true" : L"false";
-				break;
-			case T_INT:
-				type_psz = "int";
-				def_str.Format(L"%d = 0x%x", _default.i, _default.i);
-				val_str.Format(L"%d = 0x%x", *_value.i, *_value.i);
-				break;
-			case T_DWORD:
-				type_psz = "dword";
-				def_str.Format(L"%u = 0x%x", _default.dw, _default.dw);
-				val_str.Format(L"%u = 0x%x", *_value.dw, *_value.dw);
-				break;
-			case T_STR:
-				type_psz = "string";
-				def_str = _default.str ? _default.str : L"(null)";
-				val_str = *_value.str;
-				break;
-			case T_BIN:
-				type_psz = "binary";
-				if (_default.bin) {
-					def_str.Format(L"(binary has length %u bytes)", _bin_size);
-				} else {
-					def_str = L"(no default value set)";
-				}
-				val_str.Format(L"(binary has length %u bytes)", _bin_size);
-				break;
-			default:
-				type_psz = "???";
-				def_str = L"???";
-				val_str = L"???";
-		}
-
-		ExMessager em;
-		em.AddFormat(L"%ls - %s.%s", title, _section, _key);
-		em.AddFormat(L"        Section: %s", _section);
-		em.AddFormat(L"            Key: %s", _key);
-		em.AddFormat(L" to config file: %s", (_save ? "saved" : "never"));
-		em.AddFormat(L"           Type: %s", type_psz);
-		em.AddFormat(L"  Default value: %ls", def_str.CPtr());
-		em.AddFormat(L"  Current value: %ls", val_str.CPtr());
-		if (IsNotDefault()==1) {
-			em.Add(L"");
-			em.Add(L"Note: some panel parameters after update/reset");
-			em.Add(L"      not applied immediatly in FAR2L");
-			em.Add(L"      and need relaunch feature");
-			em.Add(L"      or may be need save config & restart FAR2L");
-		}
-		em.Add(L"Continue");
-		if (IsNotDefault()==1) {
-			em.Add(L"Reset to default");
-			return em.Show(MSG_LEFTALIGN, 2);
-		}
-		return em.Show(MSG_LEFTALIGN, 1);
-	}
-
-} s_opt_serializers[] =
-{
+const ConfigOpt g_cfg_opts[] = {
 	{true,  NSecColors, "CurrentPalette", SIZE_ARRAY_PALETTE, Palette, DefaultPalette},
 
 	{true,  NSecScreen, "Clock", &Opt.Clock, 1},
@@ -606,6 +314,10 @@ public:
 	{true,  NSecSystem, "OnlyFilesSize", &Opt.OnlyFilesSize, 0},
 	{false, NSecSystem, "UsePrintManager", &Opt.UsePrintManager, 1},
 
+	{false, NSecSystem, "ExcludeCmdHistory", &Opt.ExcludeCmdHistory, 0}, //AN
+
+	{true,  NSecSystem, "FolderInfo", &Opt.InfoPanel.strFolderInfoFiles, L"DirInfo,File_Id.diz,Descript.ion,ReadMe.*,Read.Me"},
+
 	{false, NSecSystemNowell, "MoveRO", &Opt.Nowell.MoveRO, 1},
 
 	{false, NSecSystemExecutor, "RestoreCP", &Opt.RestoreCPAfterExecute, 1},
@@ -717,20 +429,79 @@ public:
 	{false, NSecPolicies, "ShowHiddenDrives", &Opt.Policies.ShowHiddenDrives, 1},
 	{false, NSecPolicies, "DisabledOptions", &Opt.Policies.DisabledOptions, 0},
 
-
-	{false, NSecSystem, "ExcludeCmdHistory", &Opt.ExcludeCmdHistory, 0}, //AN
-
 	{true,  NSecCodePages, "CPMenuMode2", &Opt.CPMenuMode, 1},
-
-	{true,  NSecSystem, "FolderInfo", &Opt.InfoPanel.strFolderInfoFiles, L"DirInfo,File_Id.diz,Descript.ion,ReadMe.*,Read.Me"},
 
 	{true,  NSecVMenu, "LBtnClick", &Opt.VMenu.LBtnClick, VMENUCLICK_CANCEL},
 	{true,  NSecVMenu, "RBtnClick", &Opt.VMenu.RBtnClick, VMENUCLICK_CANCEL},
 	{true,  NSecVMenu, "MBtnClick", &Opt.VMenu.MBtnClick, VMENUCLICK_APPLY},
 	{true,  NSecVMenu, "HistShowTimes", ARRAYSIZE(Opt.HistoryShowTimes), Opt.HistoryShowTimes, nullptr},
+	{}
 };
 
-///////////////////////////////////////////////////////////////////////////////////////
+//////////
+
+struct OptConfigReader : ConfigReader
+{
+	void LoadOpt(const ConfigOpt &opt)
+	{
+		SelectSection(opt.section);
+		switch (opt.type)
+		{
+			case ConfigOpt::T_INT:
+				*opt.value.i = GetInt(opt.key, opt.def.i);
+				break;
+			case ConfigOpt::T_DWORD:
+				*opt.value.dw = GetUInt(opt.key, opt.def.dw);
+				break;
+			case ConfigOpt::T_BOOL:
+				*opt.value.b = GetInt(opt.key, opt.def.b ? 1 : 0) != 0;
+				break;
+			case ConfigOpt::T_STR:
+				*opt.value.str = GetString(opt.key, opt.def.str);
+				break;
+			case ConfigOpt::T_BIN:
+				{
+					const size_t Size = GetBytes(opt.value.bin, opt.bin_size, opt.key, opt.def.bin);
+					if (Size < (size_t)opt.bin_size)
+						memset(opt.value.bin + Size, 0, (size_t)opt.bin_size - Size);
+				}
+				break;
+			default:
+				ABORT_MSG("Wrong option type: %u", opt.type);
+		}
+	}
+};
+
+struct OptConfigWriter : ConfigWriter
+{
+	void SaveOpt(const ConfigOpt &opt)
+	{
+		if (!opt.save)
+			return;
+
+		SelectSection(opt.section);
+		switch (opt.type)
+		{
+			case ConfigOpt::T_BOOL:
+				SetInt(opt.key, *opt.value.b ? 1 : 0);
+				break;
+			case ConfigOpt::T_INT:
+				SetInt(opt.key, *opt.value.i);
+				break;
+			case ConfigOpt::T_DWORD:
+				SetUInt(opt.key, *opt.value.dw);
+				break;
+			case ConfigOpt::T_STR:
+				SetString(opt.key, opt.value.str->CPtr());
+				break;
+			case ConfigOpt::T_BIN:
+				SetBytes(opt.key, opt.value.bin, opt.bin_size);
+				break;
+			default:
+				ABORT_MSG("Wrong option type: %u", opt.type);
+		}
+	}
+};
 
 static void SanitizeXlat()
 {
@@ -776,15 +547,15 @@ static void SanitizePalette()
 	}
 }
 
-void LoadConfig()
+void ConfigOptLoad()
 {
-	ConfigReader cfg_reader;
+	OptConfigReader cfg_reader;
 
 	/* <ПРЕПРОЦЕССЫ> *************************************************** */
 	//Opt.LCIDSort=LOCALE_USER_DEFAULT; // проинициализируем на всякий случай
 	/* *************************************************** </ПРЕПРОЦЕССЫ> */
-	for (const auto &opt_ser : s_opt_serializers)
-		opt_ser.Load(cfg_reader);
+	for (size_t i = 0; g_cfg_opts[i].Valid(); ++i)
+		cfg_reader.LoadOpt(g_cfg_opts[i]);
 
 	/* <ПОСТПРОЦЕССЫ> *************************************************** */
 
@@ -855,12 +626,12 @@ void LoadConfig()
 	/* *************************************************** </ПОСТПРОЦЕССЫ> */
 }
 
-void AssertConfigLoaded()
+void ConfigOptAssertLoaded()
 {
 	ASSERT(g_config_ready);
 }
 
-void SaveConfig(int Ask)
+void ConfigOptSave(int Ask)
 {
 	if (Opt.Policies.DisabledOptions&0x20000) // Bit 17 - Сохранить параметры
 		return;
@@ -912,9 +683,9 @@ void SaveConfig(int Ask)
 	CtrlObject->HiFiles->SaveHiData();
 	/* *************************************************** </ПРЕПРОЦЕССЫ> */
 
-	ConfigWriter cfg_writer;
-	for (const auto &opt_ser : s_opt_serializers)
-		opt_ser.Save(cfg_writer);
+	OptConfigWriter cfg_writer;
+	for (size_t i = 0; g_cfg_opts[i].Valid(); ++i)
+		cfg_writer.SaveOpt(g_cfg_opts[i]);
 
 	/* <ПОСТПРОЦЕССЫ> *************************************************** */
 	FileFilter::SaveFilters(cfg_writer);
@@ -924,92 +695,4 @@ void SaveConfig(int Ask)
 		CtrlObject->Macro.SaveMacros();
 
 	/* *************************************************** </ПОСТПРОЦЕССЫ> */
-}
-
-
-static FARString AdvancedConfigTitle(bool hide_unchanged = false)
-{
-	FARString title = L"far:config";
-	if (hide_unchanged) {
-		title+= L" *";
-	}
-	return title;
-}
-
-void AdvancedConfig()
-{
-	size_t len_sections = 0, len_keys = 0, len_sections_keys = 0;
-	bool hide_unchanged = false, align_dot = false;
-	int sel_pos = 0;
-
-	VMenu ListConfig(AdvancedConfigTitle(hide_unchanged), nullptr, 0, ScrY-4);
-	ListConfig.SetFlags(VMENU_SHOWAMPERSAND | VMENU_IGNORE_SINGLECLICK);
-	ListConfig.ClearFlags(VMENU_MOUSEREACTION);
-	//ListConfig.SetFlags(VMENU_WRAPMODE);
-	//ListConfig.SetHelp(L"FarConfig");
-
-	ListConfig.SetBottomTitle(L"ESC or F10 - close, ENTER - details, DEL - to default, Ctrl-Alt-F - filtering, Ctrl-H - changed/all, Ctrl-A - names left/dot");
-
-	for (const auto &opt_ser : s_opt_serializers)
-		opt_ser.GetMaxLengthSectKeys(len_sections, len_keys, len_sections_keys);
-	for (const auto &opt_ser : s_opt_serializers)
-		opt_ser.MenuListAppend(ListConfig, len_sections, len_keys, len_sections_keys, hide_unchanged, align_dot);
-
-	ListConfig.SetPosition(-1, -1, 0, 0);
-	//ListConfig.Process();
-	ListConfig.Show();
-	do {
-		while (!ListConfig.Done()) {
-			int Key = ListConfig.ReadInput();
-			switch (Key) {
-				case KEY_CTRLH:
-					hide_unchanged = !hide_unchanged;
-					ListConfig.SetTitle(AdvancedConfigTitle(hide_unchanged));
-					break;
-				case KEY_CTRLA:
-					align_dot = !align_dot;
-					break;
-				case KEY_NUMDEL:
-				case KEY_DEL:
-					sel_pos = ListConfig.GetSelectPos();
-					if (sel_pos>=0 && s_opt_serializers[sel_pos].IsNotDefault()==1
-							&& s_opt_serializers[sel_pos].Msg(AdvancedConfigTitle())==1
-							&& s_opt_serializers[sel_pos].ToDefault()) {
-						s_opt_serializers[sel_pos].MenuListAppend(
-							ListConfig,
-							len_sections, len_keys, len_sections_keys,
-							hide_unchanged, align_dot,
-							sel_pos);
-						ListConfig.FastShow();
-					}
-					continue;
-				default:
-					ListConfig.ProcessInput();
-					continue;
-			}
-
-			// regenerate items in loop only if not was contunue
-			sel_pos = ListConfig.GetSelectPos();
-			ListConfig.DeleteItems();
-			for (const auto &opt_ser : s_opt_serializers)
-				opt_ser.MenuListAppend(ListConfig, len_sections, len_keys, len_sections_keys, hide_unchanged, align_dot);
-			ListConfig.SetSelectPos(sel_pos,0);
-			ListConfig.SetPosition(-1, -1, 0, 0);
-			ListConfig.Show();
-		}
-
-		sel_pos = ListConfig.GetExitCode();
-		if (sel_pos < 0) // exit from loop by ESC or F10 or click outside vmenu
-			break;
-		ListConfig.ClearDone(); // no close after select item by ENTER or dbl mouse click
-		if ( s_opt_serializers[sel_pos].Msg(AdvancedConfigTitle())==1
-				&& s_opt_serializers[sel_pos].ToDefault()==1 ) {
-			s_opt_serializers[sel_pos].MenuListAppend(
-				ListConfig,
-				len_sections, len_keys, len_sections_keys,
-				hide_unchanged, align_dot,
-				sel_pos);
-			ListConfig.FastShow();
-		}
-	} while(1);
 }

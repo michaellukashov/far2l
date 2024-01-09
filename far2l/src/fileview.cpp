@@ -209,12 +209,12 @@ void FileViewer::DisplayObject()
 	View.Show();
 }
 
-int64_t FileViewer::VMProcess(int OpCode, void *vParam, int64_t iParam)
+int64_t FileViewer::VMProcess(MacroOpcode OpCode, void *vParam, int64_t iParam)
 {
 	return View.VMProcess(OpCode, vParam, iParam);
 }
 
-int FileViewer::ProcessKey(int Key)
+int FileViewer::ProcessKey(FarKey Key)
 {
 	if (RedrawTitle
 			&& (((unsigned int)Key & 0x00ffffff) < KEY_END_FKEY
@@ -527,8 +527,12 @@ void FileViewer::ShowStatus()
 	FS << fmt::Cells() << fmt::LeftAlign() << fmt::Size(View.Width + (View.ViOpt.ShowScrollbar ? 1 : 0))
 		<< strStatus;
 
-	if (Opt.ViewerEditorClock && IsFullScreen())
+	if (Opt.ViewerEditorClock && IsFullScreen()) {
+		if (X2 > 5) {
+			Text(X2 - 5, Y1, COL_VIEWERTEXT, L" ");
+		}
 		ShowTime(FALSE);
+	}
 }
 
 void FileViewer::OnChangeFocus(int focus)

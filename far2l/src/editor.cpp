@@ -328,6 +328,34 @@ void Editor::ShowEditor(int CurLineOnly)
 		}
 	}
 
+	if (!CurLineOnly) {
+		LeftPos = CurLine->GetLeftPos();
+#if 0
+
+		// крайне эксперементальный кусок!
+		if (CurPos+LeftPos < XX2)
+			LeftPos=0;
+		else if (CurLine->X2 < XX2)
+			LeftPos=CurLine->GetLength()-CurPos;
+
+		if (LeftPos < 0)
+			LeftPos=0;
+
+#endif
+
+		for (CurPtr = TopScreen, Y = Y1; Y <= Y2; Y++)
+			if (CurPtr) {
+				CurPtr->SetEditBeyondEnd(TRUE);
+				CurPtr->SetPosition(X1, Y, XX2, Y);
+				// CurPtr->SetTables(UseDecodeTable ? &TableSet:nullptr);
+				//_D(SysLog(L"Setleftpos 3 to %i",LeftPos));
+				CurPtr->SetLeftPos(LeftPos);
+				CurPtr->SetCellCurPos(CurPos);
+				CurPtr->SetEditBeyondEnd(EdOpt.CursorBeyondEOL);
+				CurPtr = CurPtr->m_next;
+			}
+	}
+
 	if (!Pasting) {
 		/*
 			$ 10.08.2000 skv
@@ -364,30 +392,9 @@ void Editor::ShowEditor(int CurLineOnly)
 	DrawScrollbar();
 
 	if (!CurLineOnly) {
-		LeftPos = CurLine->GetLeftPos();
-#if 0
-
-		// крайне эксперементальный кусок!
-		if (CurPos+LeftPos < XX2)
-			LeftPos=0;
-		else if (CurLine->X2 < XX2)
-			LeftPos=CurLine->GetLength()-CurPos;
-
-		if (LeftPos < 0)
-			LeftPos=0;
-
-#endif
-
 		for (CurPtr = TopScreen, Y = Y1; Y <= Y2; Y++)
 			if (CurPtr) {
-				CurPtr->SetEditBeyondEnd(TRUE);
-				CurPtr->SetPosition(X1, Y, XX2, Y);
-				// CurPtr->SetTables(UseDecodeTable ? &TableSet:nullptr);
-				//_D(SysLog(L"Setleftpos 3 to %i",LeftPos));
-				CurPtr->SetLeftPos(LeftPos);
-				CurPtr->SetCellCurPos(CurPos);
 				CurPtr->FastShow();
-				CurPtr->SetEditBeyondEnd(EdOpt.CursorBeyondEOL);
 				CurPtr = CurPtr->m_next;
 			} else {
 				SetScreen(X1, Y, XX2, Y, L' ', COL_EDITORTEXT);		// Пустые строки после конца текста
@@ -531,7 +538,7 @@ int Editor::BlockEnd2NumLine(int *Pos)
 	return iLine;
 }
 
-int64_t Editor::VMProcess(int OpCode, void *vParam, int64_t iParam)
+int64_t Editor::VMProcess(MacroOpcode OpCode, void *vParam, int64_t iParam)
 {
 	int CurPos = CurLine->GetCurPos();
 
@@ -785,7 +792,7 @@ void Editor::ProcessPasteEvent()
 	Show();
 }
 
-int Editor::ProcessKey(int Key)
+int Editor::ProcessKey(FarKey Key)
 {
 	if (Key == KEY_IDLE) {
 		if (Opt.ViewerEditorClock && HostFileEditor && HostFileEditor->IsFullScreen()
@@ -822,7 +829,7 @@ int Editor::ProcessKey(int Key)
 			Flags.Clear(FEDITOR_MARKINGVBLOCK | FEDITOR_MARKINGBLOCK);
 
 			if (!EdOpt.PersistentBlocks) {
-				static int UnmarkKeys[] = {
+				static FarKey UnmarkKeys[] = {
 						KEY_LEFT,
 						KEY_NUMPAD4,
 						KEY_RIGHT,
@@ -2452,7 +2459,7 @@ int Editor::ProcessKey(int Key)
 				}
 
 				if (!Pasting && !EdOpt.PersistentBlocks && BlockStart)
-					if ((Key >= 32 && Key < 0x10000) || Key == KEY_ADD || Key == KEY_SUBTRACT ||	// ??? 256 ???
+					if ((Key >= L' ' && WCHAR_IS_VALID(Key)) || Key == KEY_ADD || Key == KEY_SUBTRACT ||	// ??? 256 ???
 							Key == KEY_MULTIPLY || Key == KEY_DIVIDE || Key == KEY_TAB) {
 						DeleteBlock();
 						/*
@@ -2536,7 +2543,7 @@ int Editor::ProcessKey(int Key)
 
 				CurPos = CurLine->GetCurPos();
 
-				if (Key < 0x10000 && CurPos > Length) {
+				if (WCHAR_IS_VALID(Key) && CurPos > Length) {
 
 					// detect space alignment by search for lines starting with space
 					Edit *PrevLine = CurLine->m_prev;
@@ -3523,7 +3530,7 @@ BOOL Editor::Search(int Next)
 
 							int I = 0;
 							for (; SearchLength && strReplaceStrCurrent[I]; I++, SearchLength--) {
-								int Ch = strReplaceStrCurrent[I];
+								unsigned int Ch = strReplaceStrCurrent[I];
 
 								if (Ch == KEY_TAB) {
 									Flags.Clear(FEDITOR_OVERTYPE);
@@ -3553,7 +3560,7 @@ BOOL Editor::Search(int Next)
 								CurLine->SetOvertypeMode(FALSE);
 
 								for (; strReplaceStrCurrent[I]; I++) {
-									int Ch = strReplaceStrCurrent[I];
+									unsigned Ch = strReplaceStrCurrent[I];
 
 									if (Ch != KEY_BS && !(Ch == KEY_DEL || Ch == KEY_NUMDEL))
 										ProcessKey(Ch);
@@ -4798,16 +4805,9 @@ void Editor::VPaste(wchar_t *ClipText)
 						ProcessKey(KEY_END);
 						ProcessKey(KEY_ENTER);
 
-						/*
-							$ 19.05.2001 IS
-							Не вставляем пробелы тогда, когда нас об этом не просят, а
-							именно - при включенном автоотступе ничего вставлять не нужно,
-							оно само вставится и в другом месте.
-						*/
-						if (!EdOpt.AutoIndent)
-							for (int I = 0; I < StartPos; I++)
-								ProcessKey(L' ');
-					}
+						// Mantis 0002966: Неправильная вставка вертикального блока в конце файла
+						for (int I = 0; I < StartPos; I++)
+							ProcessKey(L' ');					}
 				} else {
 					ProcessKey(KEY_DOWN);
 					CurLine->SetCellCurPos(StartPos);
@@ -4971,7 +4971,6 @@ int Editor::EditorControl(int Command, void *Param)
 
 				Flags.Set(FEDITOR_NEWUNDO);
 				InsertString();
-				Show();
 
 				if (!Indent)
 					Pasting--;
@@ -5375,19 +5374,25 @@ int Editor::EditorControl(int Command, void *Param)
 				_ECTLLOG(SysLog(L"  EndPos      =%d", col->EndPos));
 				_ECTLLOG(SysLog(L"  Color       =%d (0x%08X)", col->Color, col->Color));
 				_ECTLLOG(SysLog(L"}"));
-				ColorItem newcol{0};
-				newcol.StartPos = col->StartPos + (col->StartPos != -1 ? X1 : 0);
-				newcol.EndPos = col->EndPos + X1;
-				newcol.Color = col->Color;
 				Edit *CurPtr = GetStringByNumber(col->StringNumber);
-
 				if (!CurPtr) {
 					_ECTLLOG(SysLog(L"GetStringByNumber(%d) return nullptr", col->StringNumber));
 					return FALSE;
 				}
 
+				ColorItem newcol{0};
+				newcol.StartPos = col->StartPos + (col->StartPos != -1 ? X1 : 0);
 				if (!col->Color)
 					return (CurPtr->DeleteColor(newcol.StartPos));
+
+				if (col->EndPos >= 0) {
+					newcol.EndPos = col->EndPos + X1;
+				} else {
+					newcol.EndPos = CurPtr->GetLeftPos() + CurPtr->CellPosToReal(X2 - X1);//CurPtr->GetLength();
+				}
+				newcol.Color = col->Color;
+
+
 
 				if (Command == ECTL_ADDTRUECOLOR) {
 					const EditorTrueColor *tcol = (EditorTrueColor *)Param;
@@ -6127,19 +6132,16 @@ void Editor::Xlat()
 // Обновим размер табуляции
 void Editor::SetTabSize(int NewSize)
 {
-	if (NewSize < 1 || NewSize > 512)
-		NewSize = 8;
+	if (NewSize<1 || NewSize>512 || NewSize==EdOpt.TabSize)
+		return; /* Меняем размер табуляции только в том случае, если он
+					на самом деле изменился */
 
-	if (NewSize != EdOpt.TabSize)
-	// Меняем размер табуляции только в том случае, если он на самом деле изменился
-	{
-		EdOpt.TabSize = NewSize;
-		Edit *CurPtr = TopList;
+	EdOpt.TabSize = NewSize;
+	Edit *CurPtr = TopList;
 
-		while (CurPtr) {
-			CurPtr->SetTabSize(NewSize);
-			CurPtr = CurPtr->m_next;
-		}
+	while (CurPtr) {
+		CurPtr->SetTabSize(NewSize);
+		CurPtr = CurPtr->m_next;
 	}
 }
 

@@ -912,6 +912,13 @@ int PluginManager::ProcessHostFile(HANDLE hPlugin, PluginPanelItem *PanelItem, i
 	return Code;
 }
 
+bool PluginManager::GetLinkTarget(HANDLE hPlugin, PluginPanelItem *PanelItem, FARString &result, int OpMode)
+{
+	ChangePriority ChPriority(ChangePriority::NORMAL);
+	PluginHandle *ph = (PluginHandle *)hPlugin;
+	return ph->pPlugin->GetLinkTarget(ph->hPlugin, PanelItem, result, OpMode);
+}
+
 int PluginManager::GetFiles(HANDLE hPlugin, PluginPanelItem *PanelItem, int ItemsNumber, int Move,
 		const wchar_t **DestPath, int OpMode)
 {
@@ -1116,7 +1123,7 @@ void PluginManager::Configure(int StartPos)
 			PluginList.Show();
 
 			while (!PluginList.Done()) {
-				DWORD Key = PluginList.ReadInput();
+				const auto Key = PluginList.ReadInput();
 				int SelPos = PluginList.GetSelectPos();
 				PluginMenuItemData *item = (PluginMenuItemData *)PluginList.GetUserData(nullptr, 0, SelPos);
 
@@ -1267,7 +1274,7 @@ int PluginManager::CommandsMenu(int ModalType, int StartPos, const wchar_t *Hist
 			PluginList.Show();
 
 			while (!PluginList.Done()) {
-				DWORD Key = PluginList.ReadInput();
+				const auto Key = PluginList.ReadInput();
 				int SelPos = PluginList.GetSelectPos();
 				PluginMenuItemData *item = (PluginMenuItemData *)PluginList.GetUserData(nullptr, 0, SelPos);
 

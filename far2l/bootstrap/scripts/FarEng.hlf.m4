@@ -925,7 +925,7 @@ $ #Special commands#
 
    #far:about#  - Far information, list and information about plugins.
 
-   #far:config# - Configuration editor (draft now).
+   #far:config# - Configuration editor.
 
    #view:file# or #far:view:file# or #far:view file# - open in viewer existing #file#.
 
@@ -4040,6 +4040,9 @@ will be copied; This option affects only the current copy session and not saved
 for later copy operations.
     #Also ask on R/O files# - controls whether an additional confirmation
 dialog should be displayed for read-only files.
+    If the corresponding item in ~Confirmations~@ConfirmDlg@ is unchecked,
+then "Already existing files" are disabled
+and the #Overwrite# action is silently applied.
 
     When moving files, to determine whether the operation should be performed
 as a copy with subsequent deletion or as a direct move (within one physical
