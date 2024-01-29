@@ -385,6 +385,17 @@ AskQuit
 "Ви хочете завершити роботу в FAR?"
 "Вы жадаеце выйсці з FAR?"
 
+AskQuitVTS
+"ЭТО ТАК ЖЕ ЗАВЕРШИТ ИСПОЛНЕНИЕ %u ФОНОВЫХ КОМАНД"
+"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+"ЦЕ ТАКОЖ ЗАВЕРШИТЬ ВИКОНАННЯ %u ФОНОВИХ КОМАНД"
+"ГЭТА ТАКСАМА ЗАВЕРШЫЦЬ ВЫКАНАННЕ %u ФОНАВЫХ КАМАНД"
+
 Background
 "&В фон"
 "&Background"
@@ -406,6 +417,39 @@ GetOut
 "&Get out"
 "&Вибратися"
 "&Выбрацца"
+
+CommandBackgrounded
+" *** Команда отправлена в фон, используйте меню Экранов F12 для переключения на нее"
+" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+" *** Команда відправлена у фон, використовуйте меню Екранів F12 для перемикання на неї"
+" *** Каманда адпраўлена ў фон, выкарыстоўвайце меню Экранаў F12 для пераключэння на яе"
+
+CommandTerminated
+" *** Команда завершена принудительно"
+" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+" *** Команда завершена примусово"
+" *** Каманда завершана прымусова"
+
+BackgroundCommands
+"Фоновые команды терминала [F3]"
+"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+"Фонові команди терміналу [F3]"
+"Фонавыя каманды тэрмінала [F3]"
 
 F1
 l:
@@ -6017,15 +6061,15 @@ upd:" Ctrl+Alt+C - terminate everything in this shell.                         "
 
 VTStartTipPendCmdCtrlAltZ
 l:
-" Ctrl+Alt+Z - отправить процесс far2l в фон, освободив терминал.          "
-" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-" Ctrl+Alt+Z - надіслати процес far2l у фон, звільнивши термінал.          "
-" Ctrl+Alt+Z - адаслаць працэс far2l у фон, вызваліўшы тэрмінал.           "
+" Ctrl+Alt+Z - отправить команду в фон, освободив терминал.                "
+" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+" Ctrl+Alt+Z - надіслати команду у фон, звільнивши термінал.               "
+" Ctrl+Alt+Z - адаслаць каманду у фон, вызваліўшы тэрмінал.                "
 
 VTStartTipPendCmdMouse
 l:

@@ -953,6 +953,11 @@ $ #Configuration editor#
  Most options can be changed from the ~Options menu~@OptMenu@,
 however some options are available only here or in configuration ini-files.
 
+ The options are displayed in a list with four fields per item:
+  #-# The name in the SectionName.ParamName format (for example, Editor.TabSize)
+  #-# The type (boolean, integer, dword, string, binary or unknown)
+  #-# Whether the option is saved when Far configuration is saved (s) or not (-)
+  #-# The value (for integer or dword types the hexadecimal representation additionally displayed).
  If current value of an option is other than the default, the option is marked with the ‘*’ character to the left of the name
 (‘?’ character marked items without default value).
 
@@ -1516,7 +1521,7 @@ In case you want to exit far2l by typing command: type 'exit far' pseudo-command
 built-in viewer and editor capabilities. You can also open history viewer by scrolling mouse wheel up, following scroll til bottom of output
 - will hide that viewer. #Ctrl+C, Ctrl+Z# hotkeys trigger usual signals, however in case hard stuck of command line application you can hard kill
 it and everything in shell by pressing #Ctrl+Alt+C#. Note that its not recommended to use that hotkey without real need cuz it may cause corruption
-or lost of unsaved data in killed applications. If far2l works in TTY backend then you can also use #Ctrl+Alt+Z# to put far2l instance to background, releasing terminal but leaving active command execution.
+or lost of unsaved data in killed applications. You can also use #Ctrl+Alt+Z# to put command execution to background. You may return to background'ed command from ~Screens switching menu~@ScrSwitch@ (F12 in panels).
     #Hotkeys and scrolling when NOT running command:# while #Ctrl+Shift+F3/F4# still functioning in such mode you can also use simple #F3/F4# to get history
 opened in viewer/editor respectively. Also you can press #F8# key to cleanup history and screen. You can switch between panels and terminal by pressing #Ctrl+O#
 or clicking top left corner.
@@ -4213,9 +4218,13 @@ panels and screens with these instances. #Ctrl-Tab# switches to the next
 screen, #Ctrl-Shift-Tab# to the previous, #F12# shows a list of all available
 screens.
 
-    The number of background viewers and editors is displayed in the left panel
-upper left corner. This may be disabled by using ~Panel settings~@PanelSettings@
-dialog.
+    Additionally there can be multiple terminal commands running in background.
+You may view or activate any of them also from #F12# menu: use F3 to view
+current command output or Enter to switch to it in terminal.
+
+    The number of background terminal commands, viewers and editors is displayed
+in the left panel upper left corner. This may be disabled by using
+~Panel settings~@PanelSettings@ dialog.
 
     See also: common ~menu~@MenuCmd@ keyboard commands.
 

@@ -1557,6 +1557,7 @@ int FileEditor::LoadFile(const wchar_t *Name, int &UserBreak)
 bool FileEditor::ReloadFile(const wchar_t *Name)
 {
 	int UserBreak = 0;
+	m_editor->ProcessKey(KEY_CTRLU);
 	if (!LoadFile(Name, UserBreak))
 	{
 		if (UserBreak != 1) {
@@ -2783,9 +2784,9 @@ bool FileEditor::AskOverwrite(const FARString &FileName)
 	return result;
 }
 
-void EditConsoleHistory(bool modal)
+void EditConsoleHistory(HANDLE con_hnd, bool modal)
 {
-	FARString histfile(CtrlObject->CmdLine->GetConsoleLog(false));
+	FARString histfile(CtrlObject->CmdLine->GetConsoleLog(con_hnd, false));
 	if (histfile.IsEmpty())
 		return;
 
