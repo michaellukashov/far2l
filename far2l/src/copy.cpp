@@ -2149,8 +2149,8 @@ COPY_CODES ShellCopy::ShellCopyOneFileNoRetry(const wchar_t *Src, const FAR_FIND
 		if ((SrcData.dwFileAttributes & (FILE_ATTRIBUTE_REPARSE_POINT | FILE_ATTRIBUTE_DIRECTORY))
 				== FILE_ATTRIBUTE_DIRECTORY) {
 			/*
-				Enqueue attributes before creating directory, so even if will fail (like directory exists)
-				but ignored then still will still try apply them on whole copy process finish successfully
+				Enqueue attributes before creating directory, so even if it will fail (like directory exists)
+				but ignored then still will still try to apply them on whole copy process finish successfully
 			*/
 			EnqueueDirectoryAttributes(SrcData, strDestPath);
 		}
@@ -2733,7 +2733,7 @@ DWORD ShellFileTransfer::PieceCopy()
 
 	if (BytesWritten > BytesRead) {
 		/*
-			likely we written bit more due to no_buffering requires aligned io
+			likely we have written bit more due to no_buffering requires aligned io
 			move backward and correct file size
 		*/
 		if (!_DestFile.SetPointer((INT64)BytesRead - (INT64)WriteSize, nullptr, FILE_CURRENT))
