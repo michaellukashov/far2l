@@ -347,8 +347,8 @@ static void ApplyFinalColors(HighlightDataColor *Colors)
 	if (Colors->MarkChar & 0x00FF0000)
 		Colors->MarkChar = 0;
 
-	// Параноя но случится может:
-	// Обработаем black on black снова чтоб обработались унаследованые цвета.
+	// Паранойя но случиться может:
+	// Обработаем black on black снова чтоб обработались унаследованные цвета.
 	ApplyBlackOnBlackColors(Colors);
 }
 
