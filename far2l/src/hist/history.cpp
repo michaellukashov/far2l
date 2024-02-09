@@ -375,7 +375,7 @@ int History::Select(const wchar_t *Title, const wchar_t *HelpTopic, FARString &s
 	VMenu HistoryMenu(Title, nullptr, 0, Height);
 	HistoryMenu.SetFlags(VMENU_SHOWAMPERSAND | VMENU_WRAPMODE);
 
-	HistoryMenu.SetHelp(HelpTopic ? HelpTopic : L"HistoryCmd");	
+	HistoryMenu.SetHelp(HelpTopic ? HelpTopic : L"HistoryCmd");
 
 	HistoryMenu.SetPosition(-1, -1, 0, 0);
 	HistoryMenu.AssignHighlights(TRUE);
@@ -754,11 +754,11 @@ int History::ProcessMenu(FARString &strStr, const wchar_t *Title, VMenu &History
 					}
 					if (TypeHistory == HISTORYTYPE_VIEW && CurrentRecord) {
 						strStr = CurrentRecord->strName;
-						return 9; // for files: Go To Directory & postion to file
+						return 9; // for files: Go To Directory & position to file
 					}
 					if (TypeHistory == HISTORYTYPE_FOLDER && CurrentRecord) {
 						strStr = CurrentRecord->strName;
-						return 1; // for directory is equialent to ENTER
+						return 1; // for directory is equivalent to ENTER
 					}
 					break;
 				}

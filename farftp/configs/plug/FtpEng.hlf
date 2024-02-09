@@ -1294,7 +1294,7 @@ with the confirmation. The plugin will extract all URL parts and fill out all ne
   Specifies the directory to place the file to.
   If you leave this field blank, the plugin will use the path from the opposite panel (the path will be taken
 at the time the task runs).
-  Note: if you leave this field blank, the task can be sucessfully completed only if the following conditions
+  Note: if you leave this field blank, the task can be successfully completed only if the following conditions
 are met at the time the task runs:
 
   1. the opposite panel is available

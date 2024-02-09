@@ -239,7 +239,7 @@ Glossary:
 */
 #define FARTTY_FEAT_TERMINAL_SIZE             0x00000002
 
-/** Server reports this on responce of FARTTY_INTERRACT_CLIP_OPEN if it supports clipboard data ID.
+/** Server reports this on response of FARTTY_INTERRACT_CLIP_OPEN if it supports clipboard data ID.
  Clipboard data ID allows client-side caching of clipboard data to avoid known data transfers.
 */
 #define FARTTY_FEATCLIP_DATA_ID               0x00000001

@@ -11,7 +11,7 @@ class FileStatsOverride
 public:
 	~FileStatsOverride();
 
-	struct OverridenStats
+	struct OverriddenStats
 	{
 		timespec access_time{};
 		timespec modification_time{};

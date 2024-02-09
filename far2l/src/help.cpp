@@ -486,7 +486,7 @@ int Help::ReadHelp(const wchar_t *Mask)
 						continue;
 					}
 
-					int Splitted = 0;
+					int Split = 0;
 
 					for (int I = (int)strSplitLine.GetLength() - 1; I > 0; I--) {
 						if (strSplitLine.At(I) == L'~' && strSplitLine.At(I - 1) == L'~') {
@@ -513,7 +513,7 @@ int Help::ReadHelp(const wchar_t *Mask)
 								strSplitLine.ReleaseBuffer();
 
 								HighlightsCorrection(strSplitLine);
-								Splitted = TRUE;
+								Split = TRUE;
 								break;
 							} else {
 								lpwszPtr[I] = L' ';
@@ -522,7 +522,7 @@ int Help::ReadHelp(const wchar_t *Mask)
 						}
 					}
 
-					if (!Splitted) {
+					if (!Split) {
 						AddLine(strSplitLine);
 						strSplitLine.Clear();
 					} else {

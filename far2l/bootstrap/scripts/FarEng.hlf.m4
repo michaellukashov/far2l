@@ -2874,7 +2874,7 @@ $ #Viewer: control keys#
     5. For automatic scrolling of a dynamically updating file,
        position the "cursor" to the end of the file (End key).
 
-    6. Pressing Alt+PgUp/PgDn smoothly increases scrolling speed, futher releasing
+    6. Pressing Alt+PgUp/PgDn smoothly increases scrolling speed, further releasing
        Alt while keeping PgUp/PgDn will continue scrolling with selected speed boost.
        Speed boost dismissed by releasing all keys for long time or pressing any other key.
 

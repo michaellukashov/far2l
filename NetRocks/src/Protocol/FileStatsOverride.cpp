@@ -32,7 +32,7 @@ void FileStatsOverride::Rename(std::string old_path, std::string new_path)
 
 void FileStatsOverride::OverrideTimes(const std::string &path, const timespec &access_time, const timespec &modification_time)
 {
-	OverridenStats &ovrst = _path2ovrst[path];
+	OverriddenStats &ovrst = _path2ovrst[path];
 	ovrst.access_time = access_time;
 	ovrst.modification_time = modification_time;
 }
@@ -42,7 +42,7 @@ void FileStatsOverride::OverrideMode(const std::string &path, mode_t mode)
 	_path2ovrst[path].mode = mode;
 }
 
-const FileStatsOverride::OverridenStats *FileStatsOverride::Lookup(const std::string &path) const
+const FileStatsOverride::OverriddenStats *FileStatsOverride::Lookup(const std::string &path) const
 {
 	if (!path.empty() && path.back() == '/')
 		return Lookup(path.substr(0, path.size() - 1));

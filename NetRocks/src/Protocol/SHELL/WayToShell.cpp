@@ -56,7 +56,7 @@ WayToShell::WayToShell(int fd_ipc_recv, const WayToShellConfig &cfg, const Strin
 	}
 }
 
-// That long echo after exit makes things work smooter, dunno why.
+// That long echo after exit makes things work smoother, dunno why.
 // And it really needs to be rather long
 static const char s_exit_cmd[] = "\nexit\necho =================================\n";
 
@@ -284,7 +284,7 @@ void WayToShell::OpenSerialPort(const WayToShellConfig &cfg, const StringConfig 
 		case 6: tios.c_cflag|= CS6; break;
 		case 7: tios.c_cflag|= CS7; break;
 		case 8: tios.c_cflag|= CS8; break;
-		default: 
+		default:
 			close(_master_fd);
 			throw ProtocolError("wrong databits", opt_databits.c_str());
 	}
