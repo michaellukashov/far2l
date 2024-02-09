@@ -489,7 +489,7 @@ void BaseEditor::validate(int lno, bool rebuildRegions)
     }
   }
 
-  /* Text modification general ajustment */
+  /* Text modification general adjustment */
   if (invalidLine <= parseFrom) {
     parseFrom = invalidLine;
     tpmode = TPM_CACHE_UPDATE;

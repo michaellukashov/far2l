@@ -33,7 +33,7 @@ public:
 
   /**
    * This method informs handler about internal form of
-   * requeried LineRegion lists, which is returned after the parsing
+   * required LineRegion lists, which is returned after the parsing
    * process. Compact regions are guaranteed not to overlap
    * with each other (this is achieved with more internal processing
    * and more extensive cpu usage); non-compact regions are placed directly
@@ -180,7 +180,7 @@ public:
 
   /**
    * Tries to do some parsing job while user is doing nothing.
-   * @param time integer between 0 and 100, shows an abount of time,
+   * @param time integer between 0 and 100, shows an amount of time,
    *             available for this job.
    */
   void idleJob(int time);

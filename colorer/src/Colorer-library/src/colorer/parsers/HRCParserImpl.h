@@ -11,7 +11,7 @@
 class FileTypeImpl;
 
 /** Implementation of HRCParser.
-    Reads and mantains HRC database of syntax rules,
+    Reads and manitains HRC database of syntax rules,
     used by TextParser implementations to make
     realtime text syntax parsing.
     @ingroup colorer_parsers

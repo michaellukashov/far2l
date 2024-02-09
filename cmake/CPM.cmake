@@ -340,7 +340,7 @@ function(cpm_parse_add_package_single_arg arg outArgs)
     endif()
   endif()
 
-  # For all packages we interpret @... as version. Only replace the last occurence. Thus URIs
+  # For all packages we interpret @... as version. Only replace the last occurrence. Thus URIs
   # containing '@' can be used
   string(REGEX REPLACE "@([^@]+)$" ";VERSION;\\1" out "${out}")
 

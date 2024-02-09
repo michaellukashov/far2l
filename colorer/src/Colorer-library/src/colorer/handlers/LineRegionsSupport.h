@@ -17,7 +17,7 @@ public:
   ~LineRegionsSupport();
 
   /**
-   * Resizes structures to mantain regions for @c lineCount lines.
+   * Resizes structures to maintain regions for @c lineCount lines.
    */
   void resize(size_t lineCount);
 

@@ -152,7 +152,7 @@
  <regexp match="/\\[BbZAa]/i" region0="Operator"/> <!-- претензии (\A\Z\z - в т.ч) -->
 </scheme>
 
-<scheme name="pcre.choise">
+<scheme name="pcre.choice">
  <regexp match="/~\s*%hex;{0,2}\s*/" region0="def:Number" />
  <block start="/~(\?&lt;?[\=\!])/" end="/\M\)/"
   scheme="pcre.regexp" region01="Operator"
@@ -199,7 +199,7 @@
   region10="def:PairEnd" region11="SpecQuote"
  />
 
- <block start="/\(?#1(\?\()/" end="/(\))/" scheme="pcre.choise"
+ <block start="/\(?#1(\?\()/" end="/(\))/" scheme="pcre.choice"
   region00="SpecQuote" region01="def:PairStart"
   region10="SpecQuote" region11="def:PairEnd"
  />

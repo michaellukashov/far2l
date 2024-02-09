@@ -88,7 +88,7 @@
  FAR package: FAR Manager common expressions.
  
  mask.*  - file masks
- macro.* - key makros
+ macro.* - key macros
  </documentation><contributors><![CDATA[
   Eugene Efremov <4mirror@mail.ru> 
  ]]></contributors>

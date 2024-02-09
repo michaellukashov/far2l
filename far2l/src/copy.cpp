@@ -2006,18 +2006,18 @@ ShellCopy::CopySymLink(const wchar_t *ExistingName, const wchar_t *NewName, cons
 	StrExplode(partsRealName, strRealName.GetMB(), "/");
 	StrExplode(partsExistingName, strExistingName.GetMB(), "/");
 
-	size_t common_anchestors_count = 0;
-	while (common_anchestors_count < partsRealName.size()
-			&& common_anchestors_count < partsExistingName.size()
-			&& partsRealName[common_anchestors_count] == partsExistingName[common_anchestors_count]) {
-		++common_anchestors_count;
+	size_t common_ancestors_count = 0;
+	while (common_ancestors_count < partsRealName.size()
+			&& common_ancestors_count < partsExistingName.size()
+			&& partsRealName[common_ancestors_count] == partsExistingName[common_ancestors_count]) {
+		++common_ancestors_count;
 	}
 
 	std::string relative_target;
-	for (size_t i = common_anchestors_count; i + 1 < partsExistingName.size(); ++i) {
+	for (size_t i = common_ancestors_count; i + 1 < partsExistingName.size(); ++i) {
 		relative_target+= "../";
 	}
-	for (size_t i = common_anchestors_count; i < partsRealName.size(); ++i) {
+	for (size_t i = common_ancestors_count; i < partsRealName.size(); ++i) {
 		relative_target+= partsRealName[i];
 		if (i + 1 < partsRealName.size()) {
 			relative_target+= GOOD_SLASH;
