@@ -29,9 +29,9 @@ public:
 	void FilterFileMode(const std::string &path, mode_t &mode) const;
 
 private:
-	std::map<std::string, OverridenStats> _path2ovrst;
+	std::map<std::string, OverriddenStats> _path2ovrst;
 
-	const OverridenStats *Lookup(const std::string &path) const;
+	const OverriddenStats *Lookup(const std::string &path) const;
 };
 
 
