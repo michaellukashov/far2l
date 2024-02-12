@@ -240,7 +240,7 @@ SSHConnection::SSHConnection(const std::string &host, unsigned int port, const s
 		}
 
 	} else if (protocol_options.GetInt("InteractiveLogin", 0) != 0) {
-		int rc;
+		int rc = -1;
 		for (int loop = 0; loop < 3; ++loop) {
 			rc = ssh_userauth_kbdint(ssh, username.empty() ? nullptr : username.c_str(), NULL);
 			if (g_netrocks_verbosity > 0) {
