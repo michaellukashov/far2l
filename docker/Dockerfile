@@ -8,10 +8,10 @@ ARG MY_REGISTRY=
 FROM ${MY_REGISTRY}debian:9.11-slim
 
 ARG PREFIX=/build/far2l
-ARG VCPKG_BUILD_TYPE=release
 
-ENV VCPKG_DEFAULT_TRIPLET=x64-linux
+ENV VCPKG_DEFAULT_TRIPLET=x64-linux-release
 ENV VCPKGDIR=/build/vcpkg
+#ARG VCPKG_BUILD_TYPE=release
 
 RUN env DEBIAN_FRONTEND=noninteractive && apt-get update -y && apt-get upgrade -y && \
   apt-get install -y apt-utils apt-transport-https && \
@@ -36,8 +36,8 @@ WORKDIR /build/git
 RUN git clone https://github.com/git/git.git --depth=1 . && \
   make ${MAKEFLAGS_PARALLEL} prefix=/usr && make prefix=/usr install
 
-RUN CMAKE_ARCHIVE="cmake-3.25.1-linux-x86_64.tar.gz" && \
-  CMAKE_URL="https://github.com/Kitware/CMake/releases/download/v3.25.1/$CMAKE_ARCHIVE" && \
+RUN CMAKE_ARCHIVE="cmake-3.26.3-linux-x86_64.tar.gz" && \
+  CMAKE_URL="https://github.com/Kitware/CMake/releases/download/v3.26.3/$CMAKE_ARCHIVE" && \
   curl -LO -C - "$CMAKE_URL" && \
   tar xf "$CMAKE_ARCHIVE" -C /usr --strip 1
 
@@ -46,7 +46,7 @@ WORKDIR ${VCPKGDIR}
 RUN git clone https://github.com/Microsoft/vcpkg.git --depth=1 .
 
 RUN ./bootstrap-vcpkg.sh
-RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
+# RUN echo "set(VCPKG_BUILD_TYPE $VCPKG_BUILD_TYPE)" >> $VCPKGDIR/triplets/$VCPKG_DEFAULT_TRIPLET.cmake
 
 # setup vcpkg libs
 RUN ./vcpkg install zlib fmt spdlog xerces-c pcre
@@ -57,9 +57,9 @@ RUN ./vcpkg install openssl
 WORKDIR /build/neon
 
 # build neon library
-RUN git clone --branch=0.32.4 --depth=1 https://github.com/notroj/neon.git . && \
+RUN git clone --branch=0.32.5 --depth=1 https://github.com/notroj/neon.git . && \
   ./autogen.sh && \
-	./configure --prefix=/build/neon --enable-static --disable-debug --with-ssl=openssl --with-libxml2 --with-libs=${VCPKGDIR}/installed/x64-linux && \
+	./configure --prefix=/build/neon --enable-static --disable-debug --with-ssl=openssl --with-libxml2 --with-libs=${VCPKGDIR}/installed/${VCPKG_DEFAULT_TRIPLET} && \
   make && make install-lib install-headers install-config
 
 COPY . ${PREFIX}/

@@ -274,6 +274,7 @@ void uiMsgStore::Msg()
       break;
     case UIERROR_MISSINGVOL:
       Log(Str[0],St(MAbsNextVol),Str[0]);
+      mprintf(L"     "); // For progress percent.
       break;
 #ifndef SFX_MODULE
     case UIERROR_NEEDPREVVOL:
@@ -407,7 +408,8 @@ void uiMsgStore::Msg()
 }
 
 
-bool uiGetPassword(UIPASSWORD_TYPE Type,const wchar *FileName,SecPassword *Password)
+bool uiGetPassword(UIPASSWORD_TYPE Type,const wchar *FileName,
+                   SecPassword *Password,CheckPassword *CheckPwd)
 {
   // Unlike GUI we cannot provide Cancel button here, so we use the empty
   // password to abort. Otherwise user not knowing a password would need to

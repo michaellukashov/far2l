@@ -217,6 +217,17 @@ Remove
 "Видалити"
 "Выдаліць"
 
+Change
+"Изменить"
+"Change"
+upd:"Change"
+upd:"Change"
+upd:"Change"
+upd:"Change"
+upd:"Change"
+upd:"Change"
+upd:"Change"
+
 HCancel
 l:
 "&Отмена"
@@ -317,6 +328,17 @@ HSplit
 "Роз&ділити"
 "Па&дзяліць"
 
+HChange
+"&Изменить"
+"C&hange"
+upd:"C&hange"
+upd:"C&hange"
+upd:"C&hange"
+upd:"C&hange"
+upd:"C&hange"
+upd:"C&hange"
+upd:"C&hange"
+
 Warning
 l:
 "Предупреждение"
@@ -363,6 +385,17 @@ AskQuit
 "Ви хочете завершити роботу в FAR?"
 "Вы жадаеце выйсці з FAR?"
 
+AskQuitVTS
+"ЭТО ТАК ЖЕ ЗАВЕРШИТ ИСПОЛНЕНИЕ %u ФОНОВЫХ КОМАНД"
+"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+upd:"THIS WILL ALSO TERMINATE %u BACKGROUND COMMAND(S)"
+"ЦЕ ТАКОЖ ЗАВЕРШИТЬ ВИКОНАННЯ %u ФОНОВИХ КОМАНД"
+"ГЭТА ТАКСАМА ЗАВЕРШЫЦЬ ВЫКАНАННЕ %u ФОНАВЫХ КАМАНД"
+
 Background
 "&В фон"
 "&Background"
@@ -384,6 +417,39 @@ GetOut
 "&Get out"
 "&Вибратися"
 "&Выбрацца"
+
+CommandBackgrounded
+" *** Команда отправлена в фон, используйте меню Экранов F12 для переключения на нее"
+" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+upd:" *** Command put to background, use Screen menu (F12) to switch back to it"
+" *** Команда відправлена у фон, використовуйте меню Екранів F12 для перемикання на неї"
+" *** Каманда адпраўлена ў фон, выкарыстоўвайце меню Экранаў F12 для пераключэння на яе"
+
+CommandTerminated
+" *** Команда завершена принудительно"
+" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+upd:" *** Command forcefully terminated"
+" *** Команда завершена примусово"
+" *** Каманда завершана прымусова"
+
+BackgroundCommands
+"Фоновые команды терминала [F3]"
+"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+upd:"Background terminal commands [F3]"
+"Фонові команди терміналу [F3]"
+"Фонавыя каманды тэрмінала [F3]"
 
 F1
 l:
@@ -1614,12 +1680,12 @@ upd:"Password expiration (sec):"
 
 SudoTitle
 "Операция требует повышения привилегий"
-"Operation requires priviledges elevation"
-upd:"Operation requires priviledges elevation"
-upd:"Operation requires priviledges elevation"
-upd:"Operation requires priviledges elevation"
-upd:"Operation requires priviledges elevation"
-upd:"Operation requires priviledges elevation"
+"Operation requires privileges elevation"
+upd:"Operation requires privileges elevation"
+upd:"Operation requires privileges elevation"
+upd:"Operation requires privileges elevation"
+upd:"Operation requires privileges elevation"
+upd:"Operation requires privileges elevation"
 "Операція вимагає підвищення привілеїв"
 "Дзея патрабуе павышэння прывілеі"
 
@@ -1636,12 +1702,12 @@ upd:"Enter sudo password"
 
 SudoConfirm
 "Подтвердите использование привилегий"
-"Confirm elevated priviledges use"
-upd:"Confirm elevated priviledges use"
-upd:"Confirm elevated priviledges use"
-upd:"Confirm elevated priviledges use"
-upd:"Confirm elevated priviledges use"
-upd:"Confirm elevated priviledges use"
+"Confirm elevated privileges use"
+upd:"Confirm elevated privileges use"
+upd:"Confirm elevated privileges use"
+upd:"Confirm elevated privileges use"
+upd:"Confirm elevated privileges use"
+upd:"Confirm elevated privileges use"
 "Підтвердіть використання привілеїв"
 "Пацвярдзіце ужыванне прывілеі"
 
@@ -1732,6 +1798,39 @@ ConfigInactivityMinutes
 "minutos"
 "хвилин"
 "хвілін"
+
+ConfigMakeLinkSuggest
+"При создании ссылки по умолчанию предлагается:"
+"When making a link the default suggestion is"
+upd:"When making a link the default suggestion is"
+upd:"When making a link the default suggestion is"
+upd:"When making a link the default suggestion is"
+upd:"When making a link the default suggestion is"
+upd:"When making a link the default suggestion is"
+upd:"When making a link the default suggestion is"
+upd:"When making a link the default suggestion is"
+
+ConfigMakeLinkSuggestByFileDir
+"Жёсткая для файлов, Символическая для каталогов"
+"Hardlink for files, Symlink for directories"
+upd:"Hardlink for files, Symlink for directories"
+upd:"Hardlink for files, Symlink for directories"
+upd:"Hardlink for files, Symlink for directories"
+upd:"Hardlink for files, Symlink for directories"
+upd:"Hardlink for files, Symlink for directories"
+upd:"Hardlink for files, Symlink for directories"
+upd:"Hardlink for files, Symlink for directories"
+
+ConfigMakeLinkSuggestSymlinkAlways
+"Символическая всегда"
+"Symlink always"
+upd:"Symlink always"
+upd:"Symlink always"
+upd:"Symlink always"
+upd:"Symlink always"
+upd:"Symlink always"
+upd:"Symlink always"
+upd:"Symlink always"
 
 ConfigSaveHistory
 "Сохранять &историю команд"
@@ -2520,6 +2619,28 @@ upd:"AutoComplete"
 "&Автозавершення"
 "С&амазавяршэнне"
 
+ConfigCmdlineSplitter
+"&Разделитель вывода команд"
+"Command &output splitter"
+upd:"Command &output splitter"
+upd:"Command &output splitter"
+upd:"Command &output splitter"
+upd:"Command &output splitter"
+upd:"Command &output splitter"
+"&Розділювач виведення команд"
+"&Раздзяляльнік вываду каманд"
+
+ConfigCmdlineVTLogLimit
+"Максимум строк в &логе вывода:"
+"Maximum terminal &log lines:"
+upd:"Maximum terminal &log lines:"
+upd:"Maximum terminal &log lines:"
+upd:"Maximum terminal &log lines:"
+upd:"Maximum terminal &log lines:"
+upd:"Maximum terminal &log lines:"
+"Максимум рядків &логії виводу:"
+"Максімум радкоў &логу вываду:"
+
 ConfigCmdlineWaitKeypress
 "&Ожидать нажатие перед закрытием"
 "&Wait keypress before close"
@@ -2577,7 +2698,7 @@ upd:"Use shell"
 
 ConfigCmdlineUsePromptFormat
 "Установить &формат командной строки"
-"Set command line &prompt format"
+"Set &command line prompt format"
 "Nastavit formát &příkazového řádku"
 "&Promptformat der Kommandozeile"
 "Parancssori &prompt formátuma"
@@ -2599,15 +2720,15 @@ upd:"Administrator"
 
 ConfigAutoCompleteTitle
 l:
-"Настройка автозавершения"
-"AutoComplete settings"
-upd:"AutoComplete settings"
-upd:"AutoComplete settings"
-upd:"AutoComplete settings"
-upd:"AutoComplete settings"
-"Opciones de autocompletar"
-"Налаштування автозавершення"
-"Налады самазавяршэння"
+"Настройка автозавершения и истории"
+"AutoComplete && History settings"
+upd:"AutoComplete && History settings"
+upd:"AutoComplete && History settings"
+upd:"AutoComplete && History settings"
+upd:"AutoComplete && History settings"
+"Opciones de autocompletar e historial"
+"Налаштування автозавершення та історії"
+"Налады самазавяршэння і гістарычных"
 
 ConfigAutoCompleteExceptions
 l:
@@ -2924,15 +3045,15 @@ ViewConfigInternal
 " Убудаваная праграма прагляду "
 
 ViewConfigSavePos
-"&Сохранять позицию файла"
-"&Save file position"
+"&Сохранять состояние файла"
+"&Save file state"
 "&Ukládat pozici v souboru"
 "Dateipositionen &speichern"
 "&Fájlpozíció mentése"
 "&Zapamiętaj pozycję w pliku"
 "&Guardar posición de archivo"
-"&Зберігати позицію файлу"
-"&Захоўваць пазіцыю файла"
+"&Зберігати стан файлу"
+"&Захоўваць стан файла"
 
 ViewConfigSaveShortPos
 "Сохранять &закладки"
@@ -3158,15 +3279,15 @@ EditConfigAutoIndent
 "Сама&ўцісканне"
 
 EditConfigSavePos
-"&Сохранять позицию файла"
-"&Save file position"
+"&Сохранять состояние файла"
+"&Save file state"
 "&Ukládat pozici v souboru"
 "Dateipositionen &speichern"
 "Fájl&pozíció mentése"
 "&Zapamiętaj pozycję kursora w pliku"
 "&Guardar posición de archivo"
-"&Зберігати позицію файлу"
-"&Захоўваць пазіцыю файла"
+"&Зберігати стан файлу"
+"&Захоўваць стан файла"
 
 EditConfigSaveShortPos
 "Сохранять &закладки"
@@ -3201,16 +3322,16 @@ upd:"Zeichentabelle &automatisch erkennen"
 "&Автовизначення кодової сторінки"
 "С&амавызначэнне кадыроўкі"
 
-EditShareWrite
-"Разрешить редактирование открытых для записи &файлов"
-"Allow editing files ope&ned for writing"
-upd:"Allow editing files opened for &writing"
-upd:"Allow editing files opened for &writing"
-"Írásra m&egnyitott fájlok szerkeszthetők"
-upd:"Allow editing files opened for &writing"
-"Permitir escritura de archivos abiertos para edición"
-"Дозволити редагування відкритих для запису &файлів"
-"Дазволіць змену файлаў, якія адчынены дла запісу"
+EditUseEditorConfigOrg
+"Использовать &файлы настроек .editorconfig"
+"Use .editorconfig setti&ngs files"
+upd:"Use .editorco&nfig settings files"
+upd:"Use .editorco&nfig settings files"
+upd:"Use .editorco&nfig settings files"
+upd:"Use .editorco&nfig settings files"
+upd:"Use .editorco&nfig settings files"
+"Використовувати &файли налаштувань .editorconfig"
+"Выкарыстоўваць &файлы настроек .editorconfig"
 
 EditLockROFileModification
 "Блокировать р&едактирование файлов с атрибутом R/O"
@@ -5131,6 +5252,18 @@ AskWipeRO
 "Ви хочете знищити його?"
 "Вы жадаеце знішчыць яго?"
 
+DeleteSymLink1
+l:
+"Это symlink на файл"
+"This is a symlink to the file"
+upd:"This is a symlink to the file"
+upd:"This is a symlink to the file"
+upd:"This is a symlink to the file"
+upd:"This is a symlink to the file"
+upd:"This is a symlink to the file"
+upd:"This is a symlink to the file"
+upd:"This is a symlink to the file"
+
 DeleteHardLink1
 l:
 "Файл имеет несколько жёстких ссылок"
@@ -5928,27 +6061,40 @@ upd:" Ctrl+Alt+C - terminate everything in this shell.                         "
 
 VTStartTipPendCmdCtrlAltZ
 l:
-" Ctrl+Alt+Z - отправить процесс far2l в фон, освободив терминал.          "
-" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-upd:" Ctrl+Alt+Z - detach far2l application to background releasing terminal.  "
-" Ctrl+Alt+Z - надіслати процес far2l у фон, звільнивши термінал.          "
-" Ctrl+Alt+Z - адаслаць працэс far2l у фон, вызваліўшы тэрмінал.           "
+" Ctrl+Alt+Z - отправить команду в фон, освободив терминал.                "
+" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+upd:" Ctrl+Alt+Z - detach command to background releasing terminal.            "
+" Ctrl+Alt+Z - надіслати команду у фон, звільнивши термінал.               "
+" Ctrl+Alt+Z - адаслаць каманду у фон, вызваліўшы тэрмінал.                "
 
 VTStartTipPendCmdMouse
 l:
-" Ctrl+Shift+MouseScrollUp - автозавершающийся просмотр лога терминала.               "
-" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
-upd:" Ctrl+Shift+MouseScrollUp - pause and open autoclosing viewer with console log.      "
-" Ctrl+Shift+MouseScrollUp - перегляд лога терміналу, що завершується автоматично.    "
-" Ctrl+Shift+MouseScrollUp - які аўтазавяршае прагляд лога тэрмінала.                 "
+" Ctrl+Shift+MouseScrollUp - автозавершающийся просмотр лога терминала.    "
+" Ctrl+Shift+MouseScrollUp - autoclosing console log viewer.               "
+upd:" Ctrl+Shift+MouseScrollUp - autoclosing console log viewer.               "
+upd:" Ctrl+Shift+MouseScrollUp - autoclosing console log viewer.               "
+upd:" Ctrl+Shift+MouseScrollUp - autoclosing console log viewer.               "
+upd:" Ctrl+Shift+MouseScrollUp - autoclosing console log viewer.               "
+upd:" Ctrl+Shift+MouseScrollUp - autoclosing console log viewer.               "
+" Ctrl+Shift+MouseScrollUp - перегляд лога, що завершується автоматично.   "
+" Ctrl+Shift+MouseScrollUp - прагляд лога, які завяршаецца аўтаматычна.    "
+
+VTStartTipMouseSelect
+l:
+"Выделенный мышью текст автоматически копируется в буфер обмена            "
+"Text selected with mouse automatically copied to clipboard                "
+upd:"Text selected with mouse automatically copied to clipboard                "
+upd:"Text selected with mouse automatically copied to clipboard                "
+upd:"Text selected with mouse automatically copied to clipboard                "
+upd:"Text selected with mouse automatically copied to clipboard                "
+upd:"Text selected with mouse automatically copied to clipboard                "
+"Виділений мишею текст автоматично копіюється у буфер обміну               "
+"Вылучаны мышшу тэкст аўтаматычна капіюецца ў буфер абмену                 "
+
 
 BookmarkBottom
 "Редактирование: Del,Ins,F4,Shift+Вверх,Shift+Вниз"
@@ -6063,15 +6209,15 @@ EditF4
 "Выйсці"
 
 EditF5
-""
-""
-""
-""
-""
-""
-""
-""
-""
+"ПокПрб"
+"ShwSpc"
+upd:"ShwSpc"
+upd:"ShwSpc"
+upd:"ShwSpc"
+upd:"ShwSpc"
+upd:"ShwSpc"
+"ПокПрб"
+"ПакПрб"
 
 EditF6
 "Просм"
@@ -6082,7 +6228,7 @@ EditF6
 "Zobacz"
 "Ver "
 "Прогл"
-"Прагляд"
+"Прагл"
 
 EditF7
 "Поиск"
@@ -6096,26 +6242,27 @@ EditF7
 "Пошук"
 
 EditF8
-"ANSI"
-"ANSI"
-"ANSI"
-"ANSI"
-"ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
 "Latin 2"
-"ANSI"
-"ANSI"
-"ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
 
 EditF9
-""
-""
-""
-""
-""
-""
-""
-""
-""
+"Конфиг"
+"Config"
+"Nastav"
+"Konfig"
+"Beáll."
+"Konfig"
+"Config"
+"Конфіг"
+"Налады"
+
 
 EditF10
 "Выход"
@@ -6150,17 +6297,51 @@ EditF12
 "Екрани"
 "Экраны"
 
+EditF5Hide
+"СпрПрб"
+"HidSpc"
+upd:"HidSpc"
+upd:"HidSpc"
+upd:"HidSpc"
+upd:"HidSpc"
+upd:"HidSpc"
+"СхвПрб"
+"СхвПрб"
+
+EditCtrlF5Spaces
+"Прбелы"
+"Spaces"
+upd:"Spaces"
+upd:"Spaces"
+upd:"Spaces"
+upd:"Spaces"
+upd:"Spaces"
+"Прбіли"
+"Прбелы"
+
 EditF8DOS
 le:// don't count this - it's a F8 another text
-"OEM"
-"OEM"
-"OEM"
-"OEM"
-"OEM"
+"->OEM"
+"->OEM"
+"->OEM"
+"->OEM"
+"->OEM"
 "CP-1250"
-"OEM"
-"OEM"
-"OEM"
+"->OEM"
+"->OEM"
+"->OEM"
+
+EditF8UTF8
+le:// don't count this - it's a F8 another text
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
 
 ViewF5Processed
 le:// don't count this - it's a F5 another text
@@ -6233,15 +6414,15 @@ EditShiftF4
 "Змена"
 
 EditShiftF5
-""
-""
-""
-""
-""
-""
-""
-""
-""
+"ШирTab"
+"TabWdt"
+upd:"TabWdt"
+upd:"TabWdt"
+upd:"TabWdt"
+upd:"TabWdt"
+upd:"TabWdt"
+"ШирTab"
+"ШырTab"
 
 EditShiftF6
 ""
@@ -6501,15 +6682,15 @@ EditCtrlF4
 ""
 
 EditCtrlF5
-""
-""
-""
-""
-""
-""
-""
-""
-""
+"Tab-ы"
+"Tabs"
+upd:"Tab-s"
+upd:"Tab-s"
+upd:"Tab-s"
+upd:"Tab-s"
+upd:"Tab-s"
+"Tab-і"
+"Tab-ы"
 
 EditCtrlF6
 ""
@@ -7205,15 +7386,15 @@ SingleEditF7
 "Пошук"
 
 SingleEditF8
-"ANSI"
-"ANSI"
-"ANSI"
-"ANSI"
-"ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
 "Latin 2"
-"ANSI"
-"ANSI"
-"ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
 
 SingleEditF9
 ""
@@ -7261,15 +7442,27 @@ SingleEditF12
 
 SingleEditF8DOS
 le:// don't count this - it's a F8 another text
-"OEM"
-"OEM"
-"OEM"
-"OEM"
-"OEM"
+"->OEM"
+"->OEM"
+"->OEM"
+"->OEM"
+"->OEM"
 "CP 1250"
-"OEM"
-"OEM"
-"OEM"
+"->OEM"
+"->OEM"
+"->OEM"
+
+SingleEditF8UTF8
+le:// don't count this - it's a F8 another text
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
 
 SingleEditShiftF1
 l:
@@ -8210,6 +8403,29 @@ le://End of functional keys (Single Editor)
 ""
 ""
 
+EditTabWidthTitle
+"Ширина символа Tab"
+"Tab character width"
+upd:"Tab character width"
+upd:"Tab character width"
+upd:"Tab character width"
+upd:"Tab character width"
+upd:"Tab character width"
+"Ширина символу Tab"
+"Шырыня знака Tab"
+
+EditTabWidthItems
+"1 пробел;2 пробела;3 пробела;4 пробела;5 пробелов;6 пробелов;7 пробелов;8 пробелов;9 пробелов;10 пробелов"
+"1 space;2 spaces;3 spaces;4 spaces;5 spaces;6 spaces;7 spaces;8 spaces;9 spaces;10 spaces"
+upd:"1 space;2 spaces;3 spaces;4 spaces;5 spaces;6 spaces;7 spaces;8 spaces;9 spaces;10 spaces"
+upd:"1 space;2 spaces;3 spaces;4 spaces;5 spaces;6 spaces;7 spaces;8 spaces;9 spaces;10 spaces"
+upd:"1 space;2 spaces;3 spaces;4 spaces;5 spaces;6 spaces;7 spaces;8 spaces;9 spaces;10 spaces"
+upd:"1 space;2 spaces;3 spaces;4 spaces;5 spaces;6 spaces;7 spaces;8 spaces;9 spaces;10 spaces"
+upd:"1 space;2 spaces;3 spaces;4 spaces;5 spaces;6 spaces;7 spaces;8 spaces;9 spaces;10 spaces"
+"1 пробіл;2 пробіли;3 пробіли;4 пробіли;5 пробілів;6 пробілів;7 пробілів;8 пробілів;9 пробілів;10 пробілів"
+"1 прабел;2 прабела;3 прабела;4 прабела;5 прабелаў;6 прабелаў;7 прабелаў;8 прабелаў;9 прабелаў;10 прабелаў"
+
+
 EditSaveAs
 l:
 "Сохранить &файл как"
@@ -8853,6 +9069,17 @@ SelectTitle
 "Позначити"
 "Адзначыць"
 
+SelectFolders
+"Пометка &папок"
+"Select fol&ders"
+"Vybírat a&dresáře"
+"&Ordner auswählen"
+"A ma&ppák is kijelölhetők"
+"Zaznaczaj katalo&gi"
+"Seleccionar &directorios"
+"Позначка &тек"
+"Адзнака ката&логаў"
+
 SelectFilter
 "&Фильтр"
 "&Filter"
@@ -9147,26 +9374,26 @@ ViewF7
 "Пошук"
 
 ViewF8
-"ANSI"
-"ANSI"
-"ANSI"
-"ANSI"
-"ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
 "Latin 2"
-"ANSI"
-"ANSI"
-"ANSI"
+"->ANSI"
+"->ANSI"
+"->ANSI"
 
 ViewF9
-""
-""
-""
-""
-""
-""
-""
-""
-""
+"Конфиг"
+"Config"
+"Nastav"
+"Konfig"
+"Beáll."
+"Konfig"
+"Config"
+"Конфіг"
+"Налады"
 
 ViewF10
 "Выход"
@@ -9225,15 +9452,26 @@ l:// this is another text for F4
 "Тэкст"
 
 ViewF8DOS
-"OEM"
-"OEM"
-"OEM"
-"OEM"
-"OEM"
+"->OEM"
+"->OEM"
+"->OEM"
+"->OEM"
+"->OEM"
 "CP 1250"
-"OEM"
-"OEM"
-"OEM"
+"->OEM"
+"->OEM"
+"->OEM"
+
+ViewF8UTF8
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
+"->UTF8"
 
 ViewShiftF1
 l:
@@ -9572,15 +9810,15 @@ ViewCtrlF6
 ""
 
 ViewCtrlF7
-""
-""
-""
-""
-""
-""
-""
-""
-""
+"Grep"
+"Grep"
+"Grep"
+"Grep"
+"Grep"
+"Grep"
+"Grep"
+"Grep"
+"Grep"
 
 ViewCtrlF8
 ""
@@ -11473,7 +11711,7 @@ FindFileWholeWords
 
 FindFileAllCodePages
 "Стандартные кодовые страницы"
-"Standart code pages"
+"Standard code pages"
 upd:"Všechny znakové sady"
 upd:"Alle Zeichentabellen"
 "Minden kódlappal"
@@ -11984,26 +12222,26 @@ upd:"Other"
 "Іншыя"
 
 GetCodePageBottomTitle
-"Ctrl-H, Del, Ins, F4"
-"Ctrl-H, Del, Ins, F4"
-"Ctrl-H, Del, Ins, F4"
-"Strg-H, Entf, Einf, F4"
-"Ctrl-H, Del, Ins, F4"
-"Ctrl-H, Del, Ins, F4"
-"Ctrl-H, Del, Ins, F4"
-"Ctrl-H, Del, Ins, F4"
-"Ctrl-H, Del, Ins, F4"
+"Ctrl-H, Del, Ins, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, Ins, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, Ins, F4, Ctrl-Alt-F"
+"Strg-H, Entf, Einf, F4, Strg-Alt-F"
+"Ctrl-H, Del, Ins, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, Ins, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, Ins, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, Ins, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, Ins, F4, Ctrl-Alt-F"
 
 GetCodePageBottomShortTitle
-"Ctrl-H, Del, F4"
-"Ctrl-H, Del, F4"
-"Ctrl-H, Del, F4"
-"Strg-H, Entf, F4"
-"Ctrl-H, Del, F4"
-"Ctrl-H, Del, F4"
-"Ctrl-H, Del, F4"
-"Ctrl-H, Del, F4"
-"Ctrl-H, Del, F4"
+"Ctrl-H, Del, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, F4, Ctrl-Alt-F"
+"Strg-H, Entf, F4, Strg-Alt-F"
+"Ctrl-H, Del, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, F4, Ctrl-Alt-F"
+"Ctrl-H, Del, F4, Ctrl-Alt-F"
 
 GetCodePageEditCodePageName
 "Изменить имя кодовой страницы"
@@ -13788,15 +14026,15 @@ upd:"Параметры &ввода"
 "Налады ў&воду"
 
 MenuPluginsConfig
-"Параметры &внешних модулей"
-"Pl&ugins configuration"
-"Nastavení Plu&ginů"
-"Konfiguration von Pl&ugins"
-"Pl&ugin beállítások"
-"Konfiguracja p&luginów"
-"Configuración de pl&ugins"
-"Параметри &зовнішніх модулів"
-"Налады &знешніх дадаткаў"
+"Параметры &внешних модулей        Alt-Shift-F9"
+"Pl&ugins configuration          Alt-Shift-F9"
+"Nastavení Plu&ginů                 Alt-Shift-F9"
+"Konfiguration von Pl&ugins       Alt-Shift-F9"
+"Pl&ugin beállítások              Alt-Shift-F9"
+"Konfiguracja p&luginów  Alt-Shift-F9"
+"Configuración de pl&ugins  Alt-Shift-F9"
+"Параметри &зовнішніх модулів      Alt-Shift-F9"
+"Налады &знешніх дадаткаў          Alt-Shift-F9"
 
 MenuPluginsManagerSettings
 "Параметры менеджера внешних модулей"
@@ -13843,15 +14081,15 @@ upd:"Command line settings"
 "Налады &каманднага радка"
 
 MenuAutoCompleteSettings
-"На&стройки автозавершения"
-"AutoComplete settings"
-upd:"AutoComplete settings"
-upd:"AutoComplete settings"
-upd:"AutoComplete settings"
-upd:"AutoComplete settings"
-"Opciones de autocompletar"
-"На&лаштування автозавершення"
-"На&лады аўтазаканчэння"
+"На&стройки автозавершения и истории"
+"AutoComplete && History settings"
+upd:"AutoComplete && History settings"
+upd:"AutoComplete && History settings"
+upd:"AutoComplete && History settings"
+upd:"AutoComplete && History settings"
+"Opciones de autocompletar e historial"
+"На&лаштування автозавершення та історії"
+"На&лады аўтазаканчэння і гістарычных"
 
 MenuInfoPanelSettings
 "Нас&тройки информационной панели"
@@ -13980,8 +14218,8 @@ MenuSaveSetup
 "&Uložit nastavení                      Shift-F9"
 "Setup &speichern                     Umsch-F9"
 "Beállítások men&tése                 Shift-F9"
-"&Zapisz ustawienia       Shift-F9"
-"&Guardar configuración     Shift-F9"
+"&Zapisz ustawienia          Shift-F9"
+"&Guardar configuración         Shift-F9"
 "&Зберегти параметри                   Shift-F9"
 "&Захаваць налады                      Shift-F9"
 
@@ -14550,38 +14788,27 @@ l:
 "Вимкнення віртуального пристрою"
 "Адключэнне віртуальнай прылады"
 
-ChangeSUBSTDisconnectDriveQuestion
-"Отключить SUBST-диск %c:?"
-"Disconnect SUBST-disk %c:?"
-"Odpojit SUBST-disk %c:?"
-"Substlaufwerk %c: trennen?"
-"Törli %c: virtuális meghajtót?"
-"Odłączyć dysk SUBST %c:?"
-"Desconectarse de disco sustituido %c:?"
-"Вимкнути SUBST-диск %c:?"
-"Адключыць SUBST-дыск %c:?"
+ClearTerminalTitle
+"Очистка терминала"
+"Clear terminal"
+upd:"Clear terminal"
+upd:"Clear terminal"
+upd:"Clear terminal"
+upd:"Clear terminal"
+upd:"Clear terminal"
+"Очищення терміналу"
+"Ачыстка тэрмінала"
 
-ChangeVHDDisconnectDriveTitle
-"Отсоединение виртуального диска"
-"Virtual disk detaching"
-upd:"Virtual disk detaching"
-upd:"Virtual disk detaching"
-upd:"Virtual disk detaching"
-upd:"Virtual disk detaching"
-upd:"Virtual disk detaching"
-"Від'єднання віртуального диска"
-"Адлучэнне ўяўнага дыску"
-
-ChangeVHDDisconnectDriveQuestion
-"Отсоединить виртуальный диск %c:?"
-"Detach virtual disk %c:?"
-upd:"Detach virtual disk %c:?"
-upd:"Detach virtual disk %c:?"
-upd:"Detach virtual disk %c:?"
-upd:"Detach virtual disk %c:?"
-upd:"Detach virtual disk %c:?"
-"Від'єднати віртуальний диск %c:?"
-"Адлучыць віртуальны дыск %c:?"
+ClearTerminalQuestion
+"Очистить экран и историю терминала?"
+"Clear terminal screen and history?"
+upd:"Clear terminal screen and history?"
+upd:"Clear terminal screen and history?"
+upd:"Clear terminal screen and history?"
+upd:"Clear terminal screen and history?"
+upd:"Clear terminal screen and history?"
+"Очистити екран та історію терміналу?"
+"Ачысціць экран і гісторыю тэрмінала?"
 
 ChangeHotPlugDisconnectDriveTitle
 l:
@@ -14917,15 +15144,15 @@ upd:"Show ne&twork drive parameters"
 "Адлюстроўваць налады се&ткавых дыскаў"
 
 ChangeDriveMenuFooter
-"Ins,Del,Shift-Del,F4,F9"
-"Ins,Del,Shift-Del,F4,F9"
-"Ins,Del,Shift-Del,F4,F9"
-"Ins,Del,Shift-Del,F4,F9"
-"Ins,Del,Shift-Del,F4,F9"
-"Ins,Del,Shift-Del,F4,F9"
-"Ins,Del,Shift-Del,F4,F9"
-"Ins,Del,Shift-Del,F4,F9"
-"Ins,Del,Shift-Del,F4,F9"
+"Ins,Del,Shift-Del,F4,F9,Ctrl-Alt-F"
+"Ins,Del,Shift-Del,F4,F9,Ctrl-Alt-F"
+"Ins,Del,Shift-Del,F4,F9,Ctrl-Alt-F"
+"Ins,Del,Shift-Del,F4,F9,Ctrl-Alt-F"
+"Ins,Del,Shift-Del,F4,F9,Ctrl-Alt-F"
+"Ins,Del,Shift-Del,F4,F9,Ctrl-Alt-F"
+"Ins,Del,Shift-Del,F4,F9,Ctrl-Alt-F"
+"Ins,Del,Shift-Del,F4,F9,Ctrl-Alt-F"
+"Ins,Del,Shift-Del,F4,F9,Ctrl-Alt-F"
 
 ChangeDriveExceptions
 "Исключения:    "
@@ -14983,15 +15210,15 @@ EditControlHistoryFooterNoDel
 "Up/Down,Enter,Esc"
 
 HistoryFooter
-"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C"
-"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C"
-"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C"
-"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C"
-"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C"
-"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C"
-"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C"
-"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C"
-"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C"
+"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C,Ctrl-T,Ctrl-F10,Ctrl-Alt-F"
+"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C,Ctrl-T,Ctrl-F10,Ctrl-Alt-F"
+"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C,Ctrl-T,Ctrl-F10,Ctrl-Alt-F"
+"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C,Ctrl-T,Ctrl-F10,Ctrl-Alt-F"
+"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C,Ctrl-T,Ctrl-F10,Ctrl-Alt-F"
+"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C,Ctrl-T,Ctrl-F10,Ctrl-Alt-F"
+"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C,Ctrl-T,Ctrl-F10,Ctrl-Alt-F"
+"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C,Ctrl-T,Ctrl-F10,Ctrl-Alt-F"
+"Up/Down,Enter,Esc,Shift-Del,Del,Ins,Ctrl-C,Ctrl-T,Ctrl-F10,Ctrl-Alt-F"
 
 SearchFileTitle
 l:
@@ -15372,6 +15599,61 @@ SetAttrJunction
 "Зв'язок:"
 "Сувязь:"
 
+SetAttrInfoSelAll
+"выбрано %d элементов"
+"selected %d items"
+upd:"selected %d items"
+upd:"selected %d items"
+upd:"selected %d items"
+upd:"selected %d items"
+upd:"selected %d items"
+upd:"selected %d items"
+upd:"selected %d items"
+
+SetAttrInfoSelDirs
+"%lsкаталогов: %d"
+"%lsdirs: %d"
+upd:"%lsdirs: %d"
+upd:"%lsdirs: %d"
+upd:"%lsdirs: %d"
+upd:"%lsdirs: %d"
+upd:"%lsdirs: %d"
+upd:"%lsdirs: %d"
+upd:"%lsdirs: %d"
+
+SetAttrInfoSelFiles
+"%lsфайлов: %d"
+"%lsfiles: %d"
+upd:"%lsfiles: %d"
+upd:"%lsfiles: %d"
+upd:"%lsfiles: %d"
+upd:"%lsfiles: %d"
+upd:"%lsfiles: %d"
+upd:"%lsfiles: %d"
+upd:"%lsfiles: %d"
+
+SetAttrInfoSelSymDirs
+"%lsсимлинков на каталоги: %d"
+"%lssymlinks to dirs: %d"
+upd:"%lssymlinks to dirs: %d"
+upd:"%lssymlinks to dirs: %d"
+upd:"%lssymlinks to dirs: %d"
+upd:"%lssymlinks to dirs: %d"
+upd:"%lssymlinks to dirs: %d"
+upd:"%lssymlinks to dirs: %d"
+upd:"%lssymlinks to dirs: %d"
+
+SetAttrInfoSelSymFiles
+"%lsсимлинков на файлы: %d"
+"%lssymlinks to files: %d"
+upd:"%lssymlinks to files: %d"
+upd:"%lssymlinks to files: %d"
+upd:"%lssymlinks to files: %d"
+upd:"%lssymlinks to files: %d"
+upd:"%lssymlinks to files: %d"
+upd:"%lssymlinks to files: %d"
+upd:"%lssymlinks to files: %d"
+
 SetAttrSymlink
 "Ссылка:"
 "Symlink:"
@@ -15382,6 +15664,61 @@ SetAttrSymlink
 "Enlace:"
 "Посилання:"
 "Спасылак:"
+
+SetAttrSymlinkWarn1
+"Для симлинка '%ls'"
+"For symlink '%ls'"
+upd:"For symlink '%ls'"
+upd:"For symlink '%ls'"
+upd:"For symlink '%ls'"
+upd:"For symlink '%ls'"
+upd:"For symlink '%ls'"
+upd:"For symlink '%ls'"
+upd:"For symlink '%ls'"
+
+SetAttrSymlinkWarn2
+"нового объекта '%ls' не существует"
+"new target '%ls' does not exist"
+upd:"new target '%ls' does not exist"
+upd:"new target '%ls' does not exist"
+upd:"new target '%ls' does not exist"
+upd:"new target '%ls' does not exist"
+upd:"new target '%ls' does not exist"
+upd:"new target '%ls' does not exist"
+upd:"new target '%ls' does not exist"
+
+SetAttrSymlinkWarn3
+"(текущий объект '%ls')"
+"(current target '%ls')"
+upd:"(current target '%ls')"
+upd:"(current target '%ls')"
+upd:"(current target '%ls')"
+upd:"(current target '%ls')"
+upd:"(current target '%ls')"
+upd:"(current target '%ls')"
+upd:"(current target '%ls')"
+
+SetAttrSymlinkWarn4
+"Пропустить или все-равно изменить объект симлинка?"
+"Skip or change symlink target anyway?"
+upd:"Skip or change symlink target anyway?"
+upd:"Skip or change symlink target anyway?"
+upd:"Skip or change symlink target anyway?"
+upd:"Skip or change symlink target anyway?"
+upd:"Skip or change symlink target anyway?"
+upd:"Skip or change symlink target anyway?"
+upd:"Skip or change symlink target anyway?"
+
+SetAttrSymlinkFailed
+"Ошибка изменения символической ссылки"
+"Error changing symbolic link"
+upd:"Error changing symbolic link"
+upd:"Error changing symbolic link"
+upd:"Error changing symbolic link"
+upd:"Error changing symbolic link"
+upd:"Error changing symbolic link"
+"Ошибка зміни символічних посилань"
+"Шыбка змены сімвалічных спасылак"
 
 SetAttrVolMount
 "Том:"
@@ -15627,15 +15964,48 @@ upd:"RRRRR%cMM%cDD gg%cmm%css%cms"
 "ГГГГГ%cММ%cДД чч%cмм%cсс%cмс"
 
 SetAttrBriefInfo
-"&Краткое описание"
-"Brief &info"
-upd:"Brief &info"
-upd:"Brief &info"
-upd:"Brief &info"
-upd:"Brief &info"
-upd:"Brief &info"
-upd:"Системні &властивості"
-"&Каротае апісанне"
+"Опи&сание:"
+"&Info:"
+upd:"&Info:"
+upd:"&Info:"
+upd:"&Info:"
+upd:"&Info:"
+upd:"&Info:"
+"&Опис:"
+"&Апісанне:"
+
+SetAttrSymlinkContent
+"&Ссылка: "
+"&Symlink:"
+upd:"&Symlink:"
+upd:"&Symlink:"
+upd:"&Symlink:"
+upd:"&Symlink:"
+upd:"&Symlink:"
+"По&сил..:"
+"&Спасыл.:"
+
+SetAttrSymlinkObject
+"Объект: "
+"Object: "
+upd:"Object: "
+upd:"Object: "
+upd:"Object: "
+upd:"Object: "
+upd:"Object: "
+"Об'єкт: "
+"Аб'ект: "
+
+SetAttrSymlinkObjectInfo
+"Опис-ие:"
+"Info:   "
+upd:"Info:   "
+upd:"Info:   "
+upd:"Info:   "
+upd:"Info:   "
+upd:"Info:   "
+"Опис:   "
+"Апіс..: "
 
 SetAttrSetting
 l:
@@ -15738,15 +16108,15 @@ upd:"Group:"
 "Суполка:"
 
 SetAttrAccessUser
-"Права пользователя"
-"User's access"
-upd:"User's access"
-upd:"User's access"
-upd:"User's access"
-upd:"User's access"
-upd:"User's access"
-"Права користувача"
-"Правы карыстальнікаў"
+"Права владельца"
+"Owner's access"
+upd:"Owner's access"
+upd:"Owner's access"
+upd:"Owner's access"
+upd:"Owner's access"
+upd:"Owner's access"
+"Права власника"
+"Правы ўладальніка"
 
 SetAttrAccessGroup
 "Права группы"
@@ -17259,27 +17629,16 @@ SetConfirmRemoveConnection
 "&Відключення мережного пристрою"
 "&Адключэнне сеткавай прылады"
 
-SetConfirmRemoveSUBST
-"Отключение SUBST-диска"
-"Disconnect &SUBST-disk"
-"Odpojení SUBST-d&isku"
-"Trennen von &Substlaufwerken"
-"Virt&uális meghajtó törlése"
-"Odłączenie dysku &SUBST"
-"Desconectar disco &sustituido"
-"Відключення SUBST-диска"
-"Адключэнне SUBST-дыску"
-
-SetConfirmDetachVHD
-"Отсоедиение виртуального диска"
-"Detach virtual disk"
-upd:"Detach virtual disk"
-upd:"Detach virtual disk"
-upd:"Detach virtual disk"
-upd:"Detach virtual disk"
-upd:"Detach virtual disk"
-"Від'єднання віртуального диска"
-"Адлучэнне виртуальнага дыску"
+SetConfirmClearVT
+"Очистка &терминала"
+"Clear &terminal"
+upd:"Clear &terminal"
+upd:"Clear &terminal"
+upd:"Clear &terminal"
+upd:"Clear &terminal"
+upd:"Clear &terminal"
+"Oчищення &терміналу"
+"Ачыстка &тэрмінала"
 
 SetConfirmRemoveHotPlug
 "Отключение HotPlug-у&стройства"
@@ -17630,15 +17989,15 @@ LocalMenuTitle
 "Мясцовае меню"
 
 MainMenuBottomTitle
-"Редактирование: Del,Ins,F4,Ctrl-F4"
-"Edit: Del,Ins,F4,Ctrl-F4"
-"Edit: Del,Ins,F4,Ctrl-F4"
-"Bearb.: Entf,Einf,F4,Ctrl-F4"
-"Szerk.: Del,Ins,F4,Ctrl-F4"
-"Edycja: Del,Ins,F4,Ctrl-F4"
-"Editar: Del,Ins,F4"
-"Редагування: Del,Ins,F4,Ctrl-F4"
-"Змена: Del,Ins,F4,Ctrl-F4"
+"Редактирование: Del,Ins,F4,Ctrl-F4,Ctrl-Alt-F"
+"Edit: Del,Ins,F4,Ctrl-F4,Ctrl-Alt-F"
+"Edit: Del,Ins,F4,Ctrl-F4,Ctrl-Alt-F"
+"Bearb.: Entf,Einf,F4,Ctrl-F4,Ctrl-Alt-F"
+"Szerk.: Del,Ins,F4,Ctrl-F4,Ctrl-Alt-F"
+"Edycja: Del,Ins,F4,Ctrl-F4,Ctrl-Alt-F"
+"Editar: Del,Ins,F4,Ctrl-Alt-F"
+"Редагування: Del,Ins,F4,Ctrl-F4,Ctrl-Alt-F"
+"Змена: Del,Ins,F4,Ctrl-F4,Ctrl-Alt-F"
 
 AskDeleteMenuItem
 "Вы хотите удалить пункт меню"
@@ -24553,15 +24912,15 @@ FileFilterAttr
 "Атр&ыбуты"
 
 FileFilterAttrR
-"&Только для чтения"
+"&Только чтение"
 "&Read only"
 "Jen pro čt&ení"
 "Sch&reibschutz"
 "&Csak olvasható"
 "&Do odczytu"
 "Sólo Lectu&ra"
-"&Тільки для читання"
-"&Толькі для чытання"
+"&Тільки читання"
+"&Толькі чытанне"
 
 FileFilterAttrA
 "&Архивный"
@@ -24651,6 +25010,17 @@ FileFilterAttrSparse
 "&Розріджений"
 "Разрэджаны"
 
+FileFilterAttrHardLinks
+"Болee одной жёсткой ссылки"
+"Has more than one hard &link"
+"Má více než jeden pevný link"
+"Mehr als ein harder Link"
+upd:"Has more than one hardlink"
+"Ma &więcej niż jeden link"
+"Tiene mas de un enlace duro"
+"Понад одне жорстке посилання"
+"Больш адной жорсткай спасылкі"
+
 FileFilterAttrT
 "&Временный"
 "Temporar&y"
@@ -24663,15 +25033,15 @@ FileFilterAttrT
 "&Часовы"
 
 FileFilterAttrReparse
-"Симво&л. ссылка"
+"Симв. ссы&лка"
 "Symbolic lin&k"
-"Sybolický li&nk"
-"Symbolischer Lin&k"
-"S&zimbolikus link"
-"Link &symboliczny"
-"Enlace simbólic&o"
-"Симво&л. посилання"
-"Сімва&лічны спасылак"
+"Sybol. li&nk"
+"Symbol. Lin&k"
+"S&zimb. link"
+"Link &symbol."
+"Enlace simból."
+"Симв. поси&лання"
+"Сімв. спасы&лак"
 
 FileFilterAttrOffline
 "Автономны&й"
@@ -24716,6 +25086,50 @@ upd:"&Broken"
 upd:"&Broken"
 "Несправний"
 "Няспраўны"
+
+FileFilterAttrDevChar
+"Симв.устройство"
+"Char device"
+upd:"Char device"
+upd:"Char device"
+upd:"Char device"
+upd:"Char device"
+upd:"Char device"
+"Симв.пристрій"
+"Сімв.прылада"
+
+FileFilterAttrDevBlock
+"Блоч.устройство"
+"Block device"
+upd:"Block device"
+upd:"Block device"
+upd:"Block device"
+upd:"Block device"
+upd:"Block device"
+"Блок.пристрій"
+"Блоч.прылада"
+
+FileFilterAttrDevFIFO
+"FIFO"
+"FIFO"
+"FIFO"
+"FIFO"
+"FIFO"
+"FIFO"
+"FIFO"
+"FIFO"
+"FIFO"
+
+FileFilterAttrDevSock
+"Сокет"
+"Socket"
+upd:"Socket"
+upd:"Socket"
+upd:"Socket"
+upd:"Socket"
+upd:"Socket"
+"Сокет"
+"Сокет"
 
 FileFilterReset
 "Очистит&ь"
@@ -25024,7 +25438,7 @@ upd:"&Block attempt"
 upd:"&Block attempt"
 upd:"&Block attempt"
 "&Заблокувати"
-upd!:"&Заблакаваць"
+"&Заблакаваць"
 
 TerminalClipboardAccessTemporaryRemote
 "&Удаленный буфер"
@@ -25091,6 +25505,238 @@ upd:"Other panel"
 upd:"Other panel"
 "Інш. панель"
 "Іншая панэль"
+
+HistoryCommandTitle
+"Информация о команде"
+"History Command Info"
+upd:"History Command Info"
+upd:"History Command Info"
+upd:"History Command Info"
+upd:"History Command Info"
+upd:"History Command Info"
+"Інформація про команду"
+"Інфармацыя аб камандзе"
+
+HistoryCommandLine
+"   Команда: "
+"  Command: "
+upd:"  Command: "
+upd:"  Command: "
+upd:"  Command: "
+upd:"  Command: "
+upd:"  Command: "
+"   Команда: "
+"   Каманда: "
+
+HistoryCommandDir
+"Директория: "
+"Directory: "
+upd:"Directory: "
+upd:"Directory: "
+upd:"Directory: "
+upd:"Directory: "
+upd:"Directory: "
+"Директорія: "
+"Дырэкторыя: "
+
+HistoryCommandClose
+"Закрыть"
+"Close"
+upd:"Close"
+upd:"Close"
+upd:"Close"
+upd:"Close"
+upd:"Close"
+"Закрити"
+"Закрыць"
+
+HistoryCommandChDir
+"В &дир"
+"To &dir"
+upd:"To &dir"
+upd:"To &dir"
+upd:"To &dir"
+upd:"To &dir"
+upd:"To &dir"
+"У &дир"
+"У &дыр"
+
+HistoryCommandRunUp
+"&Подготовить"
+"&Run-up"
+upd:"&Run-up"
+upd:"&Run-up"
+upd:"&Run-up"
+upd:"&Run-up"
+upd:"&Run-up"
+"&Підготувати"
+"&Падрыхтаваць"
+
+
+EditorConfigOrgConflict
+"Редактор и .editorconfig"
+"Editor and .editorconfig"
+upd:"Editor and .editorconfig"
+upd:"Editor and .editorconfig"
+upd:"Editor and .editorconfig"
+upd:"Editor and .editorconfig"
+upd:"Editor and .editorconfig"
+"Редактор та .editorconfig"
+"Рэдактар і .editorconfig"
+
+EditorConfigOrgFile
+"Файл расположен в (под)директории с .editorconfig"
+"File located in (sub)directory with .editorconfig"
+upd:"File located in (sub)directory with .editorconfig"
+upd:"File located in (sub)directory with .editorconfig"
+upd:"File located in (sub)directory with .editorconfig"
+upd:"File located in (sub)directory with .editorconfig"
+upd:"File located in (sub)directory with .editorconfig"
+"Файл розташований у (під)директорії з .editorconfig"
+"Файл размешчаны ў (пад)дырэкторыі з .editorconfig"
+
+EditorConfigOrgDisable
+"Использование .editorconfig можно отключить\nв меню->Параметры->Настройки редактора"
+"You can disable .editorconfig processing globally\nin main menu->Options->Editor settings"
+upd:"You can disable .editorconfig processing globally\nin main menu->Options->Editor settings"
+upd:"You can disable .editorconfig processing globally\nin main menu->Options->Editor settings"
+upd:"You can disable .editorconfig processing globally\nin main menu->Options->Editor settings"
+upd:"You can disable .editorconfig processing globally\nin main menu->Options->Editor settings"
+upd:"You can disable .editorconfig processing globally\nin main menu->Options->Editor settings"
+"Використання .editorconfig можна вимкнути\nв меню->Параметри->Налаштування редактора"
+"Выкарыстанне .editorconfig можна адключыць\nу меню->Параметры->Налады рэдактара"
+
+EditorConfigOrgValueOfIndentSize
+"В .editorconfig 'indent_size' установлен '%d'"
+"In .editorconfig 'indent_size' set to '%d'"
+upd:"In .editorconfig 'indent_size' set to '%d'"
+upd:"In .editorconfig 'indent_size' set to '%d'"
+upd:"In .editorconfig 'indent_size' set to '%d'"
+upd:"In .editorconfig 'indent_size' set to '%d'"
+upd:"In .editorconfig 'indent_size' set to '%d'"
+"У .editorconfig 'indent_size' встановлено '%d'"
+"У .editorconfig 'indent_size' усталяваны '%d'"
+
+EditorConfigOrgValueOfIndentStyle
+"В .editorconfig 'indent_style' установлен '%s'"
+"In .editorconfig 'indent_style' set to '%s'"
+upd:"In .editorconfig 'indent_style' set to '%s'"
+upd:"In .editorconfig 'indent_style' set to '%s'"
+upd:"In .editorconfig 'indent_style' set to '%s'"
+upd:"In .editorconfig 'indent_style' set to '%s'"
+upd:"In .editorconfig 'indent_style' set to '%s'"
+"У .editorconfig 'indent_style' встановлено '%s'"
+"У .editorconfig 'indent_style' усталяваны '%s'"
+
+EditorConfigOrgValueOfCharset
+"В .editorconfig 'charset' установлен '%d'"
+"In .editorconfig 'charset' set to '%d'"
+upd:"In .editorconfig 'charset' set to '%d'"
+upd:"In .editorconfig 'charset' set to '%d'"
+upd:"In .editorconfig 'charset' set to '%d'"
+upd:"In .editorconfig 'charset' set to '%d'"
+upd:"In .editorconfig 'charset' set to '%d'"
+"У .editorconfig 'charset' встановлено '%d'"
+"У .editorconfig 'charset' усталяваны '%d'"
+
+EditorConfigOrgProblemIndentSize
+"В этом случае пользователь не может изменить размер таба по Shift-F5"
+"In this case user can't change tab size by Shift-F5"
+upd:"In this case user can't change tab size by Shift-F5"
+upd:"In this case user can't change tab size by Shift-F5"
+upd:"In this case user can't change tab size by Shift-F5"
+upd:"In this case user can't change tab size by Shift-F5"
+upd:"In this case user can't change tab size by Shift-F5"
+"У цьому випадку користувач не може змінити розмір таба Shift-F5"
+"У гэтым выпадку карыстач не можа змяніць памер таба па Shift-F5"
+
+EditorConfigOrgProblemIndentStyle
+"В этом случае пользователь не может изменить стиль таба по Ctrl-F5"
+"In this case user can't change tab style by Ctrl-F5"
+upd:"In this case user can't change tab style by Ctrl-F5"
+upd:"In this case user can't change tab style by Ctrl-F5"
+upd:"In this case user can't change tab style by Ctrl-F5"
+upd:"In this case user can't change tab style by Ctrl-F5"
+upd:"In this case user can't change tab style by Ctrl-F5"
+"У цьому випадку користувач не може змінити стиль таба за Ctrl-F5"
+"У гэтым выпадку карыстач не можа змяніць стыль таба па Ctrl-F5"
+
+EditorConfigOrgProblemCharset
+"В этом случае пользователь не может изменить кодировку по F8 or Shift-F8"
+"In this case user can't change codepage by F8 or Shift-F8"
+upd:"In this case user can't change codepage by F8 or Shift-F8"
+upd:"In this case user can't change codepage by F8 or Shift-F8"
+upd:"In this case user can't change codepage by F8 or Shift-F8"
+upd:"In this case user can't change codepage by F8 or Shift-F8"
+upd:"In this case user can't change codepage by F8 or Shift-F8"
+"У цьому випадку користувач не може змінити кодування F8 або Shift-F8"
+"У гэтым выпадку карыстач не можа змяніць кадоўку па F8 or Shift-F8"
+
+ConfigGrepFilterTitle
+"Grep-фильтр"
+"Filter with grep"
+upd:"Filter with grep"
+upd:"Filter with grep"
+upd:"Filter with grep"
+upd:"Filter with grep"
+upd:"Filter with grep"
+"Grep-фільтр"
+"Grep-фільтр"
+
+ConfigGrepFilterCaseSensitive
+"&Чувствительность к регистру"
+"&Case sensitive"
+upd:"&Case sensitive"
+upd:"&Case sensitive"
+upd:"&Case sensitive"
+upd:"&Case sensitive"
+upd:"&Case sensitive"
+"Чутливість до &регістру"
+"Адчувальнасць да &рэгістра"
+
+ConfigGrepFilterWholeWords
+"Только &целые слова"
+"&Whole words"
+upd:"&Whole words"
+upd:"&Whole words"
+upd:"&Whole words"
+upd:"&Whole words"
+upd:"&Whole words"
+"Тільки &цілі слова"
+"Толькі по&ўныя словы"
+
+ConfigGrepFilterExclPattern
+"&Искл.Образец:"
+"&Excl.Pattern:"
+upd:"&Excl.Pattern:"
+upd:"&Excl.Pattern:"
+upd:"&Excl.Pattern:"
+upd:"&Excl.Pattern:"
+upd:"&Excl.Pattern:"
+"&Викл.Зразок: "
+"&Выкл.Узор:   "
+
+ConfigGrepFilterPattern
+"&Образец:     "
+"&Pattern:     "
+upd:"&Pattern:     "
+upd:"&Pattern:     "
+upd:"&Pattern:     "
+upd:"&Pattern:     "
+upd:"&Pattern:     "
+"&Зразок:      "
+"&Узор:        "
+
+ConfigGrepFilterContext
+"&Контекст (строк):"
+"Context (&lines):"
+upd:"Context (&lines):"
+upd:"Context (&lines):"
+upd:"Context (&lines):"
+upd:"Context (&lines):"
+upd:"Context (&lines):"
+"&Контекст (рядків):"
+"&Кантэкст (радкоў):"
 
 #Must be the last
 NewFileName

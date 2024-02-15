@@ -21,6 +21,7 @@
 #include <Threaded.h>
 #include "../Protocol.h"
 #include "SSHConnection.h"
+#include "Erroring.h"
 
 
 void SSHSessionDeleter(ssh_session res)
@@ -76,22 +77,47 @@ SSHConnection::SSHConnection(const std::string &host, unsigned int port, const s
 	fprintf(stderr, "Compiled for libssh %u.%u.%u ssh_version returned '%s'\n",
 		LIBSSH_VERSION_MAJOR, LIBSSH_VERSION_MINOR, LIBSSH_VERSION_MICRO, ssh_version(0));
 
+	if (protocol_options.GetInt("IgnoreTimeModeErrors", 0)) {
+		file_stats_override.reset(new FileStatsOverride);
+	}
+
+	const std::string &hostkeys = protocol_options.GetString("HostKeys");
+	if (!hostkeys.empty()) {
+		int rc = ssh_options_set(ssh, SSH_OPTIONS_HOSTKEYS, hostkeys.c_str());
+		if (rc != SSH_OK) {
+			fprintf(stderr, "HostKeys set error %u '%s'\n", rc, ssh_get_error(ssh));
+		}
+	}
+
 	ssh_options_set(ssh, SSH_OPTIONS_HOST, host.c_str());
 	if (port > 0)
 		ssh_options_set(ssh, SSH_OPTIONS_PORT, &port);
 
 	ssh_options_set(ssh, SSH_OPTIONS_USER, username.c_str());
 
-	if (protocol_options.GetInt("UseOpenSSHConfigs", 0) ) {
-		struct stat s{};
-		if (stat("/etc/ssh/ssh_config", &s) == 0) {
-			ssh_options_parse_config(ssh, "/etc/ssh/ssh_config");
+	const auto &openssh_cfgs = protocol_options.GetString("OpenSSHConfigs");
+	if (!openssh_cfgs.empty()) {
+		if (openssh_cfgs != "-") {
+			std::vector<std::string> openssh_cfgs_parts;
+			StrExplode(openssh_cfgs_parts, openssh_cfgs, ";:");
+			for (const auto &part : openssh_cfgs_parts) {
+				Environment::ExplodeCommandLine ecl_part(part);
+				for (const auto &openssh_cfg : ecl_part) {
+					int r = ssh_options_parse_config(ssh, openssh_cfg.c_str());
+					if (r != SSH_OK) {
+						fprintf(stderr, "parse_config error %d for '%s'\n", r, openssh_cfg.c_str());
+					} else {
+						fprintf(stderr, "parse_config OK for '%s'\n", openssh_cfg.c_str());
+					}
+				}
+			}
 		}
-		std::string per_user_config = GetMyHome();
-		per_user_config+= "/.ssh/config";
-		if (stat(per_user_config.c_str(), &s) == 0) {
-			ssh_options_parse_config(ssh, per_user_config.c_str());
-		}
+#if (LIBSSH_VERSION_INT >= SSH_VERSION_INT(0, 9, 0))
+		int v = 0;
+		ssh_options_set(ssh, SSH_OPTIONS_PROCESS_CONFIG, &v);
+#else
+		fprintf(stderr, "Current libssh doesn't support SSH_OPTIONS_PROCESS_CONFIG\n");
+#endif
 	}
 
 #if (LIBSSH_VERSION_INT >= SSH_VERSION_INT(0, 8, 0))
@@ -137,7 +163,7 @@ SSHConnection::SSHConnection(const std::string &host, unsigned int port, const s
 		}
 		switch (key_import_result) {
 			case SSH_EOF:
-				throw std::runtime_error(StrPrintf("Cannot read key file \'%s\'", key_path_spec.c_str()));
+				throw std::runtime_error(StrPrintf("Cannot read key file: %s", key_path_spec.c_str()));
 
 			case SSH_ERROR:
 				throw ProtocolAuthFailedError();
@@ -147,7 +173,7 @@ SSHConnection::SSHConnection(const std::string &host, unsigned int port, const s
 
 			default:
 				throw std::runtime_error(
-					StrPrintf("Unexpected error %u while loading key from \'%s\'",
+					StrPrintf("Unexpected error %u while loading key from: %s",
 					key_import_result, key_path_spec.c_str()));
 		}
 	}
@@ -160,7 +186,7 @@ SSHConnection::SSHConnection(const std::string &host, unsigned int port, const s
 	// TODO: seccomp: if (protocol_options.GetInt("Sandbox") ) ...
 
 	for (int attempt = 1; ; ++attempt) {
-		time_t connect_attemp_ts = time(NULL);
+		time_t connect_attempt_ts = time(NULL);
 		int rc = ssh_connect(ssh);
 		if (rc == SSH_OK)
 			break;
@@ -174,8 +200,8 @@ SSHConnection::SSHConnection(const std::string &host, unsigned int port, const s
 		// retry with increasing up to 5 seconds delay
 		time_t min_delay = (attempt > 5) ? 5 : attempt;
 		time_t ts = time(NULL);
-		if (ts >= connect_attemp_ts && ts - connect_attemp_ts < min_delay) {
-			sleep(min_delay - (ts - connect_attemp_ts));
+		if (ts >= connect_attempt_ts && ts - connect_attempt_ts < min_delay) {
+			sleep(min_delay - (ts - connect_attempt_ts));
 		}
 	}
 
@@ -214,7 +240,7 @@ SSHConnection::SSHConnection(const std::string &host, unsigned int port, const s
 		}
 
 	} else if (protocol_options.GetInt("InteractiveLogin", 0) != 0) {
-		int rc;
+		int rc = -1;
 		for (int loop = 0; loop < 3; ++loop) {
 			rc = ssh_userauth_kbdint(ssh, username.empty() ? nullptr : username.c_str(), NULL);
 			if (g_netrocks_verbosity > 0) {
@@ -251,7 +277,7 @@ SSHConnection::SSHConnection(const std::string &host, unsigned int port, const s
 		}
 
 		int rc = ssh_userauth_password(ssh, username.empty() ? nullptr : username.c_str(), password.c_str());
-  		if (rc != SSH_AUTH_SUCCESS)
+		if (rc != SSH_AUTH_SUCCESS)
 			throw ProtocolAuthFailedError();//"Authentication failed", ssh_get_error(ssh), rc);
 	}
 }
@@ -292,7 +318,7 @@ void SSHExecutedCommand::SendSignal(int sig)
 	}
 	int rc = ssh_channel_request_send_signal(_channel, sig_name);
 	if (rc == SSH_ERROR ) {
-		throw ProtocolError("ssh send signal",  ssh_get_error(_conn->ssh));
+		throw ProtocolError("ssh send signal", ssh_get_error(_conn->ssh));
 	}
 }
 
@@ -319,10 +345,10 @@ void SSHExecutedCommand::OnReadFDCtl(int fd)
 
 void SSHExecutedCommand::IOLoop()
 {
-	FDScope fd_err(open((_fifo + ".err").c_str(), O_WRONLY));
-	FDScope fd_out(open((_fifo + ".out").c_str(), O_WRONLY));
-	FDScope fd_in(open((_fifo + ".in").c_str(), O_RDONLY));
-	FDScope fd_ctl(open((_fifo + ".ctl").c_str(), O_RDONLY));
+	FDScope fd_err(open((_fifo + ".err").c_str(), O_WRONLY | O_CLOEXEC));
+	FDScope fd_out(open((_fifo + ".out").c_str(), O_WRONLY | O_CLOEXEC));
+	FDScope fd_in(open((_fifo + ".in").c_str(), O_RDONLY | O_CLOEXEC));
+	FDScope fd_ctl(open((_fifo + ".ctl").c_str(), O_RDONLY | O_CLOEXEC));
 
 	if (!fd_err.Valid() || !fd_out.Valid() || !fd_in.Valid() || !fd_ctl.Valid())
 		throw ProtocolError("fifo");
@@ -351,7 +377,7 @@ void SSHExecutedCommand::IOLoop()
 
 	int rc = ssh_channel_request_exec(_channel, cmd.c_str());
 	if (rc != SSH_OK) {
-		throw ProtocolError("ssh execute",  ssh_get_error(_conn->ssh));
+		throw ProtocolError("ssh execute", ssh_get_error(_conn->ssh));
 	}
 
 	MakeFDNonBlocking(fd_in);
@@ -414,9 +440,9 @@ void SSHExecutedCommand::IOLoop()
 		if (ssh_channel_is_eof(_channel)) {
 			int status = ssh_channel_get_exit_status(_channel);
 			if (status == 0) {
-				_succeess = true;
+				_success = true;
 			}
-			FDScope fd_status(open((_fifo + ".status").c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0600));
+			FDScope fd_status(open((_fifo + ".status").c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600));
 			if (fd_status.Valid()) {
 				WriteAll(fd_status, &status, sizeof(status));
 			}
@@ -463,11 +489,11 @@ SSHExecutedCommand::SSHExecutedCommand(std::shared_ptr<SSHConnection> conn, cons
 	_channel(ssh_channel_new(conn->ssh))
 {
 	if (!_channel)
-		throw ProtocolError("ssh channel",  ssh_get_error(_conn->ssh));
+		throw ProtocolError("ssh channel", ssh_get_error(_conn->ssh));
 
 	int rc = ssh_channel_open_session(_channel);
 	if (rc != SSH_OK) {
-		throw ProtocolError("ssh channel session",  ssh_get_error(_conn->ssh));
+		throw ProtocolError("ssh channel session", ssh_get_error(_conn->ssh));
 	}
 
 	if (pty) {
@@ -478,7 +504,7 @@ SSHExecutedCommand::SSHExecutedCommand(std::shared_ptr<SSHConnection> conn, cons
 	}
 
 	if (pipe_cloexec(_kickass) == -1) {
-		throw ProtocolError("pipe",  ssh_get_error(_conn->ssh));
+		throw ProtocolError("pipe", errno);
 	}
 
 	MakeFDNonBlocking(_kickass[1]);
@@ -500,7 +526,7 @@ SSHExecutedCommand::~SSHExecutedCommand()
 	}
 	CheckedCloseFDPair(_kickass);
 
-	if (_succeess) {
+	if (_success) {
 		std::vector<std::string> parts;
 		StrExplode(parts, _command_line, " ");
 		if (parts.size() > 1) {

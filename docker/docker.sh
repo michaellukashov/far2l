@@ -71,6 +71,11 @@ if [[ "${1-}" == "build" ]] ; then
   exit
 fi
 
+if [[ "${1-}" == "build-x86_64-debian" ]] ; then
+  far2l_build_debian
+  exit
+fi
+
 if [[ "${1-}" == "build-x86_64-alpine" ]] ; then
   far2l_build_x86_64_alpine
   exit

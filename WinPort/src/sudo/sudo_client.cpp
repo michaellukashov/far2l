@@ -19,7 +19,7 @@ namespace Sudo
 {
 	std::string g_sudo_title = "SUDO request";
 	std::string g_sudo_prompt = "Enter password";
-	std::string g_sudo_confirm = "Confirm priviledged operation";
+	std::string g_sudo_confirm = "Confirm privileged operation";
 
 	static std::mutex s_uds_mutex;
 	static std::unique_ptr<LocalSocketServer> s_uds;
@@ -140,15 +140,22 @@ namespace Sudo
 			// sudo closes all descriptors except std, so put leash[1] into stdin to make it survive
 			dup2(leash[1], STDIN_FILENO);
 
-			// override stdout handle otherise TTY detach doesnt work while sudo client runs
+			// override stdout handle otherwise TTY detach doesnt work while sudo client runs
 			int fd = open("/dev/null", O_RDWR);
 			if (fd != -1) {
 				dup2(fd, STDOUT_FILENO);
 				close(fd);
 			}
 
-			if (chdir("/bin") == -1)  //avoid locking arbitrary current dir
-				perror("chdir");
+			// avoid locking arbitrary current dir and
+			// allow starting in portable env (see #1505)
+			const char *farhome = getenv("FARHOME");
+			if (!farhome || chdir(farhome) == -1) {
+				if (chdir("/bin") == -1) {
+					perror("chdir");
+				}
+			}
+
 			//if process doesn't have terminal then sudo caches password per parent pid
 			//so don't use intermediate shell for running it!
 			r = execlp("sudo", "-n", "-A", "-k", g_sudo_app.c_str(), ipc.c_str(), NULL);
@@ -228,7 +235,7 @@ namespace Sudo
 		if (client_mode == SCM_DISABLE)
 			return false;
 
-		ListOfStrings::iterator  i = 
+		ListOfStrings::iterator i = 
 			std::find(g_recent_curdirs.begin(), g_recent_curdirs.end(), str);
 		if (i == g_recent_curdirs.end())
 			return false;
@@ -257,7 +264,7 @@ namespace Sudo
 		if (path[0] != '/' && path[0]) {
 			std::lock_guard<std::mutex> lock(s_uds_mutex);
 			if (!g_curdir_override.empty()) {
-				std::string  str = g_curdir_override;
+				std::string str = g_curdir_override;
 				if (strcmp(path, ".")==0 || strcmp(path, "./")==0) {
 					
 				} else if (strcmp(path, "..")==0 || strcmp(path, "../")==0) {

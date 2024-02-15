@@ -9,7 +9,7 @@
 
 
 std::shared_ptr<IProtocol> CreateProtocol(const std::string &protocol, const std::string &host, unsigned int port,
-	const std::string &username, const std::string &password, const std::string &options)
+	const std::string &username, const std::string &password, const std::string &options, int fd_ipc_recv)
 {
 	return std::make_shared<ProtocolNFS>(host, port, username, password, options);
 }
@@ -22,12 +22,11 @@ ProtocolNFS::ProtocolNFS(const std::string &host, unsigned int port,
 	_nfs(std::make_shared<NFSConnection>()),
 	_host(host)
 {
+	StringConfig protocol_options(options);
 	_nfs->ctx = nfs_init_context();
 	if (!_nfs->ctx) {
 		throw ProtocolError("Create context error", errno);
 	}
-
-	StringConfig protocol_options(options);
 
 	if (protocol_options.GetInt("Override", 0) != 0) {
 #ifdef LIBNFS_FEATURE_READAHEAD
@@ -40,7 +39,7 @@ ProtocolNFS::ProtocolNFS(const std::string &host, unsigned int port,
 		for (size_t i = 0, j = 0; i <= groups_str.size(); ++i) {
 			if (i == groups_str.size() || !isdigit(groups_str[i])) {
 				const std::string &grp = groups_str.substr(j, i - j);
-				for (size_t k = 0; k < grp.size(); ++i) {
+				for (size_t k = 0; k < grp.size(); ++k) {
 					if (isdigit(grp[k])) {
 						groups.emplace_back(atoi(grp.c_str() + k));
 						break;
@@ -280,21 +279,21 @@ void ProtocolNFS::SetTimes(const std::string &path, const timespec &access_time,
 
 	int rc = nfs_utimes(_nfs->ctx, MountedRootedPath(path).c_str(), times);
 	if (rc != 0)
-		throw ProtocolError("Set times error",  rc);
+		throw ProtocolError("Set times error", rc);
 }
 
 void ProtocolNFS::SetMode(const std::string &path, mode_t mode)
 {
 	int rc = nfs_chmod(_nfs->ctx, MountedRootedPath(path).c_str(), mode);
 	if (rc != 0)
-		throw ProtocolError("Set mode error",  rc);
+		throw ProtocolError("Set mode error", rc);
 }
 
 void ProtocolNFS::SymlinkCreate(const std::string &link_path, const std::string &link_target)
 {
 	int rc = nfs_symlink(_nfs->ctx, MountedRootedPath(link_target).c_str(), MountedRootedPath(link_path).c_str());
 	if (rc != 0)
-		throw ProtocolError("Symlink create error",  rc);
+		throw ProtocolError("Symlink create error", rc);
 }
 
 void ProtocolNFS::SymlinkQuery(const std::string &link_path, std::string &link_target)
@@ -302,7 +301,7 @@ void ProtocolNFS::SymlinkQuery(const std::string &link_path, std::string &link_t
 	char buf[0x1001] = {};
 	int rc = nfs_readlink(_nfs->ctx, MountedRootedPath(link_path).c_str(), buf, sizeof(buf) - 1);
 	if (rc != 0)
-		throw ProtocolError("Symlink query error",  rc);
+		throw ProtocolError("Symlink query error", rc);
 
 	link_target = buf;
 }
@@ -331,7 +330,7 @@ public:
 		}
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		for (;;) {
 			struct nfsdirent *de = nfs_readdir(_nfs->ctx, _dir);
@@ -378,7 +377,7 @@ struct NFSContainersEnumer : IDirectoryEnumer
 protected:
 	std::set<std::string> _names;
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		if (_names.empty()) {
 			return false;
@@ -483,10 +482,10 @@ public:
 		int rc = (flags & O_CREAT)
 			? nfs_creat(_nfs->ctx, path.c_str(), mode & (~O_CREAT), &_file)
 			: nfs_open(_nfs->ctx, path.c_str(), flags, &_file);
-		
+
 		if (rc != 0 || _file == nullptr) {
 			_file = nullptr;
-			throw ProtocolError("Failed to open file",  rc);
+			throw ProtocolError("Failed to open file", rc);
 		}
 		if (resume_pos) {
 			uint64_t current_offset = resume_pos;
@@ -494,7 +493,7 @@ public:
 			if (rc < 0) {
 				nfs_close(_nfs->ctx, _file);
 				_file = nullptr;
-				throw ProtocolError("Failed to seek file",  rc);
+				throw ProtocolError("Failed to seek file", rc);
 			}
 		}
 	}
@@ -510,7 +509,7 @@ public:
 	{
 		const auto rc = nfs_read(_nfs->ctx, _file, len, (char *)buf);
 		if (rc < 0)
-			throw ProtocolError("Read file error",  errno);
+			throw ProtocolError("Read file error", errno);
 		// uncomment to simulate connection stuck if ( (rand()%100) == 0) sleep(60);
 
 		return (size_t)rc;
@@ -521,7 +520,7 @@ public:
 		if (len > 0) for (;;) {
 			const auto rc = nfs_write(_nfs->ctx, _file, len, (char *)buf);
 			if (rc <= 0)
-				throw ProtocolError("Write file error",  errno);
+				throw ProtocolError("Write file error", errno);
 			if ((size_t)rc >= len)
 				break;
 

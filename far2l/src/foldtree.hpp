@@ -41,43 +41,45 @@ class TreeList;
 class Edit;
 class SaveScreen;
 
-class FolderTree:public Frame
+class FolderTree : public Frame
 {
-	private:
-		ChangeMacroMode CMM;
-		TreeList *Tree;
-		Edit *FindEdit;
+private:
+	ChangeMacroMode CMM;
+	TreeList *Tree;
+	Edit *FindEdit;
 
-		KeyBar TreeKeyBar;     // кейбар
-		int ModalMode;
-		int IsFullScreen;
-		int IsStandalone;
+	KeyBar TreeKeyBar;	// кейбар
+	int ModalMode;
+	int IsFullScreen;
+	int IsStandalone;
 
-		FARString strNewFolder;
-		FARString strLastName;
+	FARString strNewFolder;
+	FARString strLastName;
 
-	private:
-		void DrawEdit();
-		virtual void DisplayObject();
-		void SetCoords();
+private:
+	void DrawEdit();
+	virtual void DisplayObject();
+	void SetCoords();
 
-	public:
-		FolderTree(FARString &strResultFolder,int ModalMode,int IsStandalone=TRUE,int IsFullScreen=TRUE);
-		virtual ~FolderTree();
+public:
+	static void
+	Present(FARString &strResultFolder, int ModalMode, int IsStandalone = TRUE, int IsFullScreen = TRUE);
 
-	public:
-		virtual int ProcessKey(int Key);
-		virtual int ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent);
+	FolderTree(FARString &strResultFolder, int ModalMode, int IsStandalone = TRUE, int IsFullScreen = TRUE);
+	virtual ~FolderTree();
 
-		virtual void InitKeyBar();
-		virtual void OnChangeFocus(int focus); // вызывается при смене фокуса
-		virtual void SetScreenPosition();
-		virtual void ResizeConsole();
-		/* $ Введена для нужд CtrlAltShift OT */
-		virtual int  FastHide();
+public:
+	virtual int ProcessKey(FarKey Key);
+	virtual int ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent);
 
-		virtual const wchar_t *GetTypeName() {return L"[FolderTree]";}
-		virtual int GetTypeAndName(FARString &strType, FARString &strName);
-		virtual int GetType() { return MODALTYPE_FINDFOLDER; }
+	virtual void InitKeyBar();
+	virtual void OnChangeFocus(int focus);	// вызывается при смене фокуса
+	virtual void SetScreenPosition();
+	virtual void ResizeConsole();
+	/* $ Введена для нужд CtrlAltShift OT */
+	virtual int FastHide();
 
+	virtual const wchar_t *GetTypeName() { return L"[FolderTree]"; }
+	virtual int GetTypeAndName(FARString &strType, FARString &strName);
+	virtual int GetType() { return MODALTYPE_FINDFOLDER; }
 };

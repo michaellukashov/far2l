@@ -33,7 +33,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "headers.hpp"
 
-
 #include "plist.hpp"
 #include "keys.hpp"
 #include "help.hpp"
@@ -74,13 +73,13 @@ void ShowProcessList()
 
 	while (!ProcList.Done())
 	{
-		int Key=ProcList.ReadInput();
+		FarKey Key=ProcList.ReadInput();
 
 		switch (Key)
 		{
 			case KEY_F1:
 			{
-				Help Hlp(L"TaskList");
+				Help::Present(L"TaskList");
 				break;
 			}
 			case KEY_CTRLR:
@@ -114,5 +113,3 @@ void ShowProcessList()
 	}
 #endif
 }
-
-

@@ -7,7 +7,7 @@
 # include <termios.h>
 # include <linux/kd.h>
 # include <linux/keyboard.h>
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
 # include <sys/ioctl.h>
 # include <sys/kbio.h>
 #endif
@@ -25,6 +25,14 @@
 
 #define ATTRIBUTES_AFFECTING_BACKGROUND \
 	(BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY | BACKGROUND_TRUECOLOR)
+
+TTYBasePalette::TTYBasePalette()
+{
+	for (size_t i = 0; i < BASE_PALETTE_SIZE; ++i) {
+		foreground[i] = (DWORD)-1;
+		background[i] = (DWORD)-1;
+	}
+}
 
 void TTYOutput::TrueColors::AppendSuffix(std::string &out, DWORD rgb)
 {
@@ -58,6 +66,9 @@ template <DWORD64 R, DWORD64 G, DWORD64 B>
 
 void TTYOutput::WriteUpdatedAttributes(DWORD64 attr, bool is_space)
 {
+	if (_norgb) {
+		attr&= ~(FOREGROUND_TRUECOLOR | BACKGROUND_TRUECOLOR);
+	}
 	const DWORD64 xa = _prev_attr_valid ? attr ^ _prev_attr : (DWORD64)-1;
 	if (xa == 0) {
 		return;
@@ -84,7 +95,8 @@ void TTYOutput::WriteUpdatedAttributes(DWORD64 attr, bool is_space)
 		((attr & BACKGROUND_TRUECOLOR) != 0 && (GET_RGB_BACK(xa) != 0 || (xa & BACKGROUND_TRUECOLOR) != 0));
 
 	if ( ((xa & (FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY)) != 0)
-	  || ((_prev_attr & FOREGROUND_TRUECOLOR) != 0 && (attr & FOREGROUND_TRUECOLOR) == 0) ) {
+		|| ((_prev_attr & FOREGROUND_TRUECOLOR) != 0 && (attr & FOREGROUND_TRUECOLOR) == 0) )
+	{
 		_tmp_attrs+= (attr & FOREGROUND_INTENSITY) ? '9' : '3';
 		AppendAnsiColorSuffix<FOREGROUND_RED, FOREGROUND_GREEN, FOREGROUND_BLUE>(_tmp_attrs, attr);
 		if ((attr & FOREGROUND_TRUECOLOR) != 0) {
@@ -93,7 +105,8 @@ void TTYOutput::WriteUpdatedAttributes(DWORD64 attr, bool is_space)
 	}
 
 	if ( ((xa & (BACKGROUND_BLUE | BACKGROUND_GREEN | BACKGROUND_RED | BACKGROUND_INTENSITY)) != 0)
-	  || ((_prev_attr & BACKGROUND_TRUECOLOR) != 0 && (attr & BACKGROUND_TRUECOLOR) == 0) ) {
+		|| ((_prev_attr & BACKGROUND_TRUECOLOR) != 0 && (attr & BACKGROUND_TRUECOLOR) == 0) )
+	{
 		if (attr & BACKGROUND_INTENSITY) {
 			_tmp_attrs+= "10";
 		} else {
@@ -127,7 +140,10 @@ void TTYOutput::WriteUpdatedAttributes(DWORD64 attr, bool is_space)
 		_tmp_attrs+= (attr & COMMON_LVB_REVERSE_VIDEO) ? "7;" : "27;";
 	}
 
-	assert(!_tmp_attrs.empty() && _tmp_attrs.back() == ';');
+	if (_tmp_attrs.back() != ';') {
+		return;
+	}
+
 	_tmp_attrs.back() = 'm';
 	_prev_attr = attr;
 	_prev_attr_valid = true;
@@ -137,11 +153,13 @@ void TTYOutput::WriteUpdatedAttributes(DWORD64 attr, bool is_space)
 
 ///////////////////////
 
-TTYOutput::TTYOutput(int out, bool far2l_tty)
+TTYOutput::TTYOutput(int out, bool far2l_tty, bool norgb)
 	:
-	_out(out), _far2l_tty(far2l_tty), _kernel_tty(false)
+	_out(out), _far2l_tty(far2l_tty), _norgb(norgb), _kernel_tty(false)
 {
-#if defined(__linux__) || defined(__FreeBSD__)
+	const char *env = getenv("TERM");
+	_screen_tty = (env && strncmp(env, "screen", 6) == 0); // TERM=screen.xterm-256color
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__)
 	unsigned long int leds = 0;
 	if (ioctl(out, KDGETLED, &leds) == 0) {
 		// running under linux 'real' TTY, such kind of terminal cannot be dropped due to lost connection etc
@@ -152,15 +170,22 @@ TTYOutput::TTYOutput(int out, bool far2l_tty)
 #endif
 
 	Format(ESC "7" ESC "[?47h" ESC "[?1049h" ESC "[?2004h");
+	Format(ESC "[?9001h"); // win32-input-mode on
+	Format(ESC "[?1337h"); // iTerm2 input mode on
+	Format(ESC "[=15;1u"); // kovidgoyal's kitty mode on
 	ChangeKeypad(true);
 	ChangeMouse(true);
 
 	if (far2l_tty) {
+		uint64_t wanted_feats = FARTTY_FEAT_COMPACT_INPUT;
+		if (!isatty(_out)) {
+			wanted_feats|= FARTTY_FEAT_TERMINAL_SIZE;
+		}
 		StackSerializer stk_ser;
-		stk_ser.PushNum((uint64_t)(FARTTY_FEAT_COMPACT_INPUT));
-		stk_ser.PushNum(FARTTY_INTERRACT_CHOOSE_EXTRA_FEATURES);
+		stk_ser.PushNum(wanted_feats);
+		stk_ser.PushNum(FARTTY_INTERACT_CHOOSE_EXTRA_FEATURES);
 		stk_ser.PushNum((uint8_t)0); // zero ID means not expecting reply
-		SendFar2lInterract(stk_ser);
+		SendFar2lInteract(stk_ser);
 	}
 
 	Flush();
@@ -175,36 +200,40 @@ TTYOutput::~TTYOutput()
 		if (!_kernel_tty) {
 			Format(ESC "[0 q");
 		}
+		Format(ESC "[=0;1u" "\r"); // kovidgoyal's kitty mode off
 		Format(ESC "[0m" ESC "[?1049l" ESC "[?47l" ESC "8" ESC "[?2004l" "\r\n");
-		ChangePalette(false);
+		Format(ESC "[?9001l"); // win32-input-mode off
+		Format(ESC "[?1337l"); // iTerm2 input mode off
+		TTYBasePalette def_palette;
+		ChangePalette(def_palette);
 		Flush();
 
 	} catch (std::exception &) {
 	}
 }
 
-void TTYOutput::ChangePalette(bool override_palette)
+void TTYOutput::ChangePalette(const TTYBasePalette &palette)
 {
-	if (override_palette) {
-		if (!_palette_overriden) {
-			for (unsigned int i = 0; i < 16; ++i) {
-				unsigned int j = (((i) & 0b001) << 2 | ((i) & 0b100) >> 2 | ((i) & 0b1010));
-				if (_far2l_tty) { // far2l may set separate foreground & background colors
-					Format(ESC "]4;%d;#%06x;#%06x\a", i,
-						g_winport_palette.foreground[j].AsBGR(), g_winport_palette.background[j].AsBGR());
-				} else {
-					Format(ESC "]4;%d;#%06x\a", i,
-						(i < 8) ? g_winport_palette.background[j].AsBGR() : g_winport_palette.foreground[j].AsBGR());
-				}
-			}
-			_palette_overriden = true;
-		}
+	for (size_t i = 0; i < BASE_PALETTE_SIZE; ++i) {
+		// Win <-> TTY color index adjustment
+		const unsigned int j = (((i) & 0b001) << 2 | ((i) & 0b100) >> 2 | ((i) & 0b1010));
+		if (_palette.background[i] != palette.background[i] || _palette.foreground[i] != palette.foreground[i]) {
+			_palette.background[i] = palette.background[i];
+			_palette.foreground[i] = palette.foreground[i];
 
-	} else if (_palette_overriden) {
-		for (int i = 0; i < 16; ++i) {
-			Format(ESC "]104;%d\a", i);
+			if (palette.foreground[i] == (DWORD)-1 || palette.background[i] == (DWORD)-1) {
+				Format(ESC "]104;%d\a", j);
+				continue;
+			}
+
+			WinPortRGB fg(palette.foreground[i]), bk(palette.background[i]);
+
+			if (_far2l_tty) { // far2l may set separate foreground & background colors
+				Format(ESC "]4;%d;#%06x;#%06x\a", j, fg.AsBGR(), bk.AsBGR());
+			} else {
+				Format(ESC "]4;%d;#%06x\a", j, (i < 8) ? bk.AsBGR() : fg.AsBGR());
+			}
 		}
-		_palette_overriden = false;
 	}
 }
 
@@ -234,10 +263,10 @@ void TTYOutput::FinalizeSameChars()
 	}
 
 	// When have queued enough count of same characters:
-	// - Use repeat last char sequence when (#925 #929) terminal is far2l that definately supports it
-	// - Under other terminals and if repeated char is space - use erase chars + move cursor forward
+	// - Use repeat last char sequence when (#925 #929) terminal is far2l that definitely supports it
+	// - Under other terminals except screen and if repeated char is space - use erase chars + move cursor forward
 	// - Otherwise just output copies of repeated char sequence
-	if (_same_chars.count <= 5
+	if (_screen_tty || _same_chars.count <= 5
 			|| (!_far2l_tty && (_same_chars.wch != L' ' || _same_chars.count <= 8))) {
 
 		// output plain <count> copies of repeated char sequence
@@ -340,9 +369,9 @@ void TTYOutput::ChangeCursorHeight(unsigned int height)
 	if (_far2l_tty) {
 		StackSerializer stk_ser;
 		stk_ser.PushNum(UCHAR(height));
-		stk_ser.PushNum(FARTTY_INTERRACT_SET_CURSOR_HEIGHT);
+		stk_ser.PushNum(FARTTY_INTERACT_SET_CURSOR_HEIGHT);
 		stk_ser.PushNum((uint8_t)0); // zero ID means not expecting reply
-		SendFar2lInterract(stk_ser);
+		SendFar2lInteract(stk_ser);
 
 	} else if (_kernel_tty) {
 		; // avoid printing 'q' on screen
@@ -369,8 +398,10 @@ void TTYOutput::MoveCursorStrict(unsigned int y, unsigned int x)
 	if (x == 1) {
 		if (y == 1) {
 			Write(ESC "[H", 3);
-		} else {
+		} else if (_far2l_tty) { // many other terminals support this too, but not all (see #1725)
 			Format(ESC "[%dH", y);
+		} else {
+			Format(ESC "[%d;H", y);
 		}
 	} else {
 		Format(ESC "[%d;%dH", y, x);
@@ -426,22 +457,29 @@ int TTYOutput::WeightOfHorizontalMoveCursor(unsigned int y, unsigned int x) cons
 	return 6;
 }
 
+static inline bool ShouldPrintWCharAsSpace(wchar_t wc)
+{ // avoid writing control and invalid chars to TTY
+	return wc <= 0x20
+			|| (wc >= 0x7f && wc < 0xa0)
+			|| !WCHAR_IS_VALID(wc);
+}
+
 void TTYOutput::WriteLine(const CHAR_INFO *ci, unsigned int cnt)
 {
 	for (;cnt; ++ci,--cnt, ++_cursor.x) if (ci->Char.UnicodeChar) {
-		const bool is_space = !CI_USING_COMPOSITE_CHAR(*ci) && (
-				ci->Char.UnicodeChar <= 0x20
-			|| (ci->Char.UnicodeChar >= 0x7f && ci->Char.UnicodeChar < 0xa0)
-			|| !WCHAR_IS_VALID(ci->Char.UnicodeChar));
+		const wchar_t *comp_seq = CI_USING_COMPOSITE_CHAR(*ci)
+			? WINPORT(CompositeCharLookup)(ci->Char.UnicodeChar) : nullptr;
+
+		const bool is_space = ShouldPrintWCharAsSpace(comp_seq ? *comp_seq : ci->Char.UnicodeChar);
 
 		WriteUpdatedAttributes(ci->Attributes, is_space);
 
 		if (is_space) {
 			WriteWChar(L' ');
 
-		} else if (CI_USING_COMPOSITE_CHAR(*ci)) {
-			for (const WCHAR *pw = WINPORT(CompositeCharLookup)(ci->Char.UnicodeChar); *pw; ++pw) {
-				WriteWChar(*pw);
+		} else if (comp_seq) {
+			for (; *comp_seq; ++comp_seq) {
+				WriteWChar(*comp_seq);
 			}
 
 		} else {
@@ -470,7 +508,7 @@ void TTYOutput::ChangeTitle(std::string title)
 	Format(ESC "]2;%s\x07", title.c_str());
 }
 
-void TTYOutput::SendFar2lInterract(const StackSerializer &stk_ser)
+void TTYOutput::SendFar2lInteract(const StackSerializer &stk_ser)
 {
 	std::string request = ESC "_far2l:";
 	request+= stk_ser.ToBase64();
@@ -485,4 +523,18 @@ void TTYOutput::SendOSC52ClipSet(const std::string &clip_data)
 	base64_encode(request, (const unsigned char *)clip_data.data(), clip_data.size());
 	request+= '\a';
 	Write(request.c_str(), request.size());
+}
+
+// iTerm2 cmd+v workaround
+void TTYOutput::CheckiTerm2Hack() {
+	if (_iterm2_cmd_state) {
+		_iterm2_cmd_state = 0;
+		const char it2off[] = "\x1b[?1337l";
+		WriteReally(it2off, sizeof(it2off));
+	}
+	if (!_iterm2_cmd_state && _iterm2_cmd_ts && (time(NULL) - _iterm2_cmd_ts) >= 2) {
+		_iterm2_cmd_ts = 0;
+		const char it2on[] = "\x1b[?1337h";
+		WriteReally(it2on, sizeof(it2on));
+	}
 }

@@ -38,24 +38,26 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "FARString.hpp"
 #include "lang.hpp"
 
-#define MAX_WIDTH_MESSAGE static_cast<DWORD>(ScrX-13)
+#define MAX_WIDTH_MESSAGE static_cast<DWORD>(ScrX - 13)
 
 #define ADDSPACEFORPSTRFORMESSAGE 16
 
 enum
 {
-	MSG_WARNING        =0x00000001,
-	MSG_ERRORTYPE      =0x00000002,
-	MSG_KEEPBACKGROUND =0x00000004,
-	MSG_LEFTALIGN      =0x00000010,
-	MSG_KILLSAVESCREEN =0x00000020,
+	MSG_WARNING        = 0x00000001,
+	MSG_ERRORTYPE      = 0x00000002,
+	MSG_KEEPBACKGROUND = 0x00000004,
+	MSG_LEFTALIGN      = 0x00000010,
+	MSG_KILLSAVESCREEN = 0x00000020,
+	MSG_DISPLAYNOTIFY  = 0x00000080
 };
+
 
 struct Messager : protected std::vector<const wchar_t *>
 {
 	Messager(FarLangMsg title);
 	Messager(const wchar_t *title);
-	Messager(); // title supposed to be set by very first Add()
+	Messager();		// title supposed to be set by very first Add()
 
 	~Messager();
 
@@ -63,8 +65,8 @@ struct Messager : protected std::vector<const wchar_t *>
 	Messager &Add(const wchar_t *v);
 	inline Messager &Add() { return *this; }
 
-	template <class FirstItemT, class SecondItemT, class ... OtherItemsT>
-		Messager &Add(const FirstItemT &FirstItem, const SecondItemT &SecondItem, OtherItemsT... OtherItems)
+	template <class FirstItemT, class SecondItemT, class... OtherItemsT>
+	Messager &Add(const FirstItemT &FirstItem, const SecondItemT &SecondItem, OtherItemsT... OtherItems)
 	{
 		return Add(FirstItem).Add(SecondItem, OtherItems...);
 	}
@@ -72,23 +74,42 @@ struct Messager : protected std::vector<const wchar_t *>
 	int Show(DWORD Flags, int Buttons, INT_PTR PluginNumber);
 	int Show(DWORD Flags, int Buttons);
 	int Show(int Buttons = 0);
+
 };
 
-template <class TitleT, class ... ItemsT>
-	int Message(DWORD Flags, int Buttons, const TitleT &Title, ItemsT... Items)
+struct ExMessager : Messager
+{
+	ExMessager(FarLangMsg title);
+	ExMessager(const wchar_t *title);
+	ExMessager();		// title supposed to be set by very first Add()
+
+	~ExMessager();
+
+	Messager &AddFormatV(const wchar_t *fmt, va_list args);
+	Messager &AddFormat(FarLangMsg fmt, ...);
+	Messager &AddFormat(const wchar_t *fmt, ...);
+	Messager &AddDup(const wchar_t *v);
+
+private:
+	std::vector<FARString> _owneds;
+};
+
+template <class TitleT, class... ItemsT>
+int Message(DWORD Flags, int Buttons, const TitleT &Title, ItemsT... Items)
 {
 	return Messager(Title).Add(Items...).Show(Flags, Buttons);
 }
 
 void SetMessageHelp(const wchar_t *Topic);
-void GetMessagePosition(int &X1,int &Y1,int &X2,int &Y2);
+void GetMessagePosition(int &X1, int &Y1, int &X2, int &Y2);
 
-/* $ 12.03.2002 VVM
-  Новая функция - пользователь попытался прервать операцию.
-  Зададим вопрос.
-  Возвращает:
-   FALSE - продолжить операцию
-   TRUE  - прервать операцию
+/*
+	$ 12.03.2002 VVM
+	Новая функция - пользователь попытался прервать операцию.
+	Зададим вопрос.
+	Возвращает:
+		FALSE - продолжить операцию
+		TRUE  - прервать операцию
 */
 int AbortMessage();
 

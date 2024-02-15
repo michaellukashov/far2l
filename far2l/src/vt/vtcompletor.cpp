@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <iostream>
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/select.h>
@@ -13,17 +15,25 @@
 #include <string>
 #include <time.h>
 #include <utils.h>
+#include <MakePTYAndFork.h>
+#include <RandomString.h>
 #include "vtcompletor.h"
 
-static const char *vtc_inputrc = "set completion-query-items 0\n"
-                                 "set page-completions off\n"
-                                 "set colored-stats off\n"
-                                 "set colored-completion-prefix off\n";
+static const ssize_t VeryLongTerminalLine = 0x1000;
 
+static const char *vtc_inputrc = "set completion-query-items 0\n"
+	"set completion-display-width 0\n"
+	"set colored-stats off\n"
+	"set colored-completion-prefix off\n"
+	"set page-completions off\n"
+	"set colored-stats off\n"
+	"set colored-completion-prefix off\n";
+
+std::string VTSanitizeHistcontrol();
 
 VTCompletor::VTCompletor()
 	: _vtc_inputrc(InMyTemp("vtc_inputrc")),
-	_pipe_stdin(-1), _pipe_stdout(-1), _pid(-1)
+	_pipe_stdin(-1), _pipe_stdout(-1), _pid(-1), _pty_used(false)
 {
 	int fd = open(_vtc_inputrc.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0622);
 	if (fd!=-1) {
@@ -45,48 +55,88 @@ VTCompletor::~VTCompletor()
 
 bool VTCompletor::EnsureStarted()
 {
-	if (_pid!=-1)
+	if (_pid != -1)
 		return true;
 
-	int pipe_in[2] = {}, pipe_out[2] = {};
+	const std::string &hc_override = VTSanitizeHistcontrol();
 
-	if (pipe(pipe_in)<0) {
-		perror("VTCompletor: pipe_in");
-		return false;
-	}
-	if (pipe(pipe_out)<0) {
-		perror("VTCompletor: pipe_out");
-		CheckedCloseFDPair(pipe_in);
-		return false;
-	};
-
-	_pid = fork();
-	if (_pid==-1) {
-		CheckedCloseFDPair(pipe_in);
-		CheckedCloseFDPair(pipe_out);
-		return false;
-	}
-
-	MakeFDCloexec(pipe_in[0]);
-	MakeFDCloexec(pipe_in[1]);
-	MakeFDCloexec(pipe_out[0]);
-	MakeFDCloexec(pipe_out[1]);
-
-	if (_pid==0) {
-		dup2(pipe_in[0], STDIN_FILENO);
-		dup2(pipe_out[1], STDOUT_FILENO);
-		dup2(pipe_out[1], STDERR_FILENO);
-		CheckedCloseFDPair(pipe_in);
-		CheckedCloseFDPair(pipe_out);
-		execlp("bash", "bash", "--noprofile", "-i",  NULL);
-		perror("execlp");
-		exit(0);
+	int pty_master = -1;
+	_pid = MakePTYAndFork(pty_master);
+	if (_pid != -1) {
+		_pty_used = true;
+		if (_pid == 0) {
+			// child process
+			// terminal with one very long line...
+			struct winsize ws = {1, VeryLongTerminalLine, 0, 0};
+			if (ioctl(STDOUT_FILENO, TIOCSWINSZ, &ws) == -1) {
+				perror("VTCompletor: ioctl(TIOCSWINSZ)");
+				_exit(1);
+				exit(1);
+			}
+			execlp("bash", "bash", "--noprofile", "-i", NULL);
+			perror("VTCompletor: execlp");
+			_exit(6);
+			exit(6);
+		}
+		// parent process
+		_pipe_stdin = pty_master;
+		_pipe_stdout = dup(pty_master);
+		MakeFDCloexec(_pipe_stdout);
+	} else {
+		CheckedCloseFD(pty_master);
 	}
 
-	CheckedCloseFD(pipe_in[0]);
-	CheckedCloseFD(pipe_out[1]);
-	_pipe_stdin = pipe_in[1];
-	_pipe_stdout = pipe_out[0];
+	if (!_pty_used) {
+		fprintf(stderr, "VTCompletor: fallback to pipes\n");
+		int pipe_in[2] = {}, pipe_out[2] = {};
+
+		if (pipe(pipe_in)<0) {
+			perror("VTCompletor: pipe_in");
+			return false;
+		}
+		if (pipe(pipe_out)<0) {
+			perror("VTCompletor: pipe_out");
+			CheckedCloseFDPair(pipe_in);
+			return false;
+		};
+
+		_pid = fork();
+		if (_pid==-1) {
+			CheckedCloseFDPair(pipe_in);
+			CheckedCloseFDPair(pipe_out);
+			return false;
+		}
+
+		MakeFDCloexec(pipe_in[0]);
+		MakeFDCloexec(pipe_in[1]);
+		MakeFDCloexec(pipe_out[0]);
+		MakeFDCloexec(pipe_out[1]);
+
+		if (_pid==0) {
+			std::cin.sync();
+			std::cout.flush();
+			std::cerr.flush();
+			std::clog.flush();
+			dup2(pipe_in[0], STDIN_FILENO);
+			dup2(pipe_out[1], STDOUT_FILENO);
+			dup2(pipe_out[1], STDERR_FILENO);
+			CheckedCloseFDPair(pipe_in);
+			CheckedCloseFDPair(pipe_out);
+			if (!hc_override.empty()) {
+				setenv("HISTCONTROL", hc_override.c_str(), 1);
+			}
+			setsid();
+			execlp("bash", "bash", "--noprofile", "-i", NULL);
+			perror("execlp");
+			_exit(0);
+			exit(0);
+		}
+
+		CheckedCloseFD(pipe_in[0]);
+		CheckedCloseFD(pipe_out[1]);
+		_pipe_stdin = pipe_in[1];
+		_pipe_stdout = pipe_out[0];
+	}
 	return true;
 }
 
@@ -98,16 +148,15 @@ void VTCompletor::Stop()
 		int s;
 		if (waitpid(_pid, &s, 0)!=_pid) perror("VTCompletor: waitpid");
 		_pid = -1;
+		_pty_used = false;
 	}
 }
 
 static void AvoidMarkerCollision(std::string &marker, const std::string &cmd)
 {
-	if (cmd.find(marker) != std::string::npos) {
-		srand(time(NULL) ^ (((uintptr_t)&marker) & 0xff));
-		do {
-			marker+= 'a' + (rand() % ('z' + 1 - 'a'));
-		} while (cmd.find(marker) != std::string::npos);
+	for (const size_t orig_len = marker.size(); cmd.find(marker) != std::string::npos; ) {
+		marker.resize(orig_len);
+		RandomStringAppend(marker, 4, 10, RNDF_ALNUM);
 	}
 }
 
@@ -116,7 +165,7 @@ bool VTCompletor::TalkWithShell(const std::string &cmd, std::string &reply, cons
 	if (!EnsureStarted())
 		return false;
 
-	std::string begin = "true jkJHYvgT"; // most unique string in Universe
+	std::string begin = " true jkJHYvgT"; // most unique string in Universe
 	std::string done = "K2Ld8Gfg"; // another most unique string in Universe
 	AvoidMarkerCollision(done, cmd);  // if it still not enough unique
 	AvoidMarkerCollision(begin, cmd);  // if it still not enough unique
@@ -146,6 +195,7 @@ bool VTCompletor::TalkWithShell(const std::string &cmd, std::string &reply, cons
 	reply.clear();
 	fd_set fds;
 	struct timeval tv;
+	bool skip_echo = true;
 	for (;;) {
 		FD_ZERO(&fds);
 		FD_SET(_pipe_stdout, &fds);
@@ -156,11 +206,11 @@ bool VTCompletor::TalkWithShell(const std::string &cmd, std::string &reply, cons
 			perror("VTCompletor: select");
 			break;
 		}
-  		if(rv == 0) { //timeout
+		if(rv == 0) { //timeout
 			fprintf(stderr, "VTCompletor: timeout\n");
 			break;
 		}
-		char buf[0x1000];
+		char buf[VeryLongTerminalLine];
 		ssize_t r = read(_pipe_stdout, buf, sizeof(buf)); /* there was data to read */
 		if (r <= 0) {
 			perror("VTCompletor: read");
@@ -169,19 +219,23 @@ bool VTCompletor::TalkWithShell(const std::string &cmd, std::string &reply, cons
 		reply.append(buf, r);
 		size_t p = reply.rfind(done);
 		if (p!=std::string::npos) {
-			reply.resize(p);
-			break;
+			if (_pty_used && skip_echo) {
+				reply.erase(0, p + done.size());
+				skip_echo = false;
+			} else {
+				reply.resize(p);
+				break;
+			}
 		}
 	}
 	Stop();
 
 	const std::string &vtc_log = InMyTemp("vtc.log");
-
 	FILE *f = fopen(vtc_log.c_str(), "w");
 	if (f) {
 		fwrite(cmd.c_str(), cmd.size(), 1, f);
 		fwrite(tabs, strlen(tabs), 1, f);
-		fwrite("\n", 1, 1, f);
+		fwrite("\n---\n", 5, 1, f);
 		fwrite(reply.c_str(), reply.size(), 1, f);
 		fclose(f);
 	}
@@ -191,9 +245,13 @@ bool VTCompletor::TalkWithShell(const std::string &cmd, std::string &reply, cons
 		reply.erase(0, p + begin.size());
 	}
 	for (;;) {
-		 p = reply.find('\a');
-		 if (p == std::string::npos) break;
-		 reply.erase(p, 1);
+		p = reply.rfind('\a');
+		if (p == std::string::npos) break;
+		reply.erase(p, 1);
+		if (p >= cmd.size() && reply.substr(p - cmd.size(), cmd.size()) == cmd) {
+			reply.erase(0, p - cmd.size());
+			break;
+		}
 	}
 
 	return true;
@@ -260,14 +318,16 @@ bool VTCompletor::GetPossibilities(const std::string &cmd, std::vector<std::stri
 	reply.erase(0, p + eval_cmd.size());
 
 	if (StrEndsBy(reply, eval_cmd.c_str())) {
-		reply.resize(reply.size()  - eval_cmd.size());
+		reply.resize(reply.size() - eval_cmd.size());
 	}
 
 	for (;;) {
-		p = reply.find_first_of("\n\t ");
-		if (p==std::string::npos ) break;
-		if (p > 0) {
-			possibilities.emplace_back(reply.substr(0, p));
+		p = reply.find('\n');
+		if (p == std::string::npos ) break;
+		possibilities.emplace_back(reply.substr(0, p));
+		StrTrim(possibilities.back(), " \r");
+		if (possibilities.back().empty()) {
+			possibilities.pop_back();
 		}
 		reply.erase(0, p + 1);
 	}
@@ -278,9 +338,21 @@ bool VTCompletor::GetPossibilities(const std::string &cmd, std::vector<std::stri
 
 	std::sort(possibilities.begin(), possibilities.end());
 
+	const size_t last_a_slash_pos = last_a.rfind('/');
+	const size_t args_orig_begin_slash_pos = cmd.find('/', args.back().orig_begin);
+
 	for (auto &possibility : possibilities) {
+		QuoteCmdArgIfNeed(possibility);
 		if (!whole_next_arg && StrStartsFrom(possibility, last_a.c_str())) {
 			possibility.insert(0, cmd.substr(0, args.back().orig_begin));
+
+		} else if (!whole_next_arg && last_a_slash_pos != std::string::npos
+				&& args_orig_begin_slash_pos != std::string::npos
+				&& last_a_slash_pos + 1 < last_a.size()
+				&& StrStartsFrom(possibility, last_a.substr(last_a_slash_pos + 1).c_str())) {
+			// #1660
+			possibility.insert(0, cmd.substr(0, args_orig_begin_slash_pos + 1));
+
 		} else {
 			possibility.insert(0, cmd);
 		}

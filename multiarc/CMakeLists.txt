@@ -12,68 +12,15 @@ set(SOURCES
     src/global.cpp
     src/arcread.cpp
     src/arccmd.cpp
-    src/formats/rar/rar.cpp
     src/formats/ha/ha.cpp
     src/formats/arj/arj.cpp
     src/formats/ace/ace.cpp
     src/formats/arc/arc.cpp
     src/formats/zip/zip.cpp
     src/formats/lzh/lzh.cpp
-    src/formats/rar/unrar/scantree.cpp
-    src/formats/rar/unrar/sha1.cpp
-    src/formats/rar/unrar/threadpool.cpp
-    src/formats/rar/unrar/crc.cpp
-    src/formats/rar/unrar/hash.cpp
-    src/formats/rar/unrar/strlist.cpp
-    src/formats/rar/unrar/rs16.cpp
-    src/formats/rar/unrar/resource.cpp
-    src/formats/rar/unrar/consio.cpp
-    src/formats/rar/unrar/secpassword.cpp
-    src/formats/rar/unrar/qopen.cpp
-    src/formats/rar/unrar/recvol.cpp
-    src/formats/rar/unrar/rijndael.cpp
-    src/formats/rar/unrar/timefn.cpp
-    src/formats/rar/unrar/encname.cpp
-    src/formats/rar/unrar/rawread.cpp
-    src/formats/rar/unrar/file.cpp
-    src/formats/rar/unrar/strfn.cpp
-    src/formats/rar/unrar/sha256.cpp
-    src/formats/rar/unrar/filefn.cpp
-    src/formats/rar/unrar/filcreat.cpp
-    src/formats/rar/unrar/headers.cpp
-    src/formats/rar/unrar/blake2s.cpp
-    src/formats/rar/unrar/options.cpp
-    src/formats/rar/unrar/volume.cpp
-    src/formats/rar/unrar/system.cpp
-    src/formats/rar/unrar/crypt.cpp
-    src/formats/rar/unrar/rar.cpp
-    src/formats/rar/unrar/cmddata.cpp
-    src/formats/rar/unrar/extinfo.cpp
-    src/formats/rar/unrar/filestr.cpp
-    src/formats/rar/unrar/ui.cpp
-    src/formats/rar/unrar/list.cpp
-    src/formats/rar/unrar/find.cpp
-    src/formats/rar/unrar/smallfn.cpp
-    src/formats/rar/unrar/unicode.cpp
-    src/formats/rar/unrar/pathfn.cpp
-    src/formats/rar/unrar/global.cpp
-    src/formats/rar/unrar/rarvm.cpp
-    src/formats/rar/unrar/getbits.cpp
-    src/formats/rar/unrar/rs.cpp
-    src/formats/rar/unrar/errhnd.cpp
-    src/formats/rar/unrar/archive.cpp
-    src/formats/rar/unrar/dll.cpp
-    src/formats/rar/unrar/extract.cpp
-    src/formats/rar/unrar/match.cpp
-    src/formats/rar/unrar/unpack.cpp
-    src/formats/rar/unrar/arcread.cpp
-    src/formats/rar/unrar/rdwrfn.cpp
-    src/formats/rar/unrar/rarpch.cpp
-
-
 
         src/formats/7z/7z.cpp
-        src/formats/7z/7zMain.c
+        src/formats/7z/7zMain.cpp
         src/formats/7z/C/Lzma86Dec.c
         src/formats/7z/C/7zDec.c
         src/formats/7z/C/Ppmd7Dec.c
@@ -138,12 +85,73 @@ set(SOURCES
         src/formats/ha/ha/swdict.c
 )
 
-if(PCRE_FOUND)
+if("${UNRAR}" STREQUAL "lib")
     set(SOURCES
         ${SOURCES}
-        src/formats/custom/custom.cpp
+        src/formats/rar/rar.cpp
+        src/formats/rar/rarmainstub.cpp
+    )
+elseif(UNRAR)
+    set(SOURCES
+        ${SOURCES}
+        src/formats/rar/rar.cpp
+        src/formats/rar/unrar/scantree.cpp
+        src/formats/rar/unrar/sha1.cpp
+        src/formats/rar/unrar/threadpool.cpp
+        src/formats/rar/unrar/crc.cpp
+        src/formats/rar/unrar/hash.cpp
+        src/formats/rar/unrar/strlist.cpp
+        src/formats/rar/unrar/rs16.cpp
+        src/formats/rar/unrar/resource.cpp
+        src/formats/rar/unrar/consio.cpp
+        src/formats/rar/unrar/secpassword.cpp
+        src/formats/rar/unrar/qopen.cpp
+        src/formats/rar/unrar/recvol.cpp
+        src/formats/rar/unrar/rijndael.cpp
+        src/formats/rar/unrar/timefn.cpp
+        src/formats/rar/unrar/encname.cpp
+        src/formats/rar/unrar/rawread.cpp
+        src/formats/rar/unrar/file.cpp
+        src/formats/rar/unrar/strfn.cpp
+        src/formats/rar/unrar/sha256.cpp
+        src/formats/rar/unrar/filefn.cpp
+        src/formats/rar/unrar/filcreat.cpp
+        src/formats/rar/unrar/headers.cpp
+        src/formats/rar/unrar/blake2s.cpp
+        src/formats/rar/unrar/options.cpp
+        src/formats/rar/unrar/volume.cpp
+        src/formats/rar/unrar/system.cpp
+        src/formats/rar/unrar/crypt.cpp
+        src/formats/rar/unrar/cmddata.cpp
+        src/formats/rar/unrar/extinfo.cpp
+        src/formats/rar/unrar/filestr.cpp
+        src/formats/rar/unrar/ui.cpp
+        src/formats/rar/unrar/list.cpp
+        src/formats/rar/unrar/find.cpp
+        src/formats/rar/unrar/smallfn.cpp
+        src/formats/rar/unrar/unicode.cpp
+        src/formats/rar/unrar/pathfn.cpp
+        src/formats/rar/unrar/global.cpp
+        src/formats/rar/unrar/rarvm.cpp
+        src/formats/rar/unrar/getbits.cpp
+        src/formats/rar/unrar/rs.cpp
+        src/formats/rar/unrar/errhnd.cpp
+        src/formats/rar/unrar/archive.cpp
+        src/formats/rar/unrar/dll.cpp
+        src/formats/rar/unrar/extract.cpp
+        src/formats/rar/unrar/match.cpp
+        src/formats/rar/unrar/unpack.cpp
+        src/formats/rar/unrar/arcread.cpp
+        src/formats/rar/unrar/rdwrfn.cpp
+        src/formats/rar/unrar/rarpch.cpp
+        src/formats/rar/unrar/rar.cpp
     )
 endif()
+
+set(SOURCES
+    ${SOURCES}
+    src/formats/custom/custom.cpp
+)
 
 if(LibArchive_FOUND)
     set(SOURCES
@@ -176,12 +184,30 @@ add_library (multiarc MODULE ${SOURCES})
 if(OPT_USE_STATIC_EXT_LIBS)
     target_compile_definitions(multiarc PRIVATE -DRARDLL -D_7ZIP_ST -D_7ZIP_PPMD_SUPPPORT)
 else()
-    target_compile_definitions(multiarc PRIVATE -DRARDLL -D_7ZIP_ST) # -D_7ZIP_PPMD_SUPPPORT)
+target_compile_definitions(multiarc PRIVATE -D_7ZIP_ST -D_7ZIP_PPMD_SUPPPORT)
 endif(OPT_USE_STATIC_EXT_LIBS)
 
 target_link_libraries(multiarc utils far2l)
 
-target_include_directories(multiarc PRIVATE src/formats/rar/unrar)
+if(NOT UNRAR)
+    if (LibArchive_FOUND)
+        message(STATUS "Using LibArchive for limited RAR archives support.")
+    else()
+        message(STATUS "${ColorRed}RAR archives support disabled due to UNRAR=${UNRAR} and lack of LibArchive.${ColorNormal}")
+    endif()
+
+elseif("${UNRAR}" STREQUAL "lib")
+    message(STATUS "Using system unrar - will need libunrar and unrar tool.")
+    find_package(Unrar REQUIRED)
+    target_include_directories(multiarc PRIVATE ${UNRAR_INCLUDE_DIR})
+    target_compile_definitions(multiarc PRIVATE -DRARDLL -DHAVE_UNRAR)
+    target_link_libraries(multiarc ${UNRAR_LIBRARIES})
+else()
+    message(STATUS "Using bundled unrar sources")
+    target_include_directories(multiarc PRIVATE src/formats/rar/unrar)
+    target_compile_definitions(multiarc PRIVATE -DRARDLL -DHAVE_UNRAR)
+endif()
+
 target_include_directories(multiarc PRIVATE src)
 target_include_directories(multiarc PRIVATE src/libpcre)
 target_include_directories(multiarc PRIVATE ../WinPort)
@@ -189,7 +215,7 @@ target_include_directories(multiarc PRIVATE ../far2l/far2sdk)
 
 if(PCRE_FOUND)
     target_compile_definitions(multiarc PRIVATE -DHAVE_PCRE)
-    target_link_libraries(multiarc ${PCRE_LIBRARIES})
+    target_link_libraries(multiarc ${PCRE_LDFLAGS} ${PCRE_LIBRARIES})
     target_include_directories(multiarc PRIVATE ${PCRE_INCLUDE_DIRS})
 endif()
 
@@ -200,28 +226,28 @@ if(LibArchive_FOUND)
     if(OPT_USE_STATIC_EXT_LIBS)
         target_include_directories(multiarc PRIVATE ${VCPKG_INSTALLED_PATH}/include)
         list(REMOVE_ITEM LibArchive_LIBRARIES OpenSSL::Crypto)
-        # vcpkg_add_package(openssl)
-        #[[vcpkg_add_package(zlib)
+        #[[vcpkg_add_package(openssl)
+        vcpkg_add_package(zlib)
         vcpkg_add_package(zstd)
         vcpkg_add_package(lz4)
         vcpkg_add_package(libxml2)
         vcpkg_add_package(liblzma)
         vcpkg_add_package(bzip2)]]
         # find_package(openssl CONFIG)
-        find_package(zlib CONFIG)
+        # find_package(ZLIB CONFIG)
         find_package(zstd CONFIG)
         find_package(lz4 CONFIG)
-        find_package(LibXml2 CONFIG)
-        find_package(liblzma CONFIG)
+        #find_package(LibXml2) # CONFIG)
+        #find_package(liblzma) # CONFIG)
         find_package(BZip2 REQUIRED)
         #target_link_libraries(main PRIVATE BZip2::BZip2)
         target_link_libraries(multiarc
             # OpenSSL::SSL OpenSSL::Crypto
-            ZLIB::ZLIB
+            #ZLIB::ZLIB
             zstd::libzstd_static
             lz4::lz4
-            LibXml2::LibXml2
-            LibLZMA::LibLZMA
+            #LibXml2::LibXml2
+            #LibLZMA::LibLZMA
             BZip2::BZip2
         )
     endif(OPT_USE_STATIC_EXT_LIBS)
@@ -230,11 +256,11 @@ if(LibArchive_FOUND)
 endif()
 
 set_target_properties(multiarc
-  PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${INSTALL_DIR}/Plugins/multiarc/plug"
-    PREFIX ""
-    SUFFIX ".far-plug-mb")
+    PROPERTIES
+        LIBRARY_OUTPUT_DIRECTORY "${INSTALL_DIR}/Plugins/multiarc/plug"
+        PREFIX ""
+        SUFFIX ".far-plug-mb")
 
 add_custom_command(TARGET multiarc POST_BUILD
-   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/configs
-   COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/configs "${INSTALL_DIR}/Plugins/multiarc")
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/configs
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/configs "${INSTALL_DIR}/Plugins/multiarc")

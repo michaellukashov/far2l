@@ -37,7 +37,7 @@ int TTYReviveMe(int std_in, int std_out, bool &far2l_tty, int kickass, const std
 
 	try {
 		{
-			FDScope info_fd(open(info_path.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600));
+			FDScope info_fd(info_path.c_str(), O_RDWR | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
 			if (info_fd.Valid()) {
 				if (info.size() >= TTY_INFO_MAXTEXT) {
 					WriteAll(info_fd, info.c_str(), TTY_INFO_MAXTEXT);
@@ -104,6 +104,7 @@ int TTYReviveMe(int std_in, int std_out, bool &far2l_tty, int kickass, const std
 		return notify_pipe;
 
 	} catch (LocalSocketCancelled &e) {
+		(void)e;
 		fprintf(stderr, "TTYReviveMe: kickass signalled\n");
 		char c;
 		if (read(kickass, &c, 1) < 0) {
@@ -127,7 +128,7 @@ class TTYInfoReader
 public:
 	TTYInfoReader(const std::string &info_file)
 	{
-		FDScope info_fd(open(info_file.c_str(), O_RDONLY));
+		FDScope info_fd(info_file.c_str(), O_RDONLY | O_CLOEXEC);
 		if (info_fd.Valid()) {
 			const size_t rd_len = ReadAll(info_fd, _buf, sizeof(_buf) - 1);
 			const size_t text_len = strlen(_buf);
@@ -214,7 +215,7 @@ int TTYReviveIt(pid_t pid, int std_in, int std_out, bool far2l_tty)
 			const char *envs[] = { "DISPLAY", "ICEAUTHORITY", "SESSION_MANAGER",
 				"XAPPLRESDIR", "XCMSDB", "XENVIRONMENT", "XFILESEARCHPATH", "XKEYSYMDB",
 				"XLOCALEDIR", "XMODIFIERS", "XUSERFILESEARCHPATH", "XWTRACE", "XWTRACELC"
-			}; 
+			};
 			uint32_t l;
 			for (const auto &env : envs) {
 				l = strlen(env);

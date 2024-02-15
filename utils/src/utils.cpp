@@ -8,7 +8,7 @@
 
 #include <algorithm>
 
-#if __FreeBSD__
+#if defined(__FreeBSD__) || defined(__DragonFly__)
 # include <malloc_np.h>
 #elif __APPLE__
 # include <malloc/malloc.h>
@@ -48,8 +48,8 @@ void CheckedCloseFD(int &fd)
 
 void CheckedCloseFDPair(int *fd)
 {
-       CheckedCloseFD(fd[0]);
-       CheckedCloseFD(fd[1]);
+	CheckedCloseFD(fd[0]);
+	CheckedCloseFD(fd[1]);
 }
 
 size_t WriteAll(int fd, const void *data, size_t len, size_t chunk)

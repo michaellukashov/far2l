@@ -7,9 +7,15 @@
 #include <string.h>
 #include <dlfcn.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__DragonFly__) || defined(__CYGWIN__)
+# include <sys/mount.h>
+#elif !defined(__HAIKU__)
+# include <sys/statfs.h>
+#endif
 #include <sys/time.h>
 #include <sys/types.h>
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__DragonFly__)
 # include <sys/xattr.h>
 #endif
 #include <map>
@@ -18,7 +24,7 @@
 #include "sudo_private.h"
 #include "sudo.h"
 
-#if !defined(__APPLE__) and !defined(__FreeBSD__) && !defined(__CYGWIN__) && !defined(__HAIKU__)
+#if !defined(__APPLE__) and !defined(__FreeBSD__) && !defined(__DragonFly__) && !defined(__CYGWIN__) && !defined(__HAIKU__)
 # include <sys/ioctl.h>
 # include <linux/fs.h>
 #endif
@@ -269,8 +275,7 @@ template <class STAT_STRUCT>
 		return -1;
 	}
 }
-#if !defined(__FreeBSD__) && !defined(__CYGWIN__) && !defined(__HAIKU__)
-extern "C"  __attribute__ ((visibility("default"))) int sdc_statfs(const char *path, struct statfs *buf)
+extern "C" __attribute__ ((visibility("default"))) int sdc_statfs(const char *path, struct statfs *buf)
 {
 	int saved_errno = errno;
 	ClientReconstructCurDir crcd(path);
@@ -283,8 +288,7 @@ extern "C"  __attribute__ ((visibility("default"))) int sdc_statfs(const char *p
 
 	return r;
 }
-#endif
-extern "C"  __attribute__ ((visibility("default"))) int sdc_statvfs(const char *path, struct statvfs *buf)
+extern "C" __attribute__ ((visibility("default"))) int sdc_statvfs(const char *path, struct statvfs *buf)
 {
 	int saved_errno = errno;
 	ClientReconstructCurDir crcd(path);
@@ -515,7 +519,7 @@ extern "C" __attribute__ ((visibility("default"))) int sdc_chdir(const char *pat
 		}
 
 	} else if (access_denied && !IsSudoRegionActive()) {
-		//Workaround to avoid excessive sudo prompt on TAB panel swicth:
+		//Workaround to avoid excessive sudo prompt on TAB panel switch:
 		//set override if path likely to be existing but not accessible 
 		//cuz we're out of sudo region now
 		//Right solution would be putting TAB worker code into sudo region
@@ -612,7 +616,7 @@ extern "C" __attribute__ ((visibility("default"))) int sdc_futimens(int fd, cons
 	return futimens(fd, times);
 }
 
-static int common_two_pathes(SudoCommand cmd, 
+static int common_two_paths(SudoCommand cmd,
 	int (*pfn)(const char *, const char *), const char *path1, const char *path2, bool modify)
 {
 	int saved_errno = errno;
@@ -628,7 +632,7 @@ static int common_two_pathes(SudoCommand cmd,
 			else
 				errno = saved_errno;
 		} catch(std::exception &e) {
-			fprintf(stderr, "sudo_client: common_two_pathes(%u, '%s', '%s') - error %s\n", cmd, path1, path2, e.what());
+			fprintf(stderr, "sudo_client: common_two_paths(%u, '%s', '%s') - error %s\n", cmd, path1, path2, e.what());
 			r = -1;
 		}
 	}
@@ -638,19 +642,19 @@ static int common_two_pathes(SudoCommand cmd,
 extern "C" __attribute__ ((visibility("default"))) int sdc_rename(const char *path1, const char *path2)
 {
 	ClientReconstructCurDir crcd(path1);
-	return common_two_pathes(SUDO_CMD_RENAME, &rename, path1, path2, true);
+	return common_two_paths(SUDO_CMD_RENAME, &rename, path1, path2, true);
 }
 
 extern "C" __attribute__ ((visibility("default"))) int sdc_symlink(const char *path1, const char *path2)
 {
 	ClientReconstructCurDir crcd(path2);
-	return common_two_pathes(SUDO_CMD_SYMLINK, &symlink, path1, path2, true);
+	return common_two_paths(SUDO_CMD_SYMLINK, &symlink, path1, path2, true);
 }
 
 extern "C" __attribute__ ((visibility("default"))) int sdc_link(const char *path1, const char *path2)
 {
 	ClientReconstructCurDir crcd(path2);
-	return common_two_pathes(SUDO_CMD_LINK, &link, path1, path2, true);	
+	return common_two_paths(SUDO_CMD_LINK, &link, path1, path2, true);
 }
 
 extern "C" __attribute__ ((visibility("default"))) char *sdc_realpath(const char *path, char *resolved_path)
@@ -723,7 +727,7 @@ extern "C" __attribute__ ((visibility("default"))) char *sdc_getcwd(char *buf, s
 
 extern "C" __attribute__ ((visibility("default"))) ssize_t sdc_flistxattr(int fd, char *namebuf, size_t size)
 {
-#if defined(__FreeBSD__)  || defined(__CYGWIN__)
+#if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__CYGWIN__)
 		return -1;
 #elif defined(__APPLE__)
 		return flistxattr(fd, namebuf, size, 0);
@@ -734,8 +738,8 @@ extern "C" __attribute__ ((visibility("default"))) ssize_t sdc_flistxattr(int fd
 
 extern "C" __attribute__ ((visibility("default"))) ssize_t sdc_fgetxattr(int fd, const char *name,void *value, size_t size)
 {
-#if defined(__FreeBSD__)  || defined(__CYGWIN__)
-    return -1;
+#if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__CYGWIN__)
+	return -1;
 #elif defined(__APPLE__)
 	return fgetxattr(fd, name, value, size, 0, 0);
 #else
@@ -745,8 +749,8 @@ extern "C" __attribute__ ((visibility("default"))) ssize_t sdc_fgetxattr(int fd,
 
 extern "C" __attribute__ ((visibility("default"))) int sdc_fsetxattr(int fd, const char *name, const void *value, size_t size, int flags)
 {
-#if defined(__FreeBSD__)  || defined(__CYGWIN__)
-    return -1;
+#if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__CYGWIN__)
+	return -1;
 #elif defined(__APPLE__)
 	return fsetxattr(fd, name, value, size, 0, flags);
 #else
@@ -764,7 +768,7 @@ extern "C" __attribute__ ((visibility("default"))) int sdc_fsetxattr(int fd, con
 	*flags = 0;
 	return 0;
 
-#elif defined(__APPLE__) || defined(__FreeBSD__)
+#elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__DragonFly__)
 	struct stat s{};
 	int r = sdc_stat(path, &s);
 	if (r == 0) {
@@ -798,10 +802,10 @@ extern "C" __attribute__ ((visibility("default"))) int sdc_fsetxattr(int fd, con
 	}
 	return r;
 #endif
- }
+}
  
- extern "C" __attribute__ ((visibility("default"))) int sdc_fs_flags_set(const char *path, unsigned long flags)
- {
+extern "C" __attribute__ ((visibility("default"))) int sdc_fs_flags_set(const char *path, unsigned long flags)
+{
 #if defined(__CYGWIN__) || defined(__HAIKU__)
 	//TODO
 	return 0;
@@ -809,7 +813,7 @@ extern "C" __attribute__ ((visibility("default"))) int sdc_fsetxattr(int fd, con
 #else
 	ClientReconstructCurDir crcd(path);
 	int r;
-# if defined(__APPLE__) || defined(__FreeBSD__)
+# if defined(__APPLE__) || defined(__FreeBSD__) || defined(__DragonFly__)
 	r = chflags(path, flags);
 # else
 	int fd = r = open(path, O_RDONLY);
@@ -838,7 +842,59 @@ extern "C" __attribute__ ((visibility("default"))) int sdc_fsetxattr(int fd, con
 	 
 	return r;
 #endif
- }
+}
+
+extern "C" __attribute__ ((visibility("default"))) int sdc_mkfifo(const char *path, mode_t mode)
+{
+	ClientReconstructCurDir crcd(path);
+	int r = mkfifo(path, mode);
+	if (r == 0 || !IsAccessDeniedErrno() || !TouchClientConnection(true)) {
+		return r;
+	}
+
+	try {
+		ClientTransaction ct(SUDO_CMD_MKFIFO);
+		ct.SendStr(path);
+		ct.SendPOD(mode);
+
+		r = ct.RecvInt();
+		if (r != 0)
+			ct.RecvErrno();
+
+	} catch(std::exception &e) {
+		fprintf(stderr, "sudo_client: sdc_mkfifo('%s', 0x%lx) - error %s\n",
+			path, (unsigned long)mode, e.what());
+		r = -1;
+	}
+
+	return r;
+}
+
+extern "C" __attribute__ ((visibility("default"))) int sdc_mknod(const char *path, mode_t mode, dev_t dev)
+{
+	ClientReconstructCurDir crcd(path);
+	int r = mknod(path, mode, dev);
+	if (r == 0 || !IsAccessDeniedErrno() || !TouchClientConnection(true)) {
+		return r;
+	}
+
+	try {
+		ClientTransaction ct(SUDO_CMD_MKNOD);
+		ct.SendStr(path);
+		ct.SendPOD(mode);
+		ct.SendPOD(dev);
+
+		r = ct.RecvInt();
+		if (r != 0)
+			ct.RecvErrno();
+	} catch(std::exception &e) {
+		fprintf(stderr, "sudo_client: sdc_mknod('%s', 0x%lx, 0x%lx) - error %s\n",
+			path, (unsigned long)mode, (unsigned long)dev, e.what());
+		r = -1;
+	}
+
+	return r;
+}
 
 
 } //namespace Sudo

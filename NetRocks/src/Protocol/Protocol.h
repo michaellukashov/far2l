@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__DragonFly__)
 # include <sys/types.h>
 #endif
 #include "Erroring.h"
@@ -24,19 +24,19 @@ struct ExecFIFO_CtlMsg
 	} u;
 };
 
-// all methods of this interfaces are NOT thread-safe unless explicitely marked as MT-safe
+// all methods of this interfaces are NOT thread-safe unless explicitly marked as MT-safe
 // all methods may throw exceptions from ../Erroring.h to indicate connectivity/authorization/etc problems
 
 struct IFileReader
 {
-    virtual ~IFileReader() {}
+	virtual ~IFileReader() = default;
 
 	virtual size_t Read(void *buf, size_t len) = 0;
 };
 
 struct IFileWriter
 {
-    virtual ~IFileWriter() {}
+	virtual ~IFileWriter() = default;
 
 	virtual void Write(const void *buf, size_t len) = 0;
 
@@ -46,14 +46,14 @@ struct IFileWriter
 
 struct IDirectoryEnumer
 {
-    virtual ~IDirectoryEnumer() {}
+	virtual ~IDirectoryEnumer() = default;
 
 	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) = 0;
 };
 
 struct IProtocol
 {
-    virtual ~IProtocol() {}
+	virtual ~IProtocol() = default;
 
 	/* default implementation */
 	virtual void KeepAlive(const std::string &path_to_check)
@@ -62,10 +62,10 @@ struct IProtocol
 	}
 
 	/* optimized and not-throwing version of GetMode for mass-query of modes */
-	virtual void GetModes(bool follow_symlink, size_t count, const std::string *pathes, mode_t *modes) noexcept
+	virtual void GetModes(bool follow_symlink, size_t count, const std::string *paths, mode_t *modes) noexcept
 	{
 		for (size_t i = 0; i < count; ++i) try {
-			modes[i] = GetMode(pathes[i], follow_symlink);
+			modes[i] = GetMode(paths[i], follow_symlink);
 		} catch (...) {
 			modes[i] = ~(mode_t)0;
 		}
@@ -95,7 +95,6 @@ struct IProtocol
 		{ throw ProtocolUnsupportedError(""); }
 };
 
-
 #define FILENAME_ENUMERABLE(PSZ) ((PSZ)[0] != 0 && ((PSZ)[0] != '.' || ((PSZ)[1] != 0 && ((PSZ)[1] != '.' || (PSZ)[2] != 0)) ))
 
 struct ProtocolInfo
@@ -104,7 +103,8 @@ struct ProtocolInfo
 	const char *broker;
 	int default_port; // -1 if port cannot be represented/changed
 	bool require_server; // false if protocol can be instantiated with empty server
-	bool support_creds; // false if protocol doesnt support username:password authentification
+	bool support_creds; // false if protocol doesnt support username:password authentication
+	bool inaccurate_timestamps; // true if should use OPIF_COMPAREFATTIME flag when opened file in such protocol
 	void (*Configure)(std::string &options);
 };
 

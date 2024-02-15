@@ -22,10 +22,13 @@ extern "C" {
 	const wchar_t *WinPortBackend();
 
 	///console API
+	WINPORT_DECL(ForkConsole,HANDLE,());
+	WINPORT_DECL(JoinConsole,VOID,(HANDLE hConsole));
+
 	WINPORT_DECL(GetLargestConsoleWindowSize,COORD,(HANDLE hConsoleOutput));
 	WINPORT_DECL(SetConsoleWindowInfo,BOOL,(HANDLE hConsoleOutput, BOOL bAbsolute, const SMALL_RECT *lpConsoleWindow));
-	WINPORT_DECL(SetConsoleTitle,BOOL,(const WCHAR *title));
-	WINPORT_DECL(GetConsoleTitle,DWORD,(WCHAR *title, DWORD max_size));
+	WINPORT_DECL(SetConsoleTitle,BOOL,(HANDLE hConsoleOutput, const WCHAR *title));
+	WINPORT_DECL(GetConsoleTitle,DWORD,(HANDLE hConsoleOutput, WCHAR *title, DWORD max_size));
 	WINPORT_DECL(SetConsoleScreenBufferSize,BOOL,(HANDLE hConsoleOutput,COORD dwSize));
 	WINPORT_DECL(GetConsoleScreenBufferInfo,BOOL,(HANDLE hConsoleOutput,CONSOLE_SCREEN_BUFFER_INFO *lpConsoleScreenBufferInfo));
 	WINPORT_DECL(SetConsoleCursorPosition,BOOL,(HANDLE hConsoleOutput,COORD dwCursorPosition));
@@ -40,7 +43,7 @@ extern "C" {
 	WINPORT_DECL(WriteConsole,BOOL,(HANDLE hConsoleOutput, const WCHAR *lpBuffer, DWORD nNumberOfCharsToWrite, LPDWORD lpNumberOfCharsWritten, LPVOID lpReserved));
 	WINPORT_DECL(WriteConsoleOutput,BOOL,(HANDLE hConsoleOutput,const CHAR_INFO *lpBuffer,COORD dwBufferSize,COORD dwBufferCoord,PSMALL_RECT lpScreenRegion));
 	WINPORT_DECL(WriteConsoleOutputCharacter,BOOL,(HANDLE hConsoleOutput, const WCHAR *lpCharacter, DWORD nLength, COORD dwWriteCoord, LPDWORD lpNumberOfCharsWritten));
-	WINPORT_DECL(WaitConsoleInput, BOOL,(DWORD dwTimeout));
+	WINPORT_DECL(WaitConsoleInput, BOOL,(HANDLE hConsoleInput, DWORD dwTimeout));
 	WINPORT_DECL(ReadConsoleOutput, BOOL, (HANDLE hConsoleOutput, CHAR_INFO *lpBuffer, COORD dwBufferSize, COORD dwBufferCoord, PSMALL_RECT lpScreenRegion));
 	WINPORT_DECL(FillConsoleOutputAttribute, BOOL, (HANDLE hConsoleOutput, DWORD64 qAttributes, DWORD nLength, COORD dwWriteCoord, LPDWORD lpNumberOfAttrsWritten));
 	WINPORT_DECL(FillConsoleOutputCharacter, BOOL, (HANDLE hConsoleOutput, WCHAR cCharacter, DWORD nLength, COORD dwWriteCoord, LPDWORD lpNumberOfCharsWritten));
@@ -50,16 +53,22 @@ extern "C" {
 	WINPORT_DECL(GetNumberOfConsoleInputEvents,BOOL,(HANDLE hConsoleInput, LPDWORD lpcNumberOfEvents));
 	WINPORT_DECL(PeekConsoleInput,BOOL,(HANDLE hConsoleInput, PINPUT_RECORD lpBuffer, DWORD nLength, LPDWORD lpNumberOfEventsRead));
 	WINPORT_DECL(ReadConsoleInput,BOOL,(HANDLE hConsoleInput, PINPUT_RECORD lpBuffer, DWORD nLength, LPDWORD lpNumberOfEventsRead));
-	WINPORT_DECL(ReadConsole,BOOL,(HANDLE hConsoleInput, WCHAR *lpBuffer, DWORD nNumberOfCharsToRead, LPDWORD lpNumberOfCharsRead, LPVOID pInputControl));
 	WINPORT_DECL(WriteConsoleInput,BOOL,(HANDLE hConsoleInput, const INPUT_RECORD *lpBuffer, DWORD nLength, LPDWORD lpNumberOfEventsWritten));
+
+	// Checks if any of specified keys pressed
+	// Optionally preserves specified classes of input events
+	// return one plus array index of pressed key or zero if no one of specified keys is pressed
+#define CFKP_KEEP_MATCHED_KEY_EVENTS    0x001
+#define CFKP_KEEP_UNMATCHED_KEY_EVENTS  0x002
+#define CFKP_KEEP_MOUSE_EVENTS          0x004
+#define CFKP_KEEP_OTHER_EVENTS          0x100
+	WINPORT_DECL(CheckForKeyPress,DWORD,(HANDLE hConsoleInput, const WORD *KeyCodes, DWORD KeyCodesCount, DWORD Flags));
 	
 	WINPORT_DECL(SetConsoleDisplayMode,BOOL,(DWORD ModeFlags));
 	WINPORT_DECL(GetConsoleDisplayMode,BOOL,(LPDWORD lpModeFlags));
 	WINPORT_DECL(SetConsoleWindowMaximized,VOID,(BOOL Maximized));
-	WINPORT_DECL(GetConsoleColorPalette,BYTE,()); // Returns current color resolution: 4, 8, 24
+	WINPORT_DECL(GetConsoleColorPalette,BYTE,(HANDLE hConsoleOutput)); // Returns current color resolution: 4, 8, 24
 
-	//WINPORT_DECL(AddConsoleAlias, BOOL,( LPCWSTR Source, LPCWSTR Target, LPCWSTR ExeName));
-	WINPORT_DECL(GetConsoleAlias, DWORD,(LPWSTR lpSource, LPWSTR lpTargetBuffer, DWORD TargetBufferLength, LPWSTR lpExeName));
 	WINPORT_DECL(GenerateConsoleCtrlEvent, BOOL, (DWORD dwCtrlEvent, DWORD dwProcessGroupId ));
 	WINPORT_DECL(SetConsoleCtrlHandler, BOOL, (PHANDLER_ROUTINE HandlerRoutine, BOOL Add ));
 	
@@ -92,10 +101,12 @@ extern "C" {
 	WINPORT_DECL(IsConsoleActive, BOOL, ());
 	WINPORT_DECL(ConsoleDisplayNotification, VOID, (const WCHAR *title, const WCHAR *text));
 	WINPORT_DECL(ConsoleBackgroundMode, BOOL, (BOOL TryEnterBackgroundMode));
-	WINPORT_DECL(SetConsoleFKeyTitles, BOOL, (const CHAR **titles));
+	WINPORT_DECL(SetConsoleFKeyTitles, BOOL, (HANDLE hConsoleOutput, const CHAR **titles));
+	WINPORT_DECL(OverrideConsoleColor, VOID, (HANDLE hConsoleOutput, DWORD Index, DWORD *ColorFG, DWORD *ColorBK)); // 0xffffffff - to apply default color
+	WINPORT_DECL(SetConsoleRepaintsDefer, VOID, (HANDLE hConsoleOutput, BOOL Deferring));
 
 #ifdef WINPORT_REGISTRY
-	///Registry API
+	///registry API
 	WINPORT_DECL(RegOpenKeyEx, LONG, (HKEY hKey,LPCWSTR lpSubKey, DWORD ulOptions, REGSAM samDesired, PHKEY phkResult));
 	WINPORT_DECL(RegCreateKeyEx, LONG, (HKEY hKey, LPCWSTR lpSubKey, DWORD Reserved, LPWSTR lpClass, DWORD dwOptions, 
 		REGSAM samDesired, LPSECURITY_ATTRIBUTES lpSecurityAttributes, PHKEY phkResult, LPDWORD lpdwDisposition));
@@ -127,12 +138,8 @@ extern "C" {
 	WINPORT_DECL(SetLastError, VOID, (DWORD code));
 	WINPORT_DECL(GetCurrentProcessId, DWORD, ());
 	WINPORT_DECL(GetDoubleClickTime, DWORD, ());
-	WINPORT_DECL(GetComputerName, BOOL, (LPWSTR lpBuffer, LPDWORD nSize));
-	WINPORT_DECL(GetUserName, BOOL, (LPWSTR lpBuffer, LPDWORD nSize));
-	
 
 //files
-
 	WINPORT_DECL(CreateDirectory, BOOL, (LPCWSTR lpPathName, LPSECURITY_ATTRIBUTES lpSecurityAttributes ));
 	WINPORT_DECL(RemoveDirectory, BOOL, ( LPCWSTR lpDirName));
 	WINPORT_DECL(DeleteFile, BOOL, ( LPCWSTR lpFileName));
@@ -142,11 +149,11 @@ extern "C" {
 	WINPORT_DECL(CloseHandle, BOOL, (HANDLE hObject));
 	WINPORT_DECL(MoveFile, BOOL, (LPCWSTR ExistingFileName, LPCWSTR NewFileName ));
 	WINPORT_DECL(MoveFileEx, BOOL, (LPCWSTR ExistingFileName, LPCWSTR NewFileName,DWORD dwFlags));
-	WINPORT_DECL(GetCurrentDirectory, DWORD, (DWORD  nBufferLength, LPWSTR lpBuffer));
+	WINPORT_DECL(GetCurrentDirectory, DWORD, (DWORD nBufferLength, LPWSTR lpBuffer));
 	WINPORT_DECL(SetCurrentDirectory, BOOL, (LPCWSTR lpPathName));
 	WINPORT_DECL(GetFileSizeEx, BOOL, ( HANDLE hFile, PLARGE_INTEGER lpFileSize));
-	WINPORT_DECL(GetFileSize, DWORD, ( HANDLE  hFile, LPDWORD lpFileSizeHigh));
-	WINPORT_DECL(GetFileSize64, DWORD64, ( HANDLE  hFile));
+	WINPORT_DECL(GetFileSize, DWORD, ( HANDLE hFile, LPDWORD lpFileSizeHigh));
+	WINPORT_DECL(GetFileSize64, DWORD64, ( HANDLE hFile));
 	WINPORT_DECL(ReadFile, BOOL, ( HANDLE hFile, LPVOID lpBuffer, DWORD nNumberOfBytesToRead, 
 		LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped));
 	WINPORT_DECL(WriteFile, BOOL, ( HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, 
@@ -160,7 +167,7 @@ extern "C" {
 	WINPORT_DECL(FileAllocationRequire, BOOL, (HANDLE hFile, DWORD64 RequireFileSize));
 
 	WINPORT_DECL(SetFilePointer, DWORD, ( HANDLE hFile, 
-		LONG lDistanceToMove, PLONG  lpDistanceToMoveHigh, DWORD  dwMoveMethod));
+		LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod));
 	WINPORT_DECL(GetFileTime, BOOL, ( HANDLE hFile, LPFILETIME lpCreationTime, 
 		LPFILETIME lpLastAccessTime, LPFILETIME lpLastWriteTime));
 	WINPORT_DECL(SetFileTime, BOOL, ( HANDLE hFile, const FILETIME *lpCreationTime, 
@@ -171,7 +178,7 @@ extern "C" {
 
 	WINPORT_DECL(GetFileAttributes, DWORD, (LPCWSTR lpFileName));
 	WINPORT_DECL(SetFileAttributes, DWORD, (LPCWSTR lpFileName, DWORD dwAttributes));
-	
+
 #define FIND_FILE_FLAG_NO_DIRS		0x01
 #define FIND_FILE_FLAG_NO_FILES		0x02
 #define FIND_FILE_FLAG_NO_LINKS		0x04
@@ -179,7 +186,7 @@ extern "C" {
 #define FIND_FILE_FLAG_NO_CUR_UP	0x10 //skip virtual . and ..
 #define FIND_FILE_FLAG_CASE_INSENSITIVE	0x1000 //currently affects only english characters
 #define FIND_FILE_FLAG_NOT_ANNOYING	0x2000 //avoid sudo prompt if can't query some not very important information without it
-	
+
 	WINPORT_DECL(FindFirstFileWithFlags, HANDLE, (LPCWSTR lpFileName, LPWIN32_FIND_DATAW lpFindFileData, DWORD dwFlags));
 	WINPORT_DECL(FindFirstFile, HANDLE, (LPCWSTR lpFileName, LPWIN32_FIND_DATAW lpFindFileData));
 	WINPORT_DECL(FindNextFile, BOOL, (HANDLE hFindFile, LPWIN32_FIND_DATAW lpFindFileData));
@@ -187,7 +194,7 @@ extern "C" {
 
 	WINPORT_DECL(GetDriveType, UINT, (LPCWSTR lpRootPathName));
 	WINPORT_DECL(GetTempFileName, UINT,( LPCWSTR path, LPCWSTR prefix, UINT unique, LPWSTR buffer ));
-	WINPORT_DECL(GetFullPathName, DWORD, (LPCTSTR lpFileName,  DWORD nBufferLength, LPTSTR lpBuffer, LPTSTR *lpFilePart));
+	WINPORT_DECL(GetFullPathName, DWORD, (LPCTSTR lpFileName, DWORD nBufferLength, LPTSTR lpBuffer, LPTSTR *lpFilePart));
 
 	WINPORT_DECL(EvaluateAttributes, DWORD,( uint32_t unix_mode, const WCHAR *name ));
 	WINPORT_DECL(EvaluateAttributesA, DWORD,( uint32_t unix_mode, const char *name ));
@@ -204,16 +211,15 @@ extern "C" {
 	WINPORT_DECL(FileTimeToLocalFileTime, BOOL, (const FILETIME *lpFileTime, LPFILETIME lpLocalFileTime));
 	WINPORT_DECL(FileTimeToSystemTime, BOOL, (const FILETIME *lpFileTime, LPSYSTEMTIME lpSystemTime));
 	WINPORT_DECL(GetSystemTimeAsFileTime, VOID, (FILETIME *lpFileTime));
-	WINPORT_DECL(FileTimeToDosDateTime, BOOL, (const FILETIME *lpFileTime, LPWORD   lpFatDate, LPWORD   lpFatTime));
+	WINPORT_DECL(FileTimeToDosDateTime, BOOL, (const FILETIME *lpFileTime, LPWORD lpFatDate, LPWORD lpFatTime));
 	WINPORT_DECL(DosDateTimeToFileTime, BOOL, ( WORD fatdate, WORD fattime, LPFILETIME ft));
 	WINPORT_DECL(FileTime_UnixToWin32, VOID, (struct timespec ts, FILETIME *lpFileTime));
 	WINPORT_DECL(FileTime_Win32ToUnix, VOID, (const FILETIME *lpFileTime, struct timespec *ts));
-	
 
-	//String
+	//string
 	WINPORT_DECL(LCMapString, INT, (LCID lcid, DWORD flags, LPCWSTR src, INT srclen, LPWSTR dst, INT dstlen));
-	WINPORT_DECL(CharUpperBuff, DWORD, (LPWSTR lpsz, DWORD  cchLength));
-	WINPORT_DECL(CharLowerBuff, DWORD, (LPWSTR lpsz, DWORD  cchLength));
+	WINPORT_DECL(CharUpperBuff, DWORD, (LPWSTR lpsz, DWORD cchLength));
+	WINPORT_DECL(CharLowerBuff, DWORD, (LPWSTR lpsz, DWORD cchLength));
 	WINPORT_DECL(IsCharLower, BOOL, (WCHAR ch));
 	WINPORT_DECL(IsCharUpper, BOOL, (WCHAR ch));
 	WINPORT_DECL(IsCharAlpha, BOOL, (WCHAR ch));
@@ -244,13 +250,12 @@ extern "C" {
 	WINPORT_DECL(SetClipboardData, PVOID, (UINT format, HANDLE mem));
 
 	// these are simplified analogs for Win32's Global* APIs, that dedicated to reference clipboard data
-	WINPORT_DECL(ClipboardAlloc, PVOID, (SIZE_T len));  // allocates zero-initialized memory
-	WINPORT_DECL(ClipboardSize, SIZE_T, (PVOID mem));   // return _exact_ allocation size
+	WINPORT_DECL(ClipboardAlloc, PVOID, (SIZE_T len)); // allocates zero-initialized memory
+	WINPORT_DECL(ClipboardSize, SIZE_T, (PVOID mem));  // return _exact_ allocation size
 
 	// note that like in win32, clipboard data is mostly owned by clipboard so ClipboardFree actually useful
 	// only in case of SetClipboardData's failure.
 	WINPORT_DECL(ClipboardFree, VOID, (PVOID mem));
-
 
 	//keyboard
 	WINPORT_DECL(GetKeyboardLayoutList, int, (int nBuff, HKL *lpList));
@@ -262,7 +267,6 @@ extern "C" {
 	//%s -> %ls, %ws -> %ls
 	SHAREDSYMBOL int vswprintf_ws2ls(wchar_t * ws, size_t len, const wchar_t * format, va_list arg );
 	SHAREDSYMBOL int swprintf_ws2ls (wchar_t* ws, size_t len, const wchar_t* format, ...);
-
 
 	SHAREDSYMBOL void SetPathTranslationPrefix(const wchar_t *prefix);
 
@@ -319,7 +323,19 @@ template <class CHAR_T>
 	return out;
 }
 
+struct ConsoleRepaintsDeferScope
+{
+	HANDLE _con_out;
 
+	ConsoleRepaintsDeferScope(HANDLE hConOut) : _con_out(hConOut)
+	{
+		WINPORT(SetConsoleRepaintsDefer)(_con_out, TRUE);
+	}
+	~ConsoleRepaintsDeferScope()
+	{
+		WINPORT(SetConsoleRepaintsDefer)(_con_out, FALSE);
+	}
+};
 
 #endif
 #endif /* FAR_PYTHON_GEN */

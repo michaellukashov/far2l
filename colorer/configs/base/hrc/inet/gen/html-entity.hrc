@@ -50,7 +50,7 @@
 
   <scheme name="html-entity">
    <annotation><documentation>
-    Use this scheme for manualy include entities to html
+    Use this scheme for manually include entities to html
    </documentation></annotation>
 
    <inherit scheme="xml:Reference">

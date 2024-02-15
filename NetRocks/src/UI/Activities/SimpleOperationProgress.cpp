@@ -1,4 +1,5 @@
 #include <utils.h>
+#include <stdexcept>
 #include <TimeUtils.h>
 #include "SimpleOperationProgress.h"
 #include "Confirm.h"
@@ -27,7 +28,7 @@ SimpleOperationProgress::SimpleOperationProgress(Kind kind, const std::string &o
 		case K_ENUMDIR: title_lng = MEnumDirProgressTitle; break;
 		case K_CREATEDIR: title_lng = MCreateDirProgressTitle; break;
 		case K_EXECUTE: title_lng = MExecuteProgressTitle; break;
-
+		case K_GETLINK: title_lng = MGetLinkProgressTitle; break;
 		default:
 			throw std::runtime_error("Unexpected kind");
 	}

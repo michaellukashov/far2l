@@ -1,4 +1,5 @@
 #include <time.h>
+#include <errno.h>
 #include "WinCompat.h"
 #include "WinPort.h"
 #ifdef __APPLE__
@@ -16,7 +17,7 @@
 #define EPOCHWEEKDAY       1  /* Jan 1, 1601 was Monday */
 #define DAYSPERWEEK        7
 #define MONSPERYEAR        12
-#define DAYSPERQUADRICENTENNIUM (365 * 400 + 97)
+#define DAYSPERQUADRICENTENNIUM  (365 * 400 + 97)
 #define DAYSPERNORMALQUADRENNIUM (365 * 4 + 1)
 
 /* 1601 to 1970 is 369 years plus 89 leap days */
@@ -34,7 +35,7 @@ static const int MonthLengths[2][MONSPERYEAR] =
 
 static inline BOOL IsLeapYear(int Year)
 {
-    return Year % 4 == 0 && (Year % 100 != 0 || Year % 400 == 0);
+	return Year % 4 == 0 && (Year % 100 != 0 || Year % 400 == 0);
 }
 
 
@@ -109,7 +110,7 @@ WINPORT_DECL(SystemTimeToFileTime, BOOL, (const SYSTEMTIME *lpSystemTime, LPFILE
 
 	/* FIXME: normalize the TIME_FIELDS structure here */
 	/* No, native just returns 0 (error) if the fields are not */
-	if(     lpSystemTime->wMilliseconds > 999 ||
+	if( lpSystemTime->wMilliseconds > 999 ||
 		lpSystemTime->wSecond > 59 ||
 		lpSystemTime->wMinute > 59 ||
 		lpSystemTime->wHour > 23 ||
@@ -174,7 +175,7 @@ WINPORT_DECL(SystemTimeToFileTime, BOOL, (const SYSTEMTIME *lpSystemTime, LPFILE
 	lpFileTime->dwLowDateTime = li.LowPart;
 	lpFileTime->dwHighDateTime = li.HighPart;
 
-    return TRUE;*/
+	return TRUE;*/
 }
 
 static int LocalMinusUTC()
@@ -255,21 +256,21 @@ WINPORT_DECL(FileTimeToLocalFileTime, BOOL, (const FILETIME *lpFileTime, LPFILET
 
 WINPORT_DECL(CompareFileTime, LONG, (const FILETIME *lpFileTime1, const FILETIME *lpFileTime2))
 {
-    if (lpFileTime1 && !lpFileTime2)
+	if (lpFileTime1 && !lpFileTime2)
 		return 1;
-    if (!lpFileTime1 && lpFileTime2)
+	if (!lpFileTime1 && lpFileTime2)
 		return -1;
-    if (!lpFileTime1 && !lpFileTime2)
+	if (!lpFileTime1 && !lpFileTime2)
 		return 0;
-    if (lpFileTime1->dwHighDateTime > lpFileTime2->dwHighDateTime)
-        return 1;
-    if (lpFileTime1->dwHighDateTime < lpFileTime2->dwHighDateTime)
-        return -1;
-    if (lpFileTime1->dwLowDateTime > lpFileTime2->dwLowDateTime)
-        return 1;
-    if (lpFileTime1->dwLowDateTime < lpFileTime2->dwLowDateTime)
-        return -1;
-    return 0;
+	if (lpFileTime1->dwHighDateTime > lpFileTime2->dwHighDateTime)
+		return 1;
+	if (lpFileTime1->dwHighDateTime < lpFileTime2->dwHighDateTime)
+		return -1;
+	if (lpFileTime1->dwLowDateTime > lpFileTime2->dwLowDateTime)
+		return 1;
+	if (lpFileTime1->dwLowDateTime < lpFileTime2->dwLowDateTime)
+		return -1;
+	return 0;
 }
 
 WINPORT_DECL(GetSystemTimeAsFileTime, VOID, (FILETIME *lpFileTime))
@@ -336,61 +337,87 @@ WINPORT_DECL(FileTimeToSystemTime, BOOL, (const FILETIME *lpFileTime, LPSYSTEMTI
 
 WINPORT_DECL(FileTimeToDosDateTime, BOOL, (const FILETIME *ft, LPWORD fatdate, LPWORD fattime))
 {
-    if (UNLIKELY(!fatdate || !fattime))
-    {
-        WINPORT(SetLastError)(ERROR_INVALID_PARAMETER);
-        return FALSE;
-    }
-    uint64_t xtm = ft->dwHighDateTime;
-    xtm<<= 32;
-    xtm|= ft->dwLowDateTime;
-    time_t unixtime = xtm / TICKSPERSEC - SECS_1601_TO_1970;
-    struct tm *tm = gmtime( &unixtime );
-    if (fattime)
-        *fattime = (tm->tm_hour << 11) + (tm->tm_min << 5) + (tm->tm_sec / 2);
-    if (fatdate)
-        *fatdate = ((tm->tm_year - 80) << 9) + ((tm->tm_mon + 1) << 5)
-                   + tm->tm_mday;
-    return TRUE;
+	if (UNLIKELY(!fatdate || !fattime))
+	{
+		WINPORT(SetLastError)(ERROR_INVALID_PARAMETER);
+		return FALSE;
+	}
+	uint64_t xtm = ft->dwHighDateTime;
+	xtm<<= 32;
+	xtm|= ft->dwLowDateTime;
+	time_t unixtime = xtm / TICKSPERSEC - SECS_1601_TO_1970;
+	struct tm *tm = gmtime( &unixtime );
+	if (fattime)
+		*fattime = (tm->tm_hour << 11) + (tm->tm_min << 5) + (tm->tm_sec / 2);
+	if (fatdate)
+		*fatdate = ((tm->tm_year - 80) << 9) + ((tm->tm_mon + 1) << 5)
+			+ tm->tm_mday;
+	return TRUE;
 }
 
 WINPORT_DECL(DosDateTimeToFileTime, BOOL, ( WORD fatdate, WORD fattime, LPFILETIME ft))
 {
-    struct tm newtm;
-    newtm.tm_sec = (fattime & 0x1f) * 2;
-    newtm.tm_min = (fattime >> 5) & 0x3f;
-    newtm.tm_hour = (fattime >> 11);
-    newtm.tm_mday = (fatdate & 0x1f);
-    newtm.tm_mon = ((fatdate >> 5) & 0x0f) - 1;
-    newtm.tm_year = (fatdate >> 9) + 80;
-    newtm.tm_isdst = -1;
+	struct tm newtm;
+	newtm.tm_sec = (fattime & 0x1f) * 2;
+	newtm.tm_min = (fattime >> 5) & 0x3f;
+	newtm.tm_hour = (fattime >> 11);
+	newtm.tm_mday = (fatdate & 0x1f);
+	newtm.tm_mon = ((fatdate >> 5) & 0x0f) - 1;
+	newtm.tm_year = (fatdate >> 9) + 80;
+	newtm.tm_isdst = -1;
 
-    uint64_t xtm = timegm(&newtm);
-    xtm*= TICKSPERSEC;
-    xtm+= TICKS_1601_TO_1970;
-    ft->dwLowDateTime = DWORD(xtm & 0xffffffff);
-    ft->dwHighDateTime = DWORD(xtm >> 32);
-    return TRUE;
+	uint64_t xtm = timegm(&newtm);
+	xtm*= TICKSPERSEC;
+	xtm+= TICKS_1601_TO_1970;
+	ft->dwLowDateTime = DWORD(xtm & 0xffffffff);
+	ft->dwHighDateTime = DWORD(xtm >> 32);
+	return TRUE;
 }
 
 
+static unsigned s_time_failmask = 0;
 
 WINPORT_DECL(GetTickCount, DWORD, ())
 {
 #ifdef _WIN32
 	return ::GetTickCount();
 #elif defined(__APPLE__)
-    static mach_timebase_info_data_t g_timebase_info;
-    if (g_timebase_info.denom == 0)
-        mach_timebase_info(&g_timebase_info);
-    return mach_absolute_time()*g_timebase_info.numer/g_timebase_info.denom/1000000u;
+	static mach_timebase_info_data_t g_timebase_info;
+	if (g_timebase_info.denom == 0)
+		mach_timebase_info(&g_timebase_info);
+	return mach_absolute_time() * g_timebase_info.numer / g_timebase_info.denom / 1000000u;
 #else
-    struct timespec spec;
-    clock_gettime(CLOCK_REALTIME, &spec);
-	DWORD rv = spec.tv_sec;
-	rv*= 1000;
-	rv+= (DWORD)(spec.tv_nsec / 1000000);
-	return rv;
+
+#if defined(CLOCK_MONOTONIC_COARSE) || defined(CLOCK_REALTIME_COARSE)
+	if (LIKELY((s_time_failmask & 1) == 0)) {
+		struct timespec spec{};
+# ifdef CLOCK_MONOTONIC_COARSE
+		if (LIKELY(clock_gettime(CLOCK_MONOTONIC_COARSE, &spec) == 0)) {
+# else
+		if (LIKELY(clock_gettime(CLOCK_REALTIME_COARSE, &spec) == 0)) {
+# endif
+			DWORD rv = spec.tv_sec;
+			rv*= 1000;
+			rv+= (DWORD)(spec.tv_nsec / 1000000);
+			return rv;
+		}
+		fprintf(stderr, "%s: clock_gettime error %u\n", __FUNCTION__, errno);
+		s_time_failmask|= 1;
+	}
+#endif
+	if (LIKELY((s_time_failmask & 2) == 0)) {
+		struct timeval tv{};
+		if (LIKELY(gettimeofday(&tv, NULL) == 0)) {
+			DWORD rv = tv.tv_sec;
+			rv*= 1000;
+			rv+= (DWORD)(tv.tv_usec / 1000);
+			return rv;
+		}
+		fprintf(stderr, "%s: gettimeofday error %u\n", __FUNCTION__, errno);
+		s_time_failmask|= 2;
+	}
+
+	return DWORD(time(NULL) * 1000);
 #endif
 }
 
@@ -399,7 +426,7 @@ WINPORT_DECL(Sleep, VOID, (DWORD dwMilliseconds))
 #ifdef _WIN32
 	::Sleep(dwMilliseconds);
 #else
-	DWORD seconds  = dwMilliseconds / 1000;
+	DWORD seconds = dwMilliseconds / 1000;
 	if (seconds) {
 		sleep(seconds);
 		dwMilliseconds-= seconds * 1000;
@@ -412,6 +439,6 @@ static clock_t g_process_start_stamp = WINPORT(GetTickCount)();
 SHAREDSYMBOL clock_t GetProcessUptimeMSec()
 {
 	clock_t now = WINPORT(GetTickCount)();
-	return  (now - g_process_start_stamp);
+	return (now - g_process_start_stamp);
 }
 

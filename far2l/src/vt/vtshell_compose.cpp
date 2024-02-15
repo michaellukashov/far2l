@@ -4,6 +4,7 @@
 #include "config.hpp"
 #include "vtshell_compose.h"
 #include <utils.h>
+#include <RandomString.h>
 #include <TestPath.h>
 #include <errno.h>
 #include <atomic>
@@ -13,20 +14,7 @@
 void VT_ComposeMarker(std::string &marker)
 {
 	marker.clear();
-
-	for (size_t l = 8 + (rand() % 9); l; --l) {
-		switch (rand() % 3) {
-			case 0:
-				marker+= 'A' + (rand() % ('Z' + 1 - 'A'));
-				break;
-			case 1:
-				marker+= 'a' + (rand() % ('z' + 1 - 'a'));
-				break;
-			case 2:
-				marker+= '0' + (rand() % ('9' + 1 - '0'));
-				break;
-		}
-	}
+	RandomStringAppend(marker, 8, 16, RNDF_ALNUM);
 }
 
 std::string VT_ComposeMarkerCommand(const std::string &marker)
@@ -193,11 +181,13 @@ void VT_ComposeCommandExec::Create(const char *cd, const char *cmd, bool need_su
 	}
 
 	content+= "cd ~\n"; // avoid locking arbitrary directory
-	content+= "if [ $FARVTRESULT -eq 0 ]; then\n";
-	content+= "printf '\\033_push-attr\\007\\033_set-blank=-\\007\\033[32m\\033[K\\033_pop-attr\\007\\012'\n";
-	content+= "else\n";
-	content+= "printf '\\033_push-attr\\007\\033_set-blank=~\\007\\033[33m\\033[K\\033_pop-attr\\007\\012'\n";
-	content+= "fi\n";
+	if (Opt.CmdLine.Splitter) {
+		content+= "if [ $FARVTRESULT -eq 0 ]; then\n";
+		content+= "printf '\\033_push-attr\\007\\033_set-blank=-\\007\\033[32m\\033[K\\033_pop-attr\\007\\012'\n";
+		content+= "else\n";
+		content+= "printf '\\033_push-attr\\007\\033_set-blank=~\\007\\033[33m\\033[K\\033_pop-attr\\007\\012'\n";
+		content+= "fi\n";
+	}
 	unlink(_pwd_file.c_str());
 	_fd = open(_cmd_script.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0600);
 	if (_fd.Valid()) {

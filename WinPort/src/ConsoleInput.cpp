@@ -23,17 +23,32 @@ void ConsoleInput::Enqueue(const INPUT_RECORD *data, DWORD size)
 	}
 }
 
+static void InspectCallbacks(INPUT_RECORD *data, DWORD size, bool invoke)
+{
+	for (DWORD i = 0; i < size; ++i) {
+		if (data[i].EventType == CALLBACK_EVENT) {
+			data[i].EventType = NOOP_EVENT;
+			if (invoke) {
+				data[i].Event.CallbackEvent.Function(data[i].Event.CallbackEvent.Context);
+			}
+		}
+	}
+}
+
 DWORD ConsoleInput::Peek(INPUT_RECORD *data, DWORD size, unsigned int requestor_priority)
 {
 	DWORD i;
-	std::unique_lock<std::mutex> lock(_mutex);
-	if (requestor_priority < CurrentPriority()) {
-		//fprintf(stderr,"%s: requestor_priority %u < %u\n", __FUNCTION__, requestor_priority, CurrentPriority());
-		return 0;
-	}
+	{
+		std::unique_lock<std::mutex> lock(_mutex);
+		if (requestor_priority < CurrentPriority()) {
+			//fprintf(stderr,"%s: requestor_priority %u < %u\n", __FUNCTION__, requestor_priority, CurrentPriority());
+			return 0;
+		}
 
-	for (i = 0; (i < size && i < _pending.size()); ++i)
-		data[i] = _pending[i];
+		for (i = 0; (i < size && i < _pending.size()); ++i)
+			data[i] = _pending[i];
+	}
+	InspectCallbacks(data, i, false);
 
 	//if (i) {
 	//	fprintf(stderr,"%s: result %u\n", __FUNCTION__, i);
@@ -45,16 +60,19 @@ DWORD ConsoleInput::Peek(INPUT_RECORD *data, DWORD size, unsigned int requestor_
 DWORD ConsoleInput::Dequeue(INPUT_RECORD *data, DWORD size, unsigned int requestor_priority)
 {
 	DWORD i;
-	std::unique_lock<std::mutex> lock(_mutex);
-	if (requestor_priority < CurrentPriority()) {
-		// fprintf(stderr,"%s: requestor_priority %u < %u\n", __FUNCTION__, requestor_priority, CurrentPriority());
-		return 0;
-	}
+	{
+		std::unique_lock<std::mutex> lock(_mutex);
+		if (requestor_priority < CurrentPriority()) {
+			// fprintf(stderr,"%s: requestor_priority %u < %u\n", __FUNCTION__, requestor_priority, CurrentPriority());
+			return 0;
+		}
 
-	for (i = 0; (i < size && !_pending.empty()); ++i) {
-		data[i] = _pending.front();
-		_pending.pop_front();
+		for (i = 0; (i < size && !_pending.empty()); ++i) {
+			data[i] = _pending.front();
+			_pending.pop_front();
+		}
 	}
+	InspectCallbacks(data, i, true);
 
 	// fprintf(stderr,"%s: result %u\n", __FUNCTION__, i);
 	return i;
@@ -63,7 +81,7 @@ DWORD ConsoleInput::Dequeue(INPUT_RECORD *data, DWORD size, unsigned int request
 DWORD ConsoleInput::Count(unsigned int requestor_priority)
 {
 	std::unique_lock<std::mutex> lock(_mutex);
-	return  (requestor_priority >= CurrentPriority()) ? (DWORD)_pending.size() : 0;
+	return (requestor_priority >= CurrentPriority()) ? (DWORD)_pending.size() : 0;
 }
 
 DWORD ConsoleInput::Flush(unsigned int requestor_priority)
@@ -77,41 +95,38 @@ DWORD ConsoleInput::Flush(unsigned int requestor_priority)
 	return rv;
 }
 
-bool ConsoleInput::WaitForNonEmpty(unsigned int timeout_msec, unsigned int requestor_priority)
+void ConsoleInput::WaitForNonEmpty(unsigned int requestor_priority)
 {
 	std::unique_lock<std::mutex> lock(_mutex);
+	while  (_pending.empty() || requestor_priority < CurrentPriority()) {
+		_non_empty.wait(lock);
+	}
+}
 
-	if (timeout_msec == (unsigned int)-1) {
-		for (;;) {
-			if (!_pending.empty() && requestor_priority >= CurrentPriority())
-				return true;
+bool ConsoleInput::WaitForNonEmptyWithTimeout(unsigned int timeout_msec, unsigned int requestor_priority)
+{
+	std::unique_lock<std::mutex> lock(_mutex);
+	for (;;) {
+		if (!_pending.empty() && requestor_priority >= CurrentPriority())
+			return true;
 
-			_non_empty.wait(lock);
-		}
+		if (!timeout_msec)
+			return false;
 
-	} else {
-		for (;;) {
-			if (!_pending.empty() && requestor_priority >= CurrentPriority())
-				return true;
+		std::chrono::milliseconds ms_before = std::chrono::duration_cast< std::chrono::milliseconds >
+			(std::chrono::steady_clock::now().time_since_epoch());
 
-			if (!timeout_msec)
-				return false;
+		_non_empty.wait_for(lock, std::chrono::milliseconds(timeout_msec));
 
-			std::chrono::milliseconds ms_before = std::chrono::duration_cast< std::chrono::milliseconds >
-				(std::chrono::steady_clock::now().time_since_epoch());
+		std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >
+			(std::chrono::steady_clock::now().time_since_epoch());
 
-			_non_empty.wait_for(lock, std::chrono::milliseconds(timeout_msec));
+		ms-= ms_before;
 
-			std::chrono::milliseconds ms = std::chrono::duration_cast< std::chrono::milliseconds >
-				(std::chrono::steady_clock::now().time_since_epoch());
-
-			ms-= ms_before;
-
-			if (ms.count() < timeout_msec)
-				timeout_msec-= ms.count();
-			else
-				timeout_msec = 0;
-		}
+		if (ms.count() < timeout_msec)
+			timeout_msec-= ms.count();
+		else
+			timeout_msec = 0;
 	}
 }
 
@@ -146,6 +161,25 @@ unsigned int ConsoleInput::CurrentPriority() const
 		return 0;
 
 	return *_requestor_priorities.rbegin();
+}
+
+
+IConsoleInput *ConsoleInput::ForkConsoleInput(HANDLE con_handle)
+{
+	return new ConsoleInput;
+}
+
+void ConsoleInput::JoinConsoleInput(IConsoleInput *con_in)
+{
+	ConsoleInput *ci = (ConsoleInput *)con_in;
+	if (!ci->_pending.empty()) {
+		std::unique_lock<std::mutex> lock(_mutex);
+		for (const auto &evnt : ci->_pending) {
+			_pending.emplace_back(evnt);
+		}
+		_non_empty.notify_all();
+	}
+	delete ci;
 }
 
 ///

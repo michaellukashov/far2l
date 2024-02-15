@@ -3,6 +3,7 @@ project(far2l)
 add_subdirectory (bootstrap)
 
 set(SOURCES
+src/farversion.cpp
 src/cache.cpp
 src/clipboard.cpp
 src/cmdline.cpp
@@ -18,6 +19,7 @@ src/dlgedit.cpp
 src/DlgGuid.cpp
 src/edit.cpp
 src/editor.cpp
+src/EditorConfigOrg.cpp
 src/execute.cpp
 src/farwinapi.cpp
 src/fileattr.cpp
@@ -67,6 +69,7 @@ src/execute_oscmd.cpp
 src/ViewerStrings.cpp
 src/ViewerPrinter.cpp
 src/fileholder.cpp
+src/GrepFile.cpp
 
 src/panels/panel.cpp
 src/panels/filelist.cpp
@@ -92,11 +95,6 @@ src/console/scrbuf.cpp
 src/console/scrobj.cpp
 src/console/scrsaver.cpp
 
-src/macro/chgmmode.cpp
-src/macro/macro.cpp
-src/macro/syntax.cpp
-src/macro/tvar.cpp
-
 src/filemask/CFileMask.cpp
 src/filemask/FileMasksProcessor.cpp
 src/filemask/FileMasksWithExclude.cpp
@@ -112,7 +110,8 @@ src/bookmarks/BookmarksLegacy.cpp
 
 src/cfg/AllXLats.cpp
 src/cfg/config.cpp
-src/cfg/ConfigSaveLoad.cpp
+src/cfg/ConfigOpt.cpp
+src/cfg/ConfigOptEdit.cpp
 src/cfg/ConfigRW.cpp
 src/cfg/ConfigLegacy.cpp
 src/cfg/HotkeyLetterDialog.cpp
@@ -163,7 +162,28 @@ src/mix/FSFileFlags.cpp
 src/mix/StrCells.cpp
 src/mix/ChunkedData.cpp
 src/mix/UsedChars.cpp
+src/mix/CachedCreds.cpp
 )
+
+# Option to disable building macro subsystem completely
+option(FAR2MACRO "Use Far 2 macro engine" ON)
+
+# Option to keep TVar implementation even if Far2 marco subsystem is not used
+# (as it may be needed by alternative macro subsystem implementations)
+option(FAR2TVAR  "Use Far 2 TVar" ON)
+
+if(FAR2MACRO)
+    list(APPEND SOURCES src/macro/chgmmode.cpp)
+    list(APPEND SOURCES src/macro/macro.cpp)
+    list(APPEND SOURCES src/macro/syntax.cpp)
+    list(APPEND SOURCES src/macro/tvar.cpp)
+else()
+    if(FAR2TVAR)
+        list(APPEND SOURCES src/macro/tvar.cpp)
+        add_compile_definitions(FAR2TVAR)
+    endif()
+    list(APPEND SOURCES src/macro/nomacro.cpp)
+endif()
 
 # Set target names for the executables
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
@@ -185,38 +205,38 @@ else()
 endif()
 
 if (NOT DEFINED USEUCD)
-	set(USEUCD "YES")
+    set(USEUCD "YES")
 endif()
 
 if (NOT USEUCD)
-	message(STATUS "Building without libuchardet due to USEUCD=${USEUCD}")
+    message(STATUS "Building without libuchardet due to USEUCD=${USEUCD}")
 else()
-	message(STATUS "Building with libuchardet")
-	find_package(Uchardet REQUIRED)
-	target_compile_definitions(far2l PRIVATE -DUSEUCD)
+    message(STATUS "Building with libuchardet")
+    find_package(Uchardet REQUIRED)
+    target_compile_definitions(far2l PRIVATE -DUSEUCD)
 endif()
 
 target_compile_definitions(far2l PRIVATE -DUNICODE)
 
 target_include_directories(far2l PRIVATE
-	.
-	far2sdk
-	src
-	src/base
-	src/mix
-	src/bookmarks
-	src/cfg
-	src/console
-	src/panels
-	src/filemask
-	src/hist
-	src/locale
-	src/macro
-	src/plug
-	src/vt
-	${CMAKE_CURRENT_BINARY_DIR}
-	${UCHARDET_INCLUDE_DIRS}
-	../WinPort)
+    .
+    far2sdk
+    src
+    src/base
+    src/mix
+    src/bookmarks
+    src/cfg
+    src/console
+    src/panels
+    src/filemask
+    src/hist
+    src/locale
+    src/macro
+    src/plug
+    src/vt
+    ${CMAKE_CURRENT_BINARY_DIR}
+    ${UCHARDET_INCLUDE_DIRS}
+    ../WinPort)
 
 add_dependencies(far2l bootstrap WinPort)
 
@@ -234,9 +254,9 @@ set_target_properties(far2l
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
     target_link_libraries(far2l
-	PRIVATE ${WINPORT}
-	PRIVATE c
-	PRIVATE ${UCHARDET_LIBRARIES})
+    PRIVATE ${WINPORT}
+    PRIVATE c
+    PRIVATE ${UCHARDET_LIBRARIES})
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Haiku")
     target_link_libraries(far2l
         PRIVATE ${WINPORT}
@@ -244,14 +264,15 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Haiku")
         PRIVATE ${UCHARDET_LIBRARIES})
 else()
     target_link_libraries(far2l
-	PRIVATE ${WINPORT}
+    PRIVATE ${WINPORT}
         PRIVATE dl
         PRIVATE ${UCHARDET_LIBRARIES})
 endif()
 
 add_custom_command(TARGET far2l POST_BUILD
     COMMAND ln -sf ${EXECUTABLE_NAME} ${INSTALL_DIR}/far2l_askpass
-    COMMAND ln -sf ${EXECUTABLE_NAME} ${INSTALL_DIR}/far2l_sudoapp)
+    COMMAND ln -sf ${EXECUTABLE_NAME} ${INSTALL_DIR}/far2l_sudoapp
+    COMMAND ln -sf ${EXECUTABLE_NAME} ${INSTALL_DIR}/far2ledit)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #TODO
@@ -259,5 +280,9 @@ else()
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/DE/far2l.desktop" "${CMAKE_CURRENT_BINARY_DIR}/DE/far2l.desktop")
 
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/DE/icons" DESTINATION "share" USE_SOURCE_PERMISSIONS COMPONENT desktop FILES_MATCHING PATTERN "*")
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/DE/far2l.desktop" DESTINATION "share/applications" COMPONENT desktop)
+
+	# Have to make desktop file executable, see:
+	# https://wiki.ubuntu.com/SecurityTeam/Policies#Execute-Permission_Bit_Required
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/DE/far2l.desktop" DESTINATION "share/applications" COMPONENT desktop
+        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_READ WORLD_EXECUTE)
 endif()

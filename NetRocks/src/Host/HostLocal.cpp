@@ -6,11 +6,12 @@
 #include <utime.h>
 #include <dirent.h>
 #include <limits.h>
+#include "Erroring.h"
 
 #ifdef __APPLE__
-  #include <sys/mount.h>
-#elif !defined(__FreeBSD__) && !defined(__HAIKU__)
-  #include <sys/statfs.h>
+	#include <sys/mount.h>
+#elif !defined(__FreeBSD__) && !defined(__DragonFly__) && !defined(__HAIKU__)
+	#include <sys/statfs.h>
 #endif
 
 #include <string>
@@ -21,7 +22,7 @@
 #include <pwd.h>
 #include <grp.h>
 #include <CheckedCast.hpp>
-
+#include <utils.h>
 #include "HostLocal.h"
 #include "../../WinPort/WinCompat.h"
 
@@ -101,15 +102,9 @@ void HostLocal::GetInformation(FileInformation &file_info, const std::string &pa
 	if (r == -1) {
 		throw ProtocolError("stat failed", errno);
 	}
-#ifdef __APPLE__
-	file_info.access_time = s.st_atimespec;
-	file_info.modification_time = s.st_mtimespec;
-	file_info.status_change_time = s.st_ctimespec;
-#else
 	file_info.access_time = s.st_atim;
 	file_info.modification_time = s.st_mtim;
 	file_info.status_change_time = s.st_ctim;
-#endif
 	file_info.size = s.st_size;
 	file_info.mode = s.st_mode;
 }
@@ -237,7 +232,7 @@ public:
 		}
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		for (;;) {
 			struct dirent *de = API(readdir)(_d);
@@ -250,7 +245,7 @@ public:
 			}
 
 			name = de->d_name;
-			
+
 			_subpath = _path;
 			_subpath+= name;
 			struct stat s = {};
@@ -264,22 +259,14 @@ public:
 			owner = UserByID(s.st_uid);
 			group = GroupByID(s.st_gid);
 
-#ifdef __APPLE__
-			file_info.access_time = s.st_atimespec;
-			file_info.modification_time = s.st_mtimespec;
-			file_info.status_change_time = s.st_ctimespec;
-#else
 			file_info.access_time = s.st_atim;
 			file_info.modification_time = s.st_mtim;
 			file_info.status_change_time = s.st_ctim;
-#endif
-
-
 			file_info.size = s.st_size;
 			file_info.mode = s.st_mode;
 			return true;
 		}
-  	}
+	}
 };
 
 std::shared_ptr<IDirectoryEnumer> HostLocal::DirectoryEnum(const std::string &path)

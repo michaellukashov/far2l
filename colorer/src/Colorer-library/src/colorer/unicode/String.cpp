@@ -100,7 +100,7 @@ int String::compareToIgnoreCase(const String &str) const
 
 const w4char* String::getW4Chars() const
 {
-  // TODO: use real UCS16->UTF32 convertion if needed
+  // TODO: use real UCS16->UTF32 conversion if needed
   w4char *ret_w4char_val = (w4char *)realloc(ret_val, (length() + 1) * sizeof(w4char));
   if (!ret_w4char_val) return nullptr;
   ret_val = ret_w4char_val;
@@ -115,7 +115,7 @@ const w4char* String::getW4Chars() const
 
 const w2char* String::getW2Chars() const
 {
-  // TODO: use real UCS32->UTF16 convertion if needed
+  // TODO: use real UCS32->UTF16 conversion if needed
   w2char *ret_w2char_val = (w2char *)realloc(ret_val, (length() + 1) * sizeof(w2char));
   if (!ret_w2char_val) return nullptr;
   ret_val = ret_w2char_val;

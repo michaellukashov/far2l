@@ -7,7 +7,7 @@
 /*                             34                          62
 345                        30       39 42                    64
  ====================== Download ============================
-| Destination file aready exists:                            |
+| Destination file already exists:                           |
 | [EDITBOX                                                 ] |
 | Source file information: [99999 Kb]  [DD/MM/YYYY hh:mm.ss] |
 | Destination information: [        ]  [DD/MM/YYYY hh:mm.ss] |
@@ -91,9 +91,6 @@ XferOverwriteAction ConfirmOverwrite::Ask(XferOverwriteAction &default_xoa)
 
 	} else if (r == _i_resume) {
 		out = XOA_RESUME;
-
-	} else if (r == _i_create_diff_name) {
-		out = XOA_CREATE_DIFFERENT_NAME;
 
 	} else if (r == _i_create_diff_name) {
 		out = XOA_CREATE_DIFFERENT_NAME;

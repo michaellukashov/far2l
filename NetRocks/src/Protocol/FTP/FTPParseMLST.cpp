@@ -56,17 +56,17 @@ static void ParseTime(timespec &ts, const char *str, size_t len)
 	struct tm t{};
 
 	if (len >= 4) {
-		t.tm_year = atoul(str, 4) - 1900;
+		t.tm_year = DecToULong(str, 4) - 1900;
 		if (len >= 6) {
-			t.tm_mon = atoul(str + 4, 2) - 1;
+			t.tm_mon = DecToULong(str + 4, 2) - 1;
 			if (len >= 8) {
-				t.tm_mday = atoul(str + 6, 2);
+				t.tm_mday = DecToULong(str + 6, 2);
 				if (len >= 10) {
-					t.tm_hour = atoul(str + 8, 2);
+					t.tm_hour = DecToULong(str + 8, 2);
 					if (len >= 12) {
-						t.tm_min = atoul(str + 10, 2);
+						t.tm_min = DecToULong(str + 10, 2);
 						if (len >= 14) {
-							t.tm_sec = atoul(str + 12, 2);
+							t.tm_sec = DecToULong(str + 12, 2);
 						}
 					}
 				}
@@ -78,7 +78,7 @@ static void ParseTime(timespec &ts, const char *str, size_t len)
 
 	if (len > 15 && str[14] == '.') {
 		size_t deci_len = std::min(len - 15, (size_t)9);
-		ts.tv_nsec = atoul(str + 15, deci_len);
+		ts.tv_nsec = DecToULong(str + 15, deci_len);
 		for (size_t i = deci_len; i < 9; ++i) {
 			ts.tv_nsec*= 10;
 		}
@@ -133,8 +133,9 @@ bool ParseMLsxLine(const char *line, const char *end, FileInformation &file_info
 					has_any_known = true;
 
 				} else if (MATCH_SUBSTR(eq + 1, value_len, match__dir)
-				  || MATCH_SUBSTR(eq + 1, value_len, match__cdir)
-				  || MATCH_SUBSTR(eq + 1, value_len, match__pdir)) {
+					|| MATCH_SUBSTR(eq + 1, value_len, match__cdir)
+					|| MATCH_SUBSTR(eq + 1, value_len, match__pdir))
+				{
 					file_info.mode|= S_IFDIR;
 					has_type = true;
 					has_any_known = true;
@@ -150,7 +151,8 @@ bool ParseMLsxLine(const char *line, const char *end, FileInformation &file_info
 				has_any_known = true;
 
 			} else if (MATCH_SUBSTR(fact, name_len, match__size)
-			  || MATCH_SUBSTR(fact, name_len, match__sizd)) {
+				|| MATCH_SUBSTR(fact, name_len, match__sizd))
+			{
 				file_info.size = strtol(eq + 1, nullptr, 10);
 				has_any_known = true;
 
@@ -180,10 +182,11 @@ bool ParseMLsxLine(const char *line, const char *end, FileInformation &file_info
 		}
 	}
 
-	if (!has_type)  {
+	if (!has_type) {
 		if (perm) {
 			if (CaseIgnoreEngStrChr('c', perm, perm_end - perm) != nullptr
-			  || CaseIgnoreEngStrChr('l', perm, perm_end - perm) != nullptr) {
+				|| CaseIgnoreEngStrChr('l', perm, perm_end - perm) != nullptr)
+			{
 				file_info.mode|= S_IFDIR;
 
 			} else {
@@ -197,23 +200,26 @@ bool ParseMLsxLine(const char *line, const char *end, FileInformation &file_info
 //	fprintf(stderr, "type:%s\n", ((file_info.mode & S_IFMT) == S_IFDIR) ? "DIR" : "FILE");
 
 
-	if (!has_mode)  {
+	if (!has_mode) {
 		if (perm) {
 			if (CaseIgnoreEngStrChr('r', perm, perm_end - perm) != nullptr
-			  || CaseIgnoreEngStrChr('l', perm, perm_end - perm) != nullptr
-			  || CaseIgnoreEngStrChr('e', perm, perm_end - perm) != nullptr) {
+				|| CaseIgnoreEngStrChr('l', perm, perm_end - perm) != nullptr
+				|| CaseIgnoreEngStrChr('e', perm, perm_end - perm) != nullptr)
+			{
 				file_info.mode|= 0444;
 				if ((file_info.mode & S_IFMT) == S_IFDIR) {
 					file_info.mode|= 0111;
 				}
 			}
 			if (CaseIgnoreEngStrChr('w', perm, perm_end - perm) != nullptr
-			  || CaseIgnoreEngStrChr('a', perm, perm_end - perm) != nullptr
-			  || CaseIgnoreEngStrChr('c', perm, perm_end - perm) != nullptr) {
+				|| CaseIgnoreEngStrChr('a', perm, perm_end - perm) != nullptr
+				|| CaseIgnoreEngStrChr('c', perm, perm_end - perm) != nullptr)
+			{
 				file_info.mode|= 0220;
 			}
 			if (CaseIgnoreEngStrChr('x', perm, perm_end - perm) != nullptr
-			  || CaseIgnoreEngStrChr('e', perm, perm_end - perm) != nullptr) {
+				|| CaseIgnoreEngStrChr('e', perm, perm_end - perm) != nullptr)
+			{
 				file_info.mode|= 0111;
 			}
 

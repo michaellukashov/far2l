@@ -10,7 +10,7 @@
 // http://www.manmrk.net/tutorials/ISPF/XE/xehelp/html/HID00000579.htm
 // http://www.leonerd.org.uk/hacks/fixterms/
 
-#if 1 // change to 1 to enable self-contradiction check on startup
+#if 0 // change to 1 to enable self-contradiction check on startup
 
 template <typename Last> static void AssertNoConflictsBetween(const Last &last) { }
 
@@ -122,6 +122,7 @@ void TTYInputSequenceParser::AddStrCursors(WORD vk, const char *code)
 TTYInputSequenceParser::TTYInputSequenceParser(ITTYInputSpecialSequenceHandler *handler)
 	: _handler(handler)
 {
+	ASSERT(_handler != nullptr);
 	for (char c = 'A'; c <= 'Z'; ++c) {
 		AddStr(c, LEFT_ALT_PRESSED, "%c", c + ('a' - 'A'));
 		if (c != 'O') {
@@ -273,9 +274,7 @@ size_t TTYInputSequenceParser::ParseNChars2Key(const char *s, size_t l)
 					ir.Event.KeyEvent.uChar.UnicodeChar = wc;
 					ir.Event.KeyEvent.dwControlKeyState|= LEFT_ALT_PRESSED;
 					ir.Event.KeyEvent.bKeyDown = TRUE;
-					if (_handler) {
-						_handler->OnInspectKeyEvent(ir.Event.KeyEvent);
-					}
+					_handler->OnInspectKeyEvent(ir.Event.KeyEvent);
 					_ir_pending.emplace_back(ir); // g_winport_con_in->Enqueue(&ir, 1);
 					ir.Event.KeyEvent.bKeyDown = FALSE;
 					_ir_pending.emplace_back(ir); // g_winport_con_in->Enqueue(&ir, 1);
@@ -296,9 +295,6 @@ size_t TTYInputSequenceParser::ParseNChars2Key(const char *s, size_t l)
 
 void TTYInputSequenceParser::ParseAPC(const char *s, size_t l)
 {
-	if (!_handler)
-		return;
-
 	if (strncmp(s, "f2l", 3) == 0) {
 		_tmp_stk_ser.FromBase64(s + 3, l - 3);
 		_handler->OnFar2lEvent(_tmp_stk_ser);
@@ -311,6 +307,14 @@ void TTYInputSequenceParser::ParseAPC(const char *s, size_t l)
 
 size_t TTYInputSequenceParser::ParseEscapeSequence(const char *s, size_t l)
 {
+	/*
+	fprintf(stderr, "Parsing: ");
+	for (size_t i = 0; i < l && s[i] != '\0'; i++) {
+		fprintf(stderr, "%c", s[i]);
+	}
+	fprintf(stderr, "\n");
+	*/
+
 	if (l > 2 && s[0] == '[' && s[2] == 'n') {
 		return 3;
 	}
@@ -338,9 +342,31 @@ size_t TTYInputSequenceParser::ParseEscapeSequence(const char *s, size_t l)
 		return 5;
 	}
 
-	size_t r = ParseNChars2Key(s, l);
+	size_t r = 0;
+
+	if (l > 5 && s[0] == ']' && s[1] == '1' && s[2] == '3' && s[3] == '3' && s[4] == '7' && s[5] == ';') {
+		r = TryParseAsITerm2EscapeSequence(s, l);
+		if (r != TTY_PARSED_BADSEQUENCE) {
+			return r;
+		}
+	}
+	
+	r = ParseNChars2Key(s, l);
 	if (r != 0)
 		return r;
+
+	if (l > 1 && s[0] == '[') {
+		r = TryParseAsKittyEscapeSequence(s, l);
+		if (r != TTY_PARSED_BADSEQUENCE) {
+			return r;
+		}
+	}	
+
+	if (l > 1 && s[0] == '[') {
+		r = TryParseAsWinTermEscapeSequence(s, l);
+		if (r != TTY_PARSED_BADSEQUENCE)
+			return r;
+	}
 
 	// be well-responsive on panic-escaping
 	for (size_t i = 0; (i + 1) < l; ++i) {
@@ -470,9 +496,7 @@ void TTYInputSequenceParser::AddPendingKeyEvent(const TTYInputKey &k)
 	ir.Event.KeyEvent.wVirtualKeyCode = k.vk;
 	ir.Event.KeyEvent.dwControlKeyState = k.control_keys | _extra_control_keys;
 	ir.Event.KeyEvent.wVirtualScanCode = WINPORT(MapVirtualKey)(k.vk,MAPVK_VK_TO_VSC);
-	if (_handler) {
-		_handler->OnInspectKeyEvent(ir.Event.KeyEvent);
-	}
+	_handler->OnInspectKeyEvent(ir.Event.KeyEvent);
 	_ir_pending.emplace_back(ir); // g_winport_con_in->Enqueue(&ir, 1);
 	ir.Event.KeyEvent.bKeyDown = FALSE;
 	_ir_pending.emplace_back(ir); // g_winport_con_in->Enqueue(&ir, 1);
@@ -524,7 +548,6 @@ void TTYInputSequenceParser::ParseMouse(char action, char col, char raw)
 				_mouse.right_ts = 0;
 			} else
 				_mouse.right_ts = now;
-
 			_mouse.left_ts = _mouse.middle_ts = 0;
 			_mouse.right = true;
 			break;
@@ -557,7 +580,17 @@ void TTYInputSequenceParser::ParseMouse(char action, char col, char raw)
 		case 'P': // ctrl + mouse move
 			ir.Event.MouseEvent.dwControlKeyState|= LEFT_CTRL_PRESSED;
 
-		case '@': // mouse move
+		case 'C': // mouse move
+			break;
+
+		case 'B': // RButton + mouse move
+			_mouse.right = true;
+			_mouse.right_ts = 0;
+			break;
+
+		case '@': // LButton + mouse move
+			_mouse.left = true;
+			_mouse.left_ts = 0;
 			break;
 
 		default:
@@ -571,7 +604,7 @@ void TTYInputSequenceParser::ParseMouse(char action, char col, char raw)
 			ir.Event.MouseEvent.dwButtonState|= FROM_LEFT_2ND_BUTTON_PRESSED;
 
 	if (_mouse.right)
-			ir.Event.MouseEvent.dwButtonState|= FROM_LEFT_3RD_BUTTON_PRESSED;
+			ir.Event.MouseEvent.dwButtonState|= RIGHTMOST_BUTTON_PRESSED;
 
 	_ir_pending.emplace_back(ir); // g_winport_con_in->Enqueue(&ir, 1);
 

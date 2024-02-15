@@ -52,7 +52,7 @@ static std::string RefinePath(std::string path, bool ending_slash = false)
 		path.erase(i, 2);
 	}
 
-	if (path.size() >= 2 && path[path.size() - 1] == '.' && path[path.size() - 2] == '/')  {
+	if (path.size() >= 2 && path[path.size() - 1] == '.' && path[path.size() - 2] == '/') {
 		path.resize(path.size() - 2);
 		if (path.empty()) {
 			path = '/';
@@ -249,7 +249,7 @@ private:
 ////////////////////////////////////////////////////////
 
 std::shared_ptr<IProtocol> CreateProtocol(const std::string &protocol, const std::string &host, unsigned int port,
-		const std::string &username, const std::string &password, const std::string &options)
+		const std::string &username, const std::string &password, const std::string &options, int fd_ipc_recv)
 {
 	if (protocol == "davs") {
 		return std::make_shared<ProtocolWebDAV>("https", host, port, username, password, options);
@@ -309,7 +309,6 @@ ProtocolWebDAV::ProtocolWebDAV(const char *scheme, const std::string &host, unsi
 	EnsureInitNEON();
 
 	StringConfig protocol_options(options);
-
 	_useragent = protocol_options.GetString("UserAgent");
 	_known_server_identity = protocol_options.GetString("ServerIdentity");
 
@@ -443,7 +442,7 @@ static void ProtocolWebDAV_ChangeExecutable(ne_session *sess, const std::string 
 	ne_proppatch_operation ops[] = { { &PROP_EXECUTABLE, ne_propset, executable ? "T" : "F"}, {} };
 	int rc = ne_proppatch(sess, path.c_str(), ops);
 	if (rc != NE_OK) {
-		fprintf(stderr, "ProtocolWebDAV_ChangeExecutable('%s', %d) error %d - '%s'\n", 
+		fprintf(stderr, "ProtocolWebDAV_ChangeExecutable('%s', %d) error %d - '%s'\n",
 			path.c_str(), executable, rc, ne_get_error(sess));
 	}
 }
@@ -485,7 +484,7 @@ public:
 	{
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		if (_wdp.empty()) {
 			return false;
@@ -527,7 +526,7 @@ std::shared_ptr<IDirectoryEnumer> ProtocolWebDAV::DirectoryEnum(const std::strin
 class DavFileIO : public IFileReader, public IFileWriter, protected Threaded
 {
 	std::shared_ptr<DavConnection> _conn;
-	std::string  _path;
+	std::string _path;
 	mode_t _mode;
 	unsigned long long _resume_pos;
 	bool _writing;
@@ -557,6 +556,7 @@ class DavFileIO : public IFileReader, public IFileWriter, protected Threaded
 			memcpy(&_buf[prev_size], data, len);
 
 		} catch (std::exception &ex) {
+			(void)ex;
 			return false;
 		}
 
@@ -666,7 +666,7 @@ public:
 			ne_add_request_header(_req, "Accept-Ranges", "bytes");
 		}
 
-                if (_writing) {
+		if (_writing) {
 			ne_set_request_body_provider(_req, -1, sWriteCallback, this);
 		} else {
 			ne_add_response_body_reader(_req, ne_accept_always, sReadCallback, this);
@@ -726,7 +726,7 @@ public:
 			_cond.wait(lock);
 		}
 		// for the sake of smooth progress update: wait while buffer will be mostly uploaded
-		while (_buf.size() > len / 8)  {
+		while (_buf.size() > len / 8) {
 			_cond.wait(lock);
 		}
 

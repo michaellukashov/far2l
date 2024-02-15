@@ -12,6 +12,7 @@
 #include <map>
 #include <set>
 #include <deque>
+#include <fstream>
 #include <algorithm>
 #include <libssh/libssh.h>
 #include <libssh/ssh2.h>
@@ -27,7 +28,7 @@ std::shared_ptr<IProtocol> CreateProtocolSCP(const std::string &host, unsigned i
 	const std::string &username, const std::string &password, const std::string &options);
 
 std::shared_ptr<IProtocol> CreateProtocol(const std::string &protocol, const std::string &host, unsigned int port,
-	const std::string &username, const std::string &password, const std::string &options)
+	const std::string &username, const std::string &password, const std::string &options, int fd_ipc_recv)
 {
 	if (strcasecmp(protocol.c_str(), "scp") == 0) {
 		return CreateProtocolSCP(host, port, username, password, options);
@@ -158,6 +159,10 @@ struct SFTPFileNonblockinScope
 ProtocolSFTP::ProtocolSFTP(const std::string &host, unsigned int port,
 	const std::string &username, const std::string &password, const std::string &options)
 {
+//	std::ofstream dbgstream;
+//	dbgstream.open("/home/user/ic.log", std::ios_base::out|std::ios_base::trunc);
+//	if (!dbgstream.bad())
+//		icecream::ic.output(dbgstream);
 	StringConfig protocol_options(options);
 	_conn = std::make_shared<SFTPConnection>(host, port, username, password, protocol_options);
 }
@@ -213,9 +218,11 @@ mode_t ProtocolSFTP::GetMode(const std::string &path, bool follow_symlink)
 #endif
 
 	_conn->executed_command.reset();
-
-	SFTPAttributes  attributes(SFTPGetAttributes(_conn->sftp, path, follow_symlink));
-	return SFTPModeFromAttributes(attributes);
+	SFTPAttributes attributes(SFTPGetAttributes(_conn->sftp, path, follow_symlink));
+	mode_t mode = SFTPModeFromAttributes(attributes);
+	if (_conn->file_stats_override)
+		_conn->file_stats_override->FilterFileMode(path, mode);
+	return mode;
 }
 
 unsigned long long ProtocolSFTP::GetSize(const std::string &path, bool follow_symlink)
@@ -227,7 +234,7 @@ unsigned long long ProtocolSFTP::GetSize(const std::string &path, bool follow_sy
 
 	_conn->executed_command.reset();
 
-	SFTPAttributes  attributes(SFTPGetAttributes(_conn->sftp, path, follow_symlink));
+	SFTPAttributes attributes(SFTPGetAttributes(_conn->sftp, path, follow_symlink));
 	return attributes->size;
 }
 
@@ -240,8 +247,11 @@ void ProtocolSFTP::GetInformation(FileInformation &file_info, const std::string 
 
 	_conn->executed_command.reset();
 
-	SFTPAttributes  attributes(SFTPGetAttributes(_conn->sftp, path, follow_symlink));
+	SFTPAttributes attributes(SFTPGetAttributes(_conn->sftp, path, follow_symlink));
 	SftpFileInfoFromAttributes(file_info, attributes);
+
+	if (_conn->file_stats_override)
+		_conn->file_stats_override->FilterFileInformation(path, file_info);
 }
 
 void ProtocolSFTP::FileDelete(const std::string &path)
@@ -256,6 +266,9 @@ void ProtocolSFTP::FileDelete(const std::string &path)
 	int rc = sftp_unlink(_conn->sftp, path.c_str());
 	if (rc != 0)
 		throw ProtocolError(ssh_get_error(_conn->ssh), rc);
+
+	if (_conn->file_stats_override)
+		_conn->file_stats_override->Cleanup(path);
 }
 
 void ProtocolSFTP::DirectoryDelete(const std::string &path)
@@ -270,6 +283,9 @@ void ProtocolSFTP::DirectoryDelete(const std::string &path)
 	int rc = sftp_rmdir(_conn->sftp, path.c_str());
 	if (rc != 0)
 		throw ProtocolError(ssh_get_error(_conn->ssh), rc);
+
+	if (_conn->file_stats_override)
+		_conn->file_stats_override->Cleanup(path);
 }
 
 void ProtocolSFTP::DirectoryCreate(const std::string &path, mode_t mode)
@@ -298,6 +314,9 @@ void ProtocolSFTP::Rename(const std::string &path_old, const std::string &path_n
 	int rc = sftp_rename(_conn->sftp, path_old.c_str(), path_new.c_str());
 	if (rc != 0)
 		throw ProtocolError(ssh_get_error(_conn->ssh), rc);
+
+	if (_conn->file_stats_override)
+		_conn->file_stats_override->Rename(path_old, path_new);
 }
 
 void ProtocolSFTP::SetTimes(const std::string &path, const timespec &access_time, const timespec &modification_time)
@@ -311,8 +330,13 @@ void ProtocolSFTP::SetTimes(const std::string &path, const timespec &access_time
 	times[1].tv_usec = suseconds_t(modification_time.tv_nsec / 1000);
 
 	int rc = sftp_utimes(_conn->sftp, path.c_str(), times);
-	if (rc != 0)
-		throw ProtocolError(ssh_get_error(_conn->ssh), rc);
+	if (rc != 0) {
+		if (!_conn->file_stats_override)
+			throw ProtocolError(ssh_get_error(_conn->ssh), rc);
+
+		fprintf(stderr, "%s(%s) ignored error %d\n", __FUNCTION__, path.c_str(), rc);
+		_conn->file_stats_override->OverrideTimes(path, access_time, modification_time);
+	}
 }
 
 void ProtocolSFTP::SetMode(const std::string &path, mode_t mode)
@@ -320,8 +344,13 @@ void ProtocolSFTP::SetMode(const std::string &path, mode_t mode)
 	_conn->executed_command.reset();
 
 	int rc = sftp_chmod(_conn->sftp, path.c_str(), mode);
-	if (rc != 0)
-		throw ProtocolError(ssh_get_error(_conn->ssh), rc);
+	if (rc != 0) {
+		if (!_conn->file_stats_override)
+			throw ProtocolError(ssh_get_error(_conn->ssh), rc);
+
+		fprintf(stderr, "%s(%s) ignored error %d\n", __FUNCTION__, path.c_str(), rc);
+		_conn->file_stats_override->OverrideMode(path, mode);
+	}
 }
 
 
@@ -359,7 +388,7 @@ public:
 			throw ProtocolError(ssh_get_error(_conn->ssh));
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		for (;;) {
 #if SIMULATED_ENUM_FAILS_RATE
@@ -367,7 +396,7 @@ public:
 			throw ProtocolError("Simulated enum dir error");
 #endif
 
-			SFTPAttributes  attributes(sftp_readdir(_conn->sftp, _dir));
+			SFTPAttributes attributes(sftp_readdir(_conn->sftp, _dir));
 			if (!attributes) {
 				if (!sftp_dir_eof(_dir))
 					throw ProtocolError(ssh_get_error(_conn->ssh));
@@ -386,14 +415,20 @@ public:
 				return true;
 			}
 		}
-  	}
+	}
 };
 
 std::shared_ptr<IDirectoryEnumer> ProtocolSFTP::DirectoryEnum(const std::string &path)
 {
 	_conn->executed_command.reset();
 
-	return std::make_shared<SFTPDirectoryEnumer>(_conn, path);
+	std::shared_ptr<IDirectoryEnumer> enumer = std::make_shared<SFTPDirectoryEnumer>(_conn, path);
+
+	if (_conn->file_stats_override && _conn->file_stats_override->NonEmpty()) {
+		enumer = std::make_shared<DirectoryEnumerWithFileStatsOverride>(*_conn->file_stats_override, enumer, path);
+	}
+
+	return enumer;
 }
 
 class SFTPFileIO
@@ -407,12 +442,12 @@ public:
 		: _conn(conn), _file(sftp_open(conn->sftp, path.c_str(), flags, mode))
 	{
 		if (!_file)
-			throw ProtocolError("open",  ssh_get_error(_conn->ssh));
+			throw ProtocolError("open", ssh_get_error(_conn->ssh));
 
 		if (resume_pos) {
 			int rc = sftp_seek64(_file, resume_pos);
 			if (rc != 0)
-				throw ProtocolError("seek",  ssh_get_error(_conn->ssh), rc);
+				throw ProtocolError("seek", ssh_get_error(_conn->ssh), rc);
 		}
 	}
 };
@@ -465,7 +500,7 @@ class SFTPFileReader : protected SFTPFileIO, public IFileReader
 		 && (_unrequested_count || _pipeline.empty())) {
 			_pipeline.emplace_back();
 			int id = sftp_async_read_begin(_file, _conn->max_read_block);
-			if (id < 0)  {
+			if (id < 0) {
 				_pipeline.pop_back();
 				throw ProtocolError("sftp_async_read_begin", ssh_get_error(_conn->ssh));
 			}
@@ -504,11 +539,11 @@ public:
 	SFTPFileReader(std::shared_ptr<SFTPConnection> &conn, const std::string &path, unsigned long long resume_pos)
 		: SFTPFileIO(conn, path, O_RDONLY, 0640, resume_pos)
 	{
-		SFTPAttributes  attributes(sftp_fstat(_file));
+		SFTPAttributes attributes(sftp_fstat(_file));
 		if (attributes && attributes->size >= resume_pos) {
 			_unrequested_count = attributes->size - resume_pos;
 			_unrequested_count = (_unrequested_count / _conn->max_read_block) + ((_unrequested_count % _conn->max_read_block) ? 1 : 0);
-		} else  {
+		} else {
 			_unrequested_count = std::numeric_limits<unsigned long long>::max();
 		}
 		EnsurePipelinedRequests( (_unrequested_count >= 32) ? 32 : (size_t)_unrequested_count);
@@ -613,7 +648,7 @@ public:
 		}
 
 		if (failed && out == 0) {
-			throw ProtocolError("read error",  ssh_get_error(_conn->ssh));
+			throw ProtocolError("read error", ssh_get_error(_conn->ssh));
 		}
 
 		return out;
@@ -641,7 +676,7 @@ public:
 			ssize_t written = sftp_write(_file, buf, piece);
 
 			if (written <= 0)
-				throw ProtocolError("write error",  ssh_get_error(_conn->ssh));
+				throw ProtocolError("write error", ssh_get_error(_conn->ssh));
 
 			if ((size_t)written >= len)
 				break;

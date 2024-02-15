@@ -17,7 +17,7 @@ class TTYXGlue : public ITTYXGlue
 	bool _xi = false;
 
 public:
-	TTYXGlue(pid_t broker_pid, int fdr, int fdw)
+	explicit TTYXGlue(pid_t broker_pid, int fdr, int fdw)
 		:
 		_broker_pid(broker_pid),
 		_ipc(fdr, fdw)
@@ -48,12 +48,12 @@ public:
 		_ipc.RecvPOD(_xi);
 	}
 
-	virtual bool HasXi() noexcept
+	virtual bool HasXi() noexcept override
 	{
 		return _xi;
 	}
 
-	virtual bool SetClipboard(const ITTYXGlue::Type2Data &t2d) noexcept
+	virtual bool SetClipboard(const ITTYXGlue::Type2Data &t2d) noexcept override
 	{
 		try {
 			_ipc.SendCommand(IPC_CLIPBOARD_SET);
@@ -74,7 +74,7 @@ public:
 		return true;
 	}
 
-	virtual bool GetClipboard(const std::string &type, std::vector<unsigned char> &data) noexcept
+	virtual bool GetClipboard(const std::string &type, std::vector<unsigned char> &data) noexcept override
 	{
 		try {
 			data.clear();
@@ -111,7 +111,7 @@ public:
 		}
 	}
 
-	virtual void InspectKeyEvent(KEY_EVENT_RECORD &event) noexcept
+	virtual void InspectKeyEvent(KEY_EVENT_RECORD &event) noexcept override
 	{
 		const KEY_EVENT_RECORD saved_event = event;
 		try {
@@ -238,7 +238,7 @@ void TTYXClipboard::OnClipboardClose()
 
 	if (_pending_set) {
 		if (!_ttyx->SetClipboard(*_pending_set)) {
-			// SetClipboard may fail only due to IPC failuer (e.g. if broken terminated)
+			// SetClipboard may fail only due to IPC failure (e.g. if broken terminated)
 			if (!_fallback_clipboard) {
 				fprintf(stderr, "TTYXClipboard::OnClipboardClose: switching to fallback\n");
 				_fallback_clipboard.reset(new FSClipboardBackend);

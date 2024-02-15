@@ -46,6 +46,12 @@ struct wx2INPUT_RECORD : INPUT_RECORD
 	wx2INPUT_RECORD(BOOL KeyDown, const wxKeyEvent& event, const KeyTracker &key_tracker);
 };
 
+extern WinPortPalette g_wx_palette;
+extern bool g_wx_norgb;
+
 WinPortRGB ConsoleForeground2RGB(DWORD64 attributes);
 WinPortRGB ConsoleBackground2RGB(DWORD64 attributes);
 
+DWORD WxKeyboardLedsState();
+
+void WinPortWxAssertHandler(const wxString& file, int line, const wxString& func, const wxString& cond, const wxString& msg);

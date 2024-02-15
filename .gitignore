@@ -24,3 +24,7 @@ cmake-build-*
 .DS_Store
 _build/
 *.tar.gz
+packaging/osx/FixupBundle.cmake
+packaging/osx/Setup.scpt
+far2l_askpass
+far2l_sudoapp

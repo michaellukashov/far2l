@@ -36,25 +36,26 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <WinCompat.h>
 #include "FARString.hpp"
 
-enum TESTFOLDERCONST  // for TestFolder()
+enum TESTFOLDERCONST	// for TestFolder()
 {
 	TSTFLD_ERROR     = -2,
 	TSTFLD_NOTACCESS = -1,
-	TSTFLD_EMPTY     =  0,
-	TSTFLD_NOTEMPTY  =  1,
-	TSTFLD_NOTFOUND  =  2,
+	TSTFLD_EMPTY     = 0,
+	TSTFLD_NOTEMPTY  = 1,
+	TSTFLD_NOTFOUND  = 2,
 };
 
-/* $ 15.02.2002 IS
-   Установка нужного диска и каталога и установление соответствующей переменной
-   окружения. В случае успеха возвращается не ноль.
-   Если ChangeDir==FALSE, то не меняем текущий  диск, а только устанавливаем
-   переменные окружения.
+/*
+	$ 15.02.2002 IS
+	Установка нужного диска и каталога и установление соответствующей переменной
+	окружения. В случае успеха возвращается не ноль.
+	Если ChangeDir==FALSE, то не меняем текущий диск, а только устанавливаем
+	переменные окружения.
 */
-BOOL FarChDir(const wchar_t *NewDir,BOOL ChangeDir=TRUE);
+BOOL FarChDir(const wchar_t *NewDir, BOOL ChangeDir = TRUE);
 
 TESTFOLDERCONST TestFolder(const wchar_t *Name);
-int CheckShortcutFolder(FARString *pTestPath,int IsHostFile, BOOL Silent=FALSE);
+int CheckShortcutFolder(FARString *pTestPath, int IsHostFile, BOOL Silent = FALSE);
 
 void CreatePath(FARString &strPath);
 

@@ -18,7 +18,7 @@ class PluginImpl
 	Location _location;
 	bool _allow_remember_location_dir = false;
 
-	SitesConfigLocation  _sites_cfg_location;
+	SitesConfigLocation _sites_cfg_location;
 	std::wstring _standalone_config;
 
 	std::shared_ptr<IHost> _remote;
@@ -28,7 +28,7 @@ class PluginImpl
 	{
 		std::shared_ptr<IHost> remote;
 		Location location;
-		SitesConfigLocation  sites_cfg_location;
+		SitesConfigLocation sites_cfg_location;
 		std::wstring standalone_config;
 	};
 
@@ -71,7 +71,8 @@ public:
 	void FreeFindData(PluginPanelItem *PanelItem, int ItemsNumber);
 	int SetDirectory(const wchar_t *Dir, int OpMode);
 	void GetOpenPluginInfo(struct OpenPluginInfo *Info);
-	int DeleteFiles(struct PluginPanelItem *PanelItem,int ItemsNumber,int OpMode);
+	int DeleteFiles(struct PluginPanelItem *PanelItem, int ItemsNumber, int OpMode);
+	int GetLinkTarget(struct PluginPanelItem *PanelItem, wchar_t *Target, size_t TargetSize, int OpMode);
 	int GetFiles(struct PluginPanelItem *PanelItem, int ItemsNumber, int Move, const wchar_t *DestPath, int OpMode);
 	int PutFiles(struct PluginPanelItem *PanelItem, int ItemsNumber, int Move, const wchar_t *SrcPath, int OpMode);
 	int MakeDirectory(const wchar_t **Name, int OpMode);

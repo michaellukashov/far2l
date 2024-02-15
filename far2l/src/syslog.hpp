@@ -35,15 +35,14 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "FARString.hpp"
 
-
 void SysLog(int l);
-void SysLog(const wchar_t *fmt,...);
-void SysLog(int l,const wchar_t *fmt,...); ///
+void SysLog(const wchar_t *fmt, ...);
+void SysLog(int l, const wchar_t *fmt, ...);	///
 void SysLogLastError();
 void ShowHeap();
 void CheckHeap(int NumLine);
 
-FARString __FARKEY_ToName(int Key);
+FARString __FARKEY_ToName(uint32_t Key);
 #define _FARKEY_ToName(K) __FARKEY_ToName(K).CPtr()
 FARString __MCODE_ToName(int OpCode);
 #define _MCODE_ToName(K) __MCODE_ToName(K).CPtr()
@@ -71,188 +70,191 @@ FARString __INPUT_RECORD_Dump(INPUT_RECORD *Rec);
 #define _INPUT_RECORD_Dump(K) __INPUT_RECORD_Dump(K).CPtr()
 FARString __MOUSE_EVENT_RECORD_Dump(MOUSE_EVENT_RECORD *Rec);
 #define _MOUSE_EVENT_RECORD_Dump(K) __MOUSE_EVENT_RECORD_Dump(K).CPtr()
-FARString __SysLog_LinearDump(LPBYTE Buf,int SizeBuf);
-#define _SysLog_LinearDump(B,S) __SysLog_LinearDump((B),(S)).CPtr()
+FARString __SysLog_LinearDump(LPBYTE Buf, int SizeBuf);
+#define _SysLog_LinearDump(B, S) __SysLog_LinearDump((B), (S)).CPtr()
 
-void GetOpenPluginInfo_Dump(const wchar_t *Title,const struct OpenPluginInfo *Info,FILE *fp);
-void INPUT_RECORD_DumpBuffer(FILE *fp=nullptr);
-void PanelViewSettings_Dump(const wchar_t *Title,const struct PanelViewSettings &ViewSettings,FILE *fp=nullptr);
-void PluginsStackItem_Dump(const wchar_t *Title,const struct PluginsStackItem *StackItems,int ItemNumber,FILE *fp=nullptr);
-void SaveScreenDumpBuffer(const wchar_t *Title,const CHAR_INFO *Buffer,int X1,int Y1,int X2,int Y2,FILE *fp=nullptr);
+void GetOpenPluginInfo_Dump(const wchar_t *Title, const struct OpenPluginInfo *Info, FILE *fp);
+void INPUT_RECORD_DumpBuffer(FILE *fp = nullptr);
+void PanelViewSettings_Dump(const wchar_t *Title, const struct PanelViewSettings &ViewSettings,
+		FILE *fp = nullptr);
+void PluginsStackItem_Dump(const wchar_t *Title, const struct PluginsStackItem *StackItems, int ItemNumber,
+		FILE *fp = nullptr);
+void SaveScreenDumpBuffer(const wchar_t *Title, const CHAR_INFO *Buffer, int X1, int Y1, int X2, int Y2,
+		FILE *fp = nullptr);
 class Manager;
-void ManagerClass_Dump(const wchar_t *Title,const Manager *m=nullptr,FILE *fp=nullptr);
-void GetVolumeInformation_Dump(const wchar_t *Title,LPCWSTR lpRootPathName,LPCWSTR lpVolumeNameBuffer,DWORD nVolumeNameSize,
-                               DWORD lpVolumeSerialNumber, DWORD lpMaximumComponentLength, DWORD lpFileSystemFlags,
-                               LPCWSTR lpFileSystemNameBuffer, DWORD nFileSystemNameSize,FILE *fp=nullptr);
+void ManagerClass_Dump(const wchar_t *Title, const Manager *m = nullptr, FILE *fp = nullptr);
+void GetVolumeInformation_Dump(const wchar_t *Title, LPCWSTR lpRootPathName, LPCWSTR lpVolumeNameBuffer,
+		DWORD nVolumeNameSize, DWORD lpVolumeSerialNumber, DWORD lpMaximumComponentLength,
+		DWORD lpFileSystemFlags, LPCWSTR lpFileSystemNameBuffer, DWORD nFileSystemNameSize,
+		FILE *fp = nullptr);
 
-void WIN32_FIND_DATA_Dump(const wchar_t *Title,const WIN32_FIND_DATA &fd,FILE *fp=nullptr);
+void WIN32_FIND_DATA_Dump(const wchar_t *Title, const WIN32_FIND_DATA &fd, FILE *fp = nullptr);
 
 #if defined(SYSLOG_FARSYSLOG)
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
-	void WINAPIV _export FarSysLog(const wchar_t *ModuleName,int Level,char *fmt,...);
-	void WINAPI  _export FarSysLogDump(const wchar_t *ModuleName,DWORD StartAddress,LPBYTE Buf,int SizeBuf);
-	void WINAPI _export FarSysLog_INPUT_RECORD_Dump(const wchar_t *ModuleName,INPUT_RECORD *rec);
+void WINAPIV _export FarSysLog(const wchar_t *ModuleName, int Level, char *fmt, ...);
+void WINAPI _export FarSysLogDump(const wchar_t *ModuleName, DWORD StartAddress, LPBYTE Buf, int SizeBuf);
+void WINAPI _export FarSysLog_INPUT_RECORD_Dump(const wchar_t *ModuleName, INPUT_RECORD *rec);
 #ifdef __cplusplus
 };
 #endif
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG)
-#define ___FILEFUNCLINE___  SysLog(L"[{%s} %s() #%d] ",__FILE__,__FUNCTION__,__LINE__)
+#define ___FILEFUNCLINE___ SysLog(L"[{%s} %s() #%d] ", __FILE__, __FUNCTION__, __LINE__)
 #else
 #define ___FILEFUNCLINE___
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG)
-#define _D(x)  x
+#define _D(x) x
 #else
 #define _D(x)
 #endif
 
 // для "алгоритмов работы" - внимание! лог будет большим!
 #if defined(_DEBUG) && defined(SYSLOG_ALGO)
-#define _ALGO(x)  x
+#define _ALGO(x) x
 #else
 #define _ALGO(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_DIALOG)
-#define _DIALOG(x)  x
+#define _DIALOG(x) x
 #else
 #define _DIALOG(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_MANAGER)
-#define _MANAGER(x)  x
+#define _MANAGER(x) x
 #else
 #define _MANAGER(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_KEYMACRO)
-#define _KEYMACRO(x)  x
+#define _KEYMACRO(x) x
 #else
 #define _KEYMACRO(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_KEYMACRO_PARSE)
-#define _KEYMACRO_PARSE(x)  x
+#define _KEYMACRO_PARSE(x) x
 #else
 #define _KEYMACRO_PARSE(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_ECTL)
-#define _ECTLLOG(x)  x
+#define _ECTLLOG(x) x
 #else
 #define _ECTLLOG(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_EE_REDRAW)
-#define _SYS_EE_REDRAW(x)  x
+#define _SYS_EE_REDRAW(x) x
 #else
 #define _SYS_EE_REDRAW(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_FCTL)
-#define _FCTLLOG(x)  x
+#define _FCTLLOG(x) x
 #else
 #define _FCTLLOG(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_ACTL)
-#define _ACTLLOG(x)  x
+#define _ACTLLOG(x) x
 #else
 #define _ACTLLOG(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_VCTL)
-#define _VCTLLOG(x)  x
+#define _VCTLLOG(x) x
 #else
 #define _VCTLLOG(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_OT)
-#define _OT(x)  x
+#define _OT(x) x
 #else
 #define _OT(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_SVS)
-#define _SVS(x)  x
+#define _SVS(x) x
 #else
 #define _SVS(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_DJ)
-#define _DJ(x)  x
+#define _DJ(x) x
 #else
 #define _DJ(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_WARP)
-#define _WARP(x)  x
+#define _WARP(x) x
 #else
 #define _WARP(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_VVM)
-#define _VVM(x)  x
+#define _VVM(x) x
 #else
 #define _VVM(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_IS)
-#define _IS(x)  x
+#define _IS(x) x
 #else
 #define _IS(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_AT)
-#define _AT(x)  x
+#define _AT(x) x
 #else
 #define _AT(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_tran)
-#define _tran(x)  x
+#define _tran(x) x
 #else
 #define _tran(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_SKV)
-#define _SKV(x)  x
+#define _SKV(x) x
 #else
 #define _SKV(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_KM)
-#define _KM(x)  x
+#define _KM(x) x
 #else
 #define _KM(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_NWZ)
-#define _NWZ(x)  x
+#define _NWZ(x) x
 #else
 #define _NWZ(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_COPYR)
-#define _LOGCOPYR(x)  x
+#define _LOGCOPYR(x) x
 #else
 #define _LOGCOPYR(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_TREX)
-#define _TREX(x)  x
+#define _TREX(x) x
 #else
 #define _TREX(x)
 #endif
 
 #if defined(_DEBUG) && defined(SYSLOG_YJH)
-#define _YJH(x)  x
+#define _YJH(x) x
 #else
 #define _YJH(x)
 #endif
@@ -263,24 +265,24 @@ void CloseSysLog();
 struct TUserLog
 {
 	FILE *Stream;
-	int   Level;
+	int Level;
 };
 
-void SysLogDump(const wchar_t *Title,DWORD StartAddress,LPBYTE Buf,int SizeBuf,FILE *fp=nullptr);
+void SysLogDump(const wchar_t *Title, DWORD StartAddress, LPBYTE Buf, int SizeBuf, FILE *fp = nullptr);
 
 FILE *OpenLogStream(const wchar_t *file);
 
-#define L_ERR      1
-#define L_WARNING  2
-#define L_INFO     3
-#define L_DEBUG1   4
-#define L_DEBUG2   5
-#define L_DEBUG3   6
+#define L_ERR     1
+#define L_WARNING 2
+#define L_INFO    3
+#define L_DEBUG1  4
+#define L_DEBUG2  5
+#define L_DEBUG3  6
 
-class CleverSysLog  // ;-)
+class CleverSysLog	// ;-)
 {
-	public:
-		CleverSysLog(const wchar_t *Title=nullptr);
-		CleverSysLog(int Line,const wchar_t *Title);
-		~CleverSysLog();
+public:
+	CleverSysLog(const wchar_t *Title = nullptr);
+	CleverSysLog(int Line, const wchar_t *Title);
+	~CleverSysLog();
 };

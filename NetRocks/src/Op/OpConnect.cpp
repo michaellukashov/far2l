@@ -21,6 +21,7 @@ static std::shared_ptr<IHost> CreateRemoteHost(const std::string &standalone_con
 OpConnect::OpConnect(int op_mode, const std::string &standalone_config, const Location &location)
 	: OpBase(op_mode, CreateRemoteHost(standalone_config,location), location.server)
 {
+	icecream::ic.output(std::cerr);
 }
 
 

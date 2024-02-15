@@ -34,7 +34,6 @@ BaseEditor::BaseEditor(ParserFactory* parserFactory, LineSource* lineSource)
   currentFileType = nullptr;
 
   breakParse = false;
-  validationProcess = false;
 
   CString def_text = CString("def:Text");
   CString def_syntax = CString("def:Syntax");
@@ -56,7 +55,6 @@ BaseEditor::~BaseEditor()
 {
   textParser->breakParse();
   breakParse = true;
-  while (validationProcess); /// @todo wait until validation is finished
   if (internalRM) {
     delete regionMapper;
   }
@@ -491,7 +489,7 @@ void BaseEditor::validate(int lno, bool rebuildRegions)
     }
   }
 
-  /* Text modification general ajustment */
+  /* Text modification general adjustment */
   if (invalidLine <= parseFrom) {
     parseFrom = invalidLine;
     tpmode = TPM_CACHE_UPDATE;

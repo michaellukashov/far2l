@@ -129,7 +129,7 @@
 
 <scheme name="XML.EmbeddedExpr">
 <!-- 'virtual-region' not support, duplicate code... :-(
-Если когда-нибудь такое будет поддерживатся, 
+Если когда-нибудь такое будет поддерживаться,
 содержимое схемы следует заменить этим:
     
     <inherit scheme="EmbeddedExpr">

@@ -6,7 +6,7 @@ $^#NetRocks plugin#
 $^#Version 1.0#
 $^#Copyright (C) 2019 elfmz#
 $^#Contents
- This plugin adds SFTP/SCP/NFS/SMB/WebDAV connectivity to far2l with possibility to add other protocols.
+ This plugin adds SFTP/SCP/SHELL/NFS/SMB/WebDAV connectivity to far2l with possibility to add other protocols.
 
  To access this module open plugins menu (F11) or use disks (Alt+F1/Alt+F2) menu. Then choose the "NetRocks". See further topics for more detail.
 
@@ -21,6 +21,13 @@ $^#Contents
    ~Command line and remote FAR2L~@CommandLine@
 
    ~Contact information~@Contact@
+
+ Tips and tricks:
+  - during any NetRocks copy operation (on any panel must be NetRocks, on other side may be standard far2l)
+you can switch it to background;
+  - for control/cancel any background action you can use ~Background tasks menu~@BackgroundTasksMenu@
+(available only during background action via Plugin commands list by #F11# or via #F9#/Options/Plugins configuration).
+
 
 @DisksMenu
 $^#NetRocks plugin#
@@ -73,12 +80,16 @@ $^#Copyright (C) 2019 elfmz#
 $^#Contents
 $^#Site connection editor#
 
- This dialog allows you to create new connection site or modify existing connection site settings. You should select protocol you want use and the define connection settings, like #hostname and port# to connect to, #login mode# and #username and password# if needed. To prevent connection from disconnect-due-to-idle - set non-zero #keepalive# period. Also by clicking on #Protocol options# button you can modify some protocol-specific settings.
+ This dialog allows you to create new connection site or modify existing connection site settings. You should select protocol you want use and the define connection settings, like #hostname and port# to connect to, #login mode# and #username and password# if needed.
+Also by clicking on #Extra options# button you can modify some ~extra site settings~@ExtraSiteSettings@.
+Also by clicking on #Protocol options# button you can modify some protocol-specific settings.
  ~SFTP:// and SCP:// protocols specific options~@ProtocolOptionsSFTPSCP@
+ ~SHELL:// protocols specific options~@ProtocolOptionsSHELL@
  ~FTP:// and FTPS:// protocols specific options~@ProtocolOptionsFTP@
  ~SMB:// protocol specific options~@ProtocolOptionsSMB@
  ~NFS:// protocol specific options~@ProtocolOptionsNFS@
- ~FILE:// protocol specific options~@ProtocolOptionsFile@
+ DAV:// and DAVS:// protocol specific options
+ ~FILE:// protocol specific options~@ProtocolOptionsFILE@
 
  ~Contents~@Contents@
 
@@ -122,6 +133,23 @@ $^#SFTP:// SCP:// protocols specific options#
  #TCP_NODELAY socket option:# also can improve network performance by eliminating delay used by TCP stack to buffer outgoing data. However in some cases it may also increase network packets rate, so use it when you know that its better.
  #TCP_QUICKACK socket option:# if enabled, TCP ack packets are sent immediately, rather than delayed that may improve receive performance.
  #Custom subsystem request/exec# here you can replace default SFTP subsystem handler with specific command, usually its used to get superuser access from sudo'er account by using command line like [sudo /usr/lib/openssh/sftp-server]
+ #Allowed host keys# if non-empty then forces using only specified key-exchange algorithms. Beside of restricting other algorithms this option can be used to allow using some deprecated algorithm e.g. ssh-rsa if server doesn't support modern ones.
+ #OpenSSH config files# allows to specify which OpenSSH config files to use for this connection. By default ~~/.ssh/config and /etc/ssh/ssh_config are used. Note that libssh version prior 0.9.0 always parses default config files regardless of this option (so you can only add extra configs), but since version 0.9.0 it's possible to disable/override default config files parsing. To specify more than one file - use colon to separate their paths.
+
+ ~Contents~@Contents@
+
+@ProtocolOptionsSHELL
+$^#NetRocks plugin#
+$^#Version 1.0#
+$^#Copyright (C) 2019 elfmz#
+$^#Contents
+$^#SHELL:// protocols specific options#
+
+ This dialog allows you to modify "shell://" protocols specific settings.
+ Note that this protocol is specific in a way it communicates with server - instead of using dedicated file access protocol it runs on server special helper script that handles required text commands, allowing to browse and transfer files.
+ Due to this, SHELL protocol in general picky about server's shell and which standard UNIX tools are accessible there.
+ Currently you may choose from two predefines ways to access server's shell - either using installed on #client SSH client# (ssh) either using #serial port interface#.
+ Note that #serial port way# is very sensitive to losses on communication line and sensitive to printouts noise that may arrive from server's kernel or whatever else. So don't use serial port way unless your surely knows what you need and be careful with file transfers afterwards. You may reduce printouts from kernel by following command: #echo 0 > /proc/sys/kernel/printk# before using serial port for this. And make sure serial port is not used by any other process that otherwise can interfere with NetRocks SHELL protocol.
 
  ~Contents~@Contents@
 
@@ -150,20 +178,43 @@ $^#NetRocks plugin#
 $^#Version 1.0#
 $^#Copyright (C) 2019 elfmz#
 $^#Contents
-$^#SFTP:// protocol specific options#
+$^#NFS:// protocol specific options#
 
  This dialog allows you to modify "nfs://" protocol specific settings. Here you can override default user credentials: host, UID, GID and comma-separated list of additional group IDs. Note that some old libnfs may not support this options - in such case they will have no effect.
 
  ~Contents~@Contents@
 
-@ProtocolOptionsFile
+@ProtocolOptionsFILE
 $^#NetRocks plugin#
 $^#Version 1.0#
 $^#Copyright (C) 2019 elfmz#
 $^#Contents
 $^#FILE:// protocol specific options#
 
- This dialog allows you to modify "file://" protocol specific settings. Since file:// is not actual protocol, but just a plain filesystem, accessed via NetRocks infrastructure, there're no usual connectivity settings. However its possible to execute specific command when opening "file://" connection site, and that command can, for example, do mounting of some resource that is to be accessed using this connection site. This command will have defined as environment fields of host ($HOST), port ($PORT), username ($USER), password ($PASSWORD) and additional extra string configured in this dialog ($EXTRA). In this dialog its also possible to defined amount of time NetRocks will wait for completion of this command (if command will not complete during that time - timeout error will be raised).
+ Pseudo-protocol "file:" has not additional options.
+
+ You can use "file:" to access to local file system and use background copy operations:
+ - unlike copying by base far2l, the NetRocks can do background copying;
+ - type in far2l's command line command "file:" to show local filesystem via NetRocks;
+ - during any NetRocks copy operation (on any panel must be NetRocks, on other side may be standard far2l)
+you can switch it to background;
+ - for control/cancel any background action you can use ~Background tasks menu~@BackgroundTasksMenu@
+(available only during background action via Plugin commands list by #F11# or via #F9#/Options/Plugins configuration).
+
+ ~Contents~@Contents@
+
+@ExtraSiteSettings
+$^#NetRocks plugin#
+$^#Version 1.0#
+$^#Copyright (C) 2019 elfmz#
+$^#Contents
+$^#Extra site settings#
+
+ This dialog allows you to modify some extra (not frequently used) site settings:
+  To prevent connection from disconnect-due-to-idle - set non-zero #keepalive# period.
+  Apply remote files timestamps adjustment.
+  Change #codepage# being used by server.
+  It's possible to #execute specific command# when opening or closing site connection, and that command can, for example, do mounting of some resource that is to be accessed using this connection site. This command will have defined as environment fields of host (#$HOST#), port (#$PORT#), username (#$USER#), password (#$PASSWORD#) and additional extra string configured in this dialog (#$EXTRA#). In this dialog its also possible to define amount of time NetRocks will wait for completion of this command (if command will not complete during that time - timeout error will be raised). Special environment variable #$SINGULAR# equals to 1 in case command being executed on a connection that is singular to specified protocol/user/host/port across all NetRocks instances, so you may use this to initialize/cleanup shared things. In case your init/cleanup have to exchange some data - save it into file indicated by $STORAGE environment variable, and then don't forget to delete this file from cleanup script running in singular context.
 
  ~Contents~@Contents@
 

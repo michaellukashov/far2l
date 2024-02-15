@@ -21,6 +21,7 @@
 #include <Threaded.h>
 #include "ProtocolSCP.h"
 #include "SSHConnection.h"
+#include "../ShellParseUtils.h"
 #include "../../Op/Utils/ExecCommandFIFO.hpp"
 
 #define QUERY_BY_CMD
@@ -47,7 +48,7 @@ static std::string QuotedArg(const std::string &s)
 	return out;
 }
 
-static void SCPRequestDeleter(ssh_scp  res)
+static void SCPRequestDeleter(ssh_scp res)
 {
 	if (res) {
 		ssh_scp_close(res);
@@ -152,7 +153,7 @@ private:
 	FDScope _fd_out;
 	FDScope _fd_in;
 	FDScope _fd_ctl;
-	bool _alive_out, _alive_err;
+	bool _alive_out{false}, _alive_err{false};
 
 	fd_set _fdr, _fde;
 	char _buf[0x10000];
@@ -247,7 +248,7 @@ public:
 		_conn->executed_command.reset();
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		name.clear();
 		owner.clear();
@@ -273,8 +274,8 @@ public:
 				_finished = true;
 				return false;
 			}
-        }
-  	}
+		}
+	}
 
 	std::string FilteredError() const
 	{
@@ -291,21 +292,7 @@ enum DirectoryEnumerMode
 
 class SCPDirectoryEnumer_stat : public SCPDirectoryEnumer
 {
-	static std::string ExtractStringTail(std::string &line)
-	{
-		std::string out;
-		size_t p = line.rfind(' ');
-		if (p != std::string::npos) {
-			out = line.substr(p + 1);
-			line.resize(p);
-		} else {
-			out.swap(line);
-		}
-
-		return out;
-	}
-
-	virtual bool TryParseLine(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool TryParseLine(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 // PATH/NAME MODE SIZE ACCESS MODIFY CHANGE USER GROUP
 // /bin/bash 81ed 1037528 1568672221 1494938995 1523911947 root root
@@ -326,13 +313,13 @@ class SCPDirectoryEnumer_stat : public SCPDirectoryEnumer
 			}
 			_cmd.output.erase(0, p);
 
-			const std::string &str_group = ExtractStringTail(line);
-			const std::string &str_owner = ExtractStringTail(line);
-			const std::string &str_change = ExtractStringTail(line);
-			const std::string &str_modify = ExtractStringTail(line);
-			const std::string &str_access = ExtractStringTail(line);
-			const std::string &str_size = ExtractStringTail(line);
-			const std::string &str_mode = ExtractStringTail(line);
+			const std::string &str_group = ShellParseUtils::ExtractStringTail(line, " ");
+			const std::string &str_owner = ShellParseUtils::ExtractStringTail(line, " ");
+			const std::string &str_change = ShellParseUtils::ExtractStringTail(line, " ");
+			const std::string &str_modify = ShellParseUtils::ExtractStringTail(line, " ");
+			const std::string &str_access = ShellParseUtils::ExtractStringTail(line, " ");
+			const std::string &str_size = ShellParseUtils::ExtractStringTail(line, " ");
+			const std::string &str_mode = ShellParseUtils::ExtractStringTail(line, " ");
 
 			p = line.rfind('/');
 			if (p != std::string::npos && line.size() > 1) {
@@ -349,7 +336,7 @@ class SCPDirectoryEnumer_stat : public SCPDirectoryEnumer
 			file_info.access_time.tv_sec = atol(str_access.c_str());
 			file_info.modification_time.tv_sec = atol(str_modify.c_str());
 			file_info.status_change_time.tv_sec = atol(str_change.c_str());
-			file_info.mode = htoul(str_mode.c_str(), str_mode.size());
+			file_info.mode = HexToULong(str_mode.c_str(), str_mode.size());
 			file_info.size = atol(str_size.c_str());
 
 			owner = str_owner;
@@ -359,7 +346,7 @@ class SCPDirectoryEnumer_stat : public SCPDirectoryEnumer
 	}
 
 public:
-	SCPDirectoryEnumer_stat(std::shared_ptr<SSHConnection> &conn, DirectoryEnumerMode dem, size_t count, const std::string *pathes)
+	SCPDirectoryEnumer_stat(std::shared_ptr<SSHConnection> &conn, DirectoryEnumerMode dem, size_t count, const std::string *paths)
 		: SCPDirectoryEnumer(conn)
 	{
 		std::string command_line = "stat --format=\"%n %f %s %X %Y %Z %U %G\" ";
@@ -367,7 +354,7 @@ public:
 			command_line+= "-L ";
 
 		for (size_t i = 0; i < count; ++i) {
-			const std::string &path_arg = QuotedArg(EnsureNoSlashAtNestedEnd(pathes[i]));
+			const std::string &path_arg = QuotedArg(EnsureNoSlashAtNestedEnd(paths[i]));
 			command_line+= path_arg;
 			if (dem == DEM_LIST) {
 				command_line+= "/.* ";
@@ -389,62 +376,7 @@ class SCPDirectoryEnumer_ls : public SCPDirectoryEnumer
 {
 	struct timespec _now;
 
-	static unsigned int Char2FileType(char c)
-	{
-		switch (c) {
-			case 'l':
-				return S_IFLNK;
-
-			case 'd':
-				return S_IFDIR;
-
-			case 'c':
-				return S_IFCHR;
-
-			case 'b':
-				return S_IFBLK;
-
-			case 'p':
-				return S_IFIFO;
-
-			case 's':
-				return S_IFSOCK;
-
-			case 'f':
-			default:
-				return S_IFREG;
-		}
-	}
-
-	static unsigned int Triplet2FileMode(const char *c)
-	{
-		unsigned int out = 0;
-		if (c[0] == 'r') out|= 4;
-		if (c[1] == 'w') out|= 2;
-		if (c[2] == 'x' || c[1] == 's' || c[1] == 't') out|= 1;
-		return out;
-	}
-
-	static std::string ExtractStringHead(std::string &line)
-	{
-		std::string out;
-		size_t p = line.find_first_of(" \t");
-		if (p != std::string::npos) {
-			out = line.substr(0, p);
-			while (p < line.size() && (line[p] == ' ' || line[p] == '\t')) {
-				++p;
-			}
-			line.erase(0, p);
-
-		} else {
-			out.swap(line);
-		}
-
-		return out;
-	}
-
-
-	virtual bool TryParseLine(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool TryParseLine(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 /*
 # ls -l -A -f /
@@ -457,6 +389,10 @@ drwxr-xr-x    3 root     root          1024 Sep 25  2021 lib
 lrwxrwxrwx    1 root     root             3 Sep 24  2021 lib32 -> lib
 lrwxrwxrwx    1 root     root            11 Sep 24  2021 linuxrc -> bin/busybox
 drwx------    2 root     root         12288 Sep 25  2021 lost+found
+
+devices - major&minor instead  of size:
+brw-------    1 root     root      179,   0 Jan  1  1970 mmcblk0
+crw-------    1 root     root        3, 144 Jan  1  1970 ttyy0
 */
 		for (;;) {
 			size_t p = _cmd.output.find_first_of("\r\n");
@@ -469,116 +405,20 @@ drwx------    2 root     root         12288 Sep 25  2021 lost+found
 				++p;
 			}
 			_cmd.output.erase(0, p);
-			const std::string &str_mode = ExtractStringHead(line);
-			if (line.empty())
-				continue;
 
-			if (line[0] >= '0' && line[0] <= '9') {
-				ExtractStringHead(line); // skip nlinks
-				if (line.empty())
-					continue;
-			}
-			const std::string &str_owner = ExtractStringHead(line);
-			if (line.empty())
-				continue;
-
-			const std::string &str_group = ExtractStringHead(line);
-			if (line.empty())
-				continue;
-
-			const std::string &str_size = ExtractStringHead(line);
-			if (line.empty())
-				continue;
-
-			const std::string &str_month = ExtractStringHead(line);
-
-			if (line.empty())
-				continue;
-
-			const std::string &str_day = ExtractStringHead(line);
-			if (line.empty())
-				continue;
-
-			const std::string &str_yt = ExtractStringHead(line);
-			if (line.empty())
-				continue;
-
-			file_info.mode = 0;
-			if (str_mode.size() >= 1) {
-				file_info.mode = Char2FileType(str_mode[0]);
-				if (file_info.mode == S_IFLNK) {
-					size_t p = line.find(" -> ");
-					if (p != std::string::npos)
-						line.resize(p);
+			if (ShellParseUtils::ParseLineFromLS(line, name, owner, group,
+					file_info.access_time, file_info.modification_time, file_info.status_change_time,
+					file_info.size, file_info.mode)) {
+				if (!name.empty() && FILENAME_ENUMERABLE(name)) {
+					return true;
 				}
-			}
-
-			if (str_mode.size() >= 4) {
-				file_info.mode|= Triplet2FileMode(str_mode.c_str() + 1) << 6;
-			}
-
-			if (str_mode.size() >= 7) {
-				file_info.mode|= Triplet2FileMode(str_mode.c_str() + 4) << 3;
-			}
-
-			if (str_mode.size() >= 10) {
-				file_info.mode|= Triplet2FileMode(str_mode.c_str() + 7);
-			}
-
-			const time_t now = _now.tv_sec;
-			struct tm t{};
-			struct tm *tnow = gmtime(&now);
-			if (tnow)
-				t = *tnow;
-
-			if (str_yt.find(':') == std::string::npos) {
-				t.tm_year = atoul(str_yt.c_str(), str_yt.length()) - 1900;
-			} else {
-				if (sscanf(str_yt.c_str(), "%d:%d", &t.tm_hour, &t.tm_min) <= -1) {
-					perror("scanf(str_yt)");
-				}
-			}
-			if (strcasecmp(str_month.c_str(), "jan") == 0) t.tm_mon = 0;
-			else if (strcasecmp(str_month.c_str(), "feb") == 0) t.tm_mon = 1;
-			else if (strcasecmp(str_month.c_str(), "mar") == 0) t.tm_mon = 2;
-			else if (strcasecmp(str_month.c_str(), "apr") == 0) t.tm_mon = 3;
-			else if (strcasecmp(str_month.c_str(), "may") == 0) t.tm_mon = 4;
-			else if (strcasecmp(str_month.c_str(), "jun") == 0) t.tm_mon = 5;
-			else if (strcasecmp(str_month.c_str(), "jul") == 0) t.tm_mon = 6;
-			else if (strcasecmp(str_month.c_str(), "aug") == 0) t.tm_mon = 7;
-			else if (strcasecmp(str_month.c_str(), "sep") == 0) t.tm_mon = 8;
-			else if (strcasecmp(str_month.c_str(), "oct") == 0) t.tm_mon = 9;
-			else if (strcasecmp(str_month.c_str(), "nov") == 0) t.tm_mon = 10;
-			else if (strcasecmp(str_month.c_str(), "dec") == 0) t.tm_mon = 11;
-
-			t.tm_mday = atoi(str_day.c_str());
-
-			file_info.status_change_time.tv_sec
-				= file_info.modification_time.tv_sec
-					= file_info.access_time.tv_sec = mktime(&t);
-
-			file_info.size = atol(str_size.c_str());
-
-			owner = str_owner;
-			group = str_group;
-
-			p = line.rfind('/');
-			if (p != std::string::npos && line.size() > 1) {
-				name = line.substr(p + 1);
-			} else {
-				name.swap(line);
-			}
-
-			if (name.empty() || !FILENAME_ENUMERABLE(name)) {
 				name.clear();
-				continue;
 			}
-			return true;
 		}
 	}
 
 public:
-	SCPDirectoryEnumer_ls(std::shared_ptr<SSHConnection> &conn, const SCPQuirks &quirks, DirectoryEnumerMode dem, size_t count, const std::string *pathes, const struct timespec &now)
+	SCPDirectoryEnumer_ls(std::shared_ptr<SSHConnection> &conn, const SCPQuirks &quirks, DirectoryEnumerMode dem, size_t count, const std::string *paths, const struct timespec &now)
 		: SCPDirectoryEnumer(conn), _now(now)
 	{
 		std::string command_line = "LC_TIME=C LS_COLORS= ls ";
@@ -594,7 +434,7 @@ public:
 			command_line+= "-H ";
 
 		for (size_t i = 0; i < count; ++i) {
-			command_line+= QuotedArg(EnsureNoSlashAtNestedEnd(pathes[i]));
+			command_line+= QuotedArg(EnsureNoSlashAtNestedEnd(paths[i]));
 			command_line+= ' ';
 		}
 //		command_line+= "2>/dev/null";
@@ -633,29 +473,23 @@ ProtocolSCP::ProtocolSCP(const std::string &host, unsigned int port,
 		fprintf(stderr, "ProtocolSCP::ProtocolSCP: <stat .> result %d -> fallback to ls\n", rc);
 	}
 
-	bool busybox = false;
-	bool applets_list = false;
-	if (cmd.Execute("readlink /bin/sh") == 0) {
-		if (cmd.Output().find("busybox") != std::string::npos && cmd.Execute("busybox") == 0) {
-			fprintf(stderr, "ProtocolSCP: BusyBox detected\n");
-			busybox = true;
-		}
-	} else {
-		int busybox_return_code = cmd.Execute("busybox 2>&1");
-		if (busybox_return_code == 0 || // busybox found and returns list of available applets OR
-			// busybox found and returns "busybox: applet not found"
-			(busybox_return_code == 127 && cmd.Output().find("applet not found") != std::string::npos))
-		{
+	int busybox_return_code = -1;
+	switch (cmd.Execute("readlink /bin/sh")) {
+		case 0:
+			if (cmd.Output().find("busybox") == std::string::npos) {
+				break;
+			}
+			// else: fallthrough
+		default:
 			// readlink not exists or /bin/sh not exists and also busybox exists?
 			// Its enough arguments to assume that ls will be handled by busybox.
-			fprintf(stderr, "ProtocolSCP: BusyBox assumed\n");
-			busybox = true;
-			applets_list = (busybox_return_code == 0);
-		}
+			busybox_return_code = cmd.Execute("busybox 2>&1");
 	}
 
-	if (busybox) {
-		if (applets_list) {
+	if (busybox_return_code == 0 ||
+		(busybox_return_code == 127 && cmd.Output().find("applet not found") != std::string::npos)) {
+		if (busybox_return_code == 0) {
+			// busybox found and returned list of available applets
 			// some busybox systems may miss very usual things, analyze busybox command output
 			// where it printed lit of supported commands
 			std::vector<std::string> words;
@@ -668,7 +502,7 @@ ProtocolSCP::ProtocolSCP(const std::string &host, unsigned int port,
 				fprintf(stderr, "ProtocolSCP: '%s' unsupported\n", _quirks.rm_dir);
 				_quirks.rm_dir = "rm -f -d";
 			}
-		} else {
+		} else { // busybox found but returned "busybox: applet not found"
 			// some routers have rmdir, but have no unlink (and also no applets list from busybox w/o args)
 			std::string probe_command = "ls /bin/"; probe_command += _quirks.rm_file;
 			if (cmd.Execute(probe_command.c_str()) != 0) {
@@ -678,6 +512,8 @@ ProtocolSCP::ProtocolSCP(const std::string &host, unsigned int port,
 		}
 
 		_quirks.ls_supports_dash_f = false;
+		fprintf(stderr, "ProtocolSCP: BusyBox detected, rc=%d rmd='%s' rmf='%s'\n",
+			busybox_return_code, _quirks.rm_dir, _quirks.rm_file);
 	}
 }
 
@@ -687,7 +523,7 @@ ProtocolSCP::~ProtocolSCP()
 }
 
 
-void ProtocolSCP::GetModes(bool follow_symlink, size_t count, const std::string *pathes, mode_t *modes) noexcept
+void ProtocolSCP::GetModes(bool follow_symlink, size_t count, const std::string *paths, mode_t *modes) noexcept
 {
 #ifdef QUERY_BY_CMD
 	size_t j = 0;
@@ -696,17 +532,17 @@ void ProtocolSCP::GetModes(bool follow_symlink, size_t count, const std::string 
 
 		std::shared_ptr<SCPDirectoryEnumer> de;
 		if (_quirks.use_ls) {
-			de = std::make_shared<SCPDirectoryEnumer_ls>(_conn, _quirks, follow_symlink ? DEM_QUERY_FOLLOW_SYMLINKS : DEM_QUERY, count, pathes, _now);
+			de = std::make_shared<SCPDirectoryEnumer_ls>(_conn, _quirks, follow_symlink ? DEM_QUERY_FOLLOW_SYMLINKS : DEM_QUERY, count, paths, _now);
 		} else {
-			de = std::make_shared<SCPDirectoryEnumer_stat>(_conn, follow_symlink ? DEM_QUERY_FOLLOW_SYMLINKS : DEM_QUERY, count, pathes);
+			de = std::make_shared<SCPDirectoryEnumer_stat>(_conn, follow_symlink ? DEM_QUERY_FOLLOW_SYMLINKS : DEM_QUERY, count, paths);
 		}
 
 		std::string name, owner, group;
 		FileInformation file_info;
 		while (j < count && de->Enum(name, owner, group, file_info)) {
 			while (j < count) {
-				size_t p = pathes[j].rfind('/');
-				const char *expected_name = (p == std::string::npos) ? pathes[j].c_str() : pathes[j].c_str() + p + 1;
+				size_t p = paths[j].rfind('/');
+				const char *expected_name = (p == std::string::npos) ? paths[j].c_str() : paths[j].c_str() + p + 1;
 
 				++j;
 				if (name == expected_name) {
@@ -726,7 +562,7 @@ void ProtocolSCP::GetModes(bool follow_symlink, size_t count, const std::string 
 		modes[j] = ~(mode_t)0;
 	}
 #else
-	IProtocol::GetModes(follow_symlink, count, pathes, modes);
+	IProtocol::GetModes(follow_symlink, count, paths, modes);
 #endif
 }
 
@@ -745,7 +581,7 @@ mode_t ProtocolSCP::GetMode(const std::string &path, bool follow_symlink)
 	SCPRequest scp (ssh_scp_new(_conn->ssh, SSH_SCP_READ | SSH_SCP_RECURSIVE, path.c_str()));// |
 	int rc = ssh_scp_init(scp);
 	if (rc != SSH_OK) {
-		throw ProtocolError("SCP init error",  ssh_get_error(_conn->ssh), rc);
+		throw ProtocolError("SCP init error", ssh_get_error(_conn->ssh), rc);
 	}
 
 	rc = ssh_scp_pull_request(scp);
@@ -771,11 +607,11 @@ mode_t ProtocolSCP::GetMode(const std::string &path, bool follow_symlink)
 		}
 		case SSH_ERROR: {
 			fprintf(stderr, "SSH_ERROR\n");
-			throw ProtocolError("Query mode error",  ssh_get_error(_conn->ssh), rc);
+			throw ProtocolError("Query mode error", ssh_get_error(_conn->ssh), rc);
 		}
 	}
 
-	throw ProtocolError("Query mode fault",  ssh_get_error(_conn->ssh), rc);
+	throw ProtocolError("Query mode fault", ssh_get_error(_conn->ssh), rc);
 #endif
 }
 
@@ -794,7 +630,7 @@ unsigned long long ProtocolSCP::GetSize(const std::string &path, bool follow_sym
 	SCPRequest scp(ssh_scp_new(_conn->ssh, SSH_SCP_READ | SSH_SCP_RECURSIVE, path.c_str()));// | SSH_SCP_RECURSIVE
 	int rc = ssh_scp_init(scp);
 	if (rc != SSH_OK) {
-		throw ProtocolError("SCP init error",  ssh_get_error(_conn->ssh), rc);
+		throw ProtocolError("SCP init error", ssh_get_error(_conn->ssh), rc);
 	}
 
 	rc = ssh_scp_pull_request(scp);
@@ -815,11 +651,11 @@ unsigned long long ProtocolSCP::GetSize(const std::string &path, bool follow_sym
 		}
 		case SSH_ERROR: {
 			fprintf(stderr, "SSH_ERROR\n");
-			throw ProtocolError("Query size error",  ssh_get_error(_conn->ssh), rc);
+			throw ProtocolError("Query size error", ssh_get_error(_conn->ssh), rc);
 		}
 	}
 
-	throw ProtocolError("Query size fault",  ssh_get_error(_conn->ssh), rc);
+	throw ProtocolError("Query size fault", ssh_get_error(_conn->ssh), rc);
 #endif
 }
 
@@ -850,7 +686,7 @@ void ProtocolSCP::GetInformation(FileInformation &file_info, const std::string &
 	SCPRequest scp (ssh_scp_new(_conn->ssh, SSH_SCP_READ | SSH_SCP_RECURSIVE, path.c_str()));// | SSH_SCP_RECURSIVE
 	int rc = ssh_scp_init(scp);
 	if (rc != SSH_OK) {
-		throw ProtocolError("SCP init error",  ssh_get_error(_conn->ssh), rc);
+		throw ProtocolError("SCP init error", ssh_get_error(_conn->ssh), rc);
 	}
 
 	rc = ssh_scp_pull_request(scp);
@@ -862,24 +698,25 @@ void ProtocolSCP::GetInformation(FileInformation &file_info, const std::string &
 			file_info.mode|= (rc == SSH_SCP_REQUEST_NEWFILE) ? S_IFREG : S_IFDIR;
 			file_info.access_time = file_info.modification_time = file_info.status_change_time = _now;
 			ssh_scp_deny_request(scp, "sorry");
-			return;
-		}
-		case SSH_SCP_REQUEST_ENDDIR: {
-			fprintf(stderr, "SSH_SCP_REQUEST_ENDDIR\n");
 			break;
 		}
-		case SSH_SCP_REQUEST_EOF: {
-			fprintf(stderr, "SSH_SCP_REQUEST_EOF\n");
-			break;
-		}
-		case SSH_ERROR: {
-			fprintf(stderr, "SSH_ERROR\n");
-			throw ProtocolError("Query info error",  ssh_get_error(_conn->ssh), rc);
-		}
-	}
 
-	throw ProtocolError("Query info fault",  ssh_get_error(_conn->ssh), rc);
+		case SSH_SCP_REQUEST_ENDDIR:
+			throw ProtocolError("Query info ENDDIR", ssh_get_error(_conn->ssh), rc);
+
+		case SSH_SCP_REQUEST_EOF:
+			throw ProtocolError("Query info EOF", ssh_get_error(_conn->ssh), rc);
+
+		case SSH_ERROR:
+			throw ProtocolError("Query info error", ssh_get_error(_conn->ssh), rc);
+
+		default:
+			throw ProtocolError("Query info fault", ssh_get_error(_conn->ssh), rc);
+	}
 #endif
+
+	if (_conn->file_stats_override)
+		_conn->file_stats_override->FilterFileInformation(path, file_info);
 }
 
 void ProtocolSCP::FileDelete(const std::string &path)
@@ -889,6 +726,8 @@ void ProtocolSCP::FileDelete(const std::string &path)
 	if (rc != 0) {
 		throw ProtocolError(sc.FilteredError().c_str(), rc);
 	}
+	if (_conn->file_stats_override)
+		_conn->file_stats_override->Cleanup(path);
 }
 
 void ProtocolSCP::DirectoryDelete(const std::string &path)
@@ -898,6 +737,8 @@ void ProtocolSCP::DirectoryDelete(const std::string &path)
 	if (rc != 0) {
 		throw ProtocolError(sc.FilteredError().c_str(), rc);
 	}
+	if (_conn->file_stats_override)
+		_conn->file_stats_override->Cleanup(path);
 }
 
 void ProtocolSCP::DirectoryCreate(const std::string &path, mode_t mode)
@@ -914,12 +755,12 @@ void ProtocolSCP::DirectoryCreate(const std::string &path, mode_t mode)
 	SCPRequest scp(ssh_scp_new(_conn->ssh, SSH_SCP_WRITE | SSH_SCP_RECURSIVE, ExtractFilePath(path).c_str()));//
 	int rc = ssh_scp_init(scp);
 	if (rc != SSH_OK) {
-		throw ProtocolError("SCP init error",  ssh_get_error(_conn->ssh), rc);
+		throw ProtocolError("SCP init error", ssh_get_error(_conn->ssh), rc);
 	}
 
 	rc = ssh_scp_push_directory(scp, ExtractFileName(path).c_str(), mode & 0777);
 	if (rc != SSH_OK) {
-		throw ProtocolError("SCP push directory error",  ssh_get_error(_conn->ssh), rc);
+		throw ProtocolError("SCP push directory error", ssh_get_error(_conn->ssh), rc);
 	}
 }
 
@@ -930,6 +771,8 @@ void ProtocolSCP::Rename(const std::string &path_old, const std::string &path_ne
 	if (rc != 0) {
 		throw ProtocolError(sc.FilteredError().c_str(), rc);
 	}
+	if (_conn->file_stats_override)
+		_conn->file_stats_override->Rename(path_old, path_new);
 }
 
 void ProtocolSCP::SetTimes(const std::string &path, const timespec &access_time, const timespec &modification_time)
@@ -952,8 +795,10 @@ void ProtocolSCP::SetTimes(const std::string &path, const timespec &access_time,
 	}
 
 	if (rc != 0) {
-		fprintf(stderr, "%s(%s) error %d\n", __FUNCTION__, path.c_str(), rc);
+		fprintf(stderr, "%s(%s) ignored error %d\n", __FUNCTION__, path.c_str(), rc);
 		//throw ProtocolError(sc.FilteredError().c_str(), rc);
+		if (_conn->file_stats_override)
+			_conn->file_stats_override->OverrideTimes(path, access_time, modification_time);
 	}
 }
 
@@ -962,7 +807,11 @@ void ProtocolSCP::SetMode(const std::string &path, mode_t mode)
 	SimpleCommand sc(_conn);
 	int rc = sc.Execute("chmod %o %s", mode, QuotedArg(path).c_str());
 	if (rc != 0) {
-		throw ProtocolError(sc.FilteredError().c_str(), rc);
+		if (!_conn->file_stats_override)
+			throw ProtocolError(sc.FilteredError().c_str(), rc);
+
+		fprintf(stderr, "%s(%s) ignored error %d\n", __FUNCTION__, path.c_str(), rc);
+		_conn->file_stats_override->OverrideMode(path, mode);
 	}
 }
 
@@ -994,11 +843,18 @@ std::shared_ptr<IDirectoryEnumer> ProtocolSCP::DirectoryEnum(const std::string &
 {
 	_conn->executed_command.reset();
 
+	std::shared_ptr<IDirectoryEnumer> enumer;
 	if (_quirks.use_ls) {
-		return std::make_shared<SCPDirectoryEnumer_ls>(_conn, _quirks, DEM_LIST, 1, &path, _now);
+		enumer = std::make_shared<SCPDirectoryEnumer_ls>(_conn, _quirks, DEM_LIST, 1, &path, _now);
+	} else {
+		enumer = std::make_shared<SCPDirectoryEnumer_stat>(_conn, DEM_LIST, 1, &path);
 	}
 
-	return std::make_shared<SCPDirectoryEnumer_stat>(_conn, DEM_LIST, 1, &path);
+	if (_conn->file_stats_override && _conn->file_stats_override->NonEmpty()) {
+		enumer = std::make_shared<DirectoryEnumerWithFileStatsOverride>(*_conn->file_stats_override, enumer, path);
+	}
+
+	return enumer;
 }
 
 class SCPFileReader : public IFileReader
@@ -1014,7 +870,7 @@ public:
 	{
 		int rc = ssh_scp_init(_scp);
 		if (rc != SSH_OK) {
-			throw ProtocolError("SCP init error",  ssh_get_error(_conn->ssh), rc);
+			throw ProtocolError("SCP init error", ssh_get_error(_conn->ssh), rc);
 		}
 
 		for (;;) {
@@ -1037,7 +893,7 @@ public:
 				}
 				case SSH_ERROR: {
 					fprintf(stderr, "SSH_ERROR\n");
-					throw ProtocolError("Pull file error",  ssh_get_error(_conn->ssh), rc);
+					throw ProtocolError("Pull file error", ssh_get_error(_conn->ssh), rc);
 				}
 			}
 		}
@@ -1063,7 +919,7 @@ public:
 		}
 		ssize_t rc = ssh_scp_read(_scp, buf, len);
 		if (rc < 0) {
-			throw ProtocolError("Read file error",  ssh_get_error(_conn->ssh), rc);
+			throw ProtocolError("Read file error", ssh_get_error(_conn->ssh), rc);
 
 		} else if ((size_t)rc <= _pending_size) {
 			_pending_size-= (size_t)rc;
@@ -1094,11 +950,11 @@ public:
 		mode&= 0777;
 		int rc = ssh_scp_init(_scp);
 		if (rc != SSH_OK) {
-			throw ProtocolError("SCP init error",  ssh_get_error(_conn->ssh), rc);
+			throw ProtocolError("SCP init error", ssh_get_error(_conn->ssh), rc);
 		}
 		rc = SSH_SCP_PUSH_FILE(_scp, ExtractFileName(path).c_str(), size_hint, mode);
 		if (rc != SSH_OK) {
-			throw ProtocolError("SCP push error",  ssh_get_error(_conn->ssh), rc);
+			throw ProtocolError("SCP push error", ssh_get_error(_conn->ssh), rc);
 		}
 	}
 
@@ -1133,7 +989,7 @@ public:
 		if (len) {
 			int rc = ssh_scp_write(_scp, buf, len);
 			if (rc != SSH_OK) {
-				throw ProtocolError("SCP write error",  ssh_get_error(_conn->ssh), rc);
+				throw ProtocolError("SCP write error", ssh_get_error(_conn->ssh), rc);
 			}
 		}
 	}

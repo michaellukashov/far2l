@@ -1182,7 +1182,7 @@ does not output file size in this mode.
  #Directory groups#
    Generate a list similar to windows INI file format. Group header will contain full-qualified url to ftp directory and
 group items will contains files in this directory. Note: plugin does not sort items scanned, so directory groups may be
-listed in this list more then once.
+listed in this list more than once.
 
  #Files tree#
    Generate a space-indented list of selected files and directories. Directory names starting with '/' character and does
@@ -1253,7 +1253,7 @@ hosts mode, global plugin configuration parameters will be used.
   A task edit dialog will be displayed.
 
   #Return# or #Enter#
-  Excute queue.
+  Execute queue.
   All tasks in the queue will be executed regardless of the result of the previous task run.
   It is not currently possible to skip tasks or execute a part of a specific task only.
   If you do not want to execute certain tasks, remove them from the queue before it is executed.
@@ -1294,7 +1294,7 @@ with the confirmation. The plugin will extract all URL parts and fill out all ne
   Specifies the directory to place the file to.
   If you leave this field blank, the plugin will use the path from the opposite panel (the path will be taken
 at the time the task runs).
-  Note: if you leave this field blank, the task can be sucessfully completed only if the following conditions
+  Note: if you leave this field blank, the task can be successfully completed only if the following conditions
 are met at the time the task runs:
 
   1. the opposite panel is available
@@ -1322,7 +1322,7 @@ are met at the time the task runs:
   If this dialog was used to add a new task, this task will not be added to the queue.
 
   #Error#
-  Displays an error occured while processing a task.
+  Displays an error occurred while processing a task.
   This button is available only if the task was not completed successfully due to some error (or was cancelled)
 
 @FTPProcessQueue
@@ -1581,7 +1581,7 @@ $ #Hi-level ftp commands available in plugin#
 
   #recv <remote> [<local>]#
   #get <remote> [<local>]#
-    Download file from ftp. If local file name ommited the name of remote file will be used.
+    Download file from ftp. If local file name omitted the name of remote file will be used.
 
   #reget <remote> [<local>]#
     Resume downloading <remote> to <local> file starting from <local> file size.

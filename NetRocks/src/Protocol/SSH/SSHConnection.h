@@ -6,6 +6,7 @@
 #include <StringConfig.h>
 #include <libssh/libssh.h>
 #include <libssh/ssh2.h>
+#include "../FileStatsOverride.h"
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,7 +57,7 @@ class SSHExecutedCommand : protected Threaded
 	SSHChannel _channel;
 	int _kickass[2] {-1, -1};
 	bool _pty = false;
-	bool _succeess = false;
+	bool _success = false;
 
 	void OnReadFDIn(const char *buf, size_t len);
 	virtual void SendSignal(int sig);
@@ -71,13 +72,13 @@ public:
 	void KeepAlive();
 };
 
-
 struct SSHConnection
 {
 	std::shared_ptr<SSHExecutedCommand> executed_command;
 	std::map<std::string, std::string> env_set {{"TERM", "xterm"}};
 
 	SSHSession ssh;
+	std::unique_ptr<FileStatsOverride> file_stats_override;
 
 	SSHConnection(const SSHConnection&) = delete;
 

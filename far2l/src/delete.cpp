@@ -33,7 +33,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "headers.hpp"
 
-
 #include "lang.hpp"
 #include "panel.hpp"
 #include "chgprior.hpp"
@@ -61,9 +60,8 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "wakeful.hpp"
 #include "execute.hpp"
 
-#if defined(__APPLE__) || defined(__FreeBSD__)
-  #include <errno.h>
-#endif
+#include <RandomString.h>
+#include <errno.h>
 
 enum DeletionResult
 {
@@ -74,39 +72,34 @@ enum DeletionResult
 	DELETE_NO_RECYCLE_BIN
 };
 
-
-static void ShellDeleteMsg(const wchar_t *Name,bool Wipe,int Percent);
-static DeletionResult ShellRemoveFile(const wchar_t *Name,bool Wipe, int Opt_DeleteToRecycleBin);
-static DeletionResult ERemoveDirectory(const wchar_t *Name,bool Wipe);
+static void ShellDeleteMsg(const wchar_t *Name, bool Wipe, int Percent);
+static DeletionResult ShellRemoveFile(const wchar_t *Name, bool Wipe, int Opt_DeleteToRecycleBin);
+static DeletionResult ERemoveDirectory(const wchar_t *Name, bool Wipe);
 static DeletionResult RemoveToRecycleBin(const wchar_t *Name);
 static bool WipeFile(const wchar_t *Name);
 static bool WipeDirectory(const wchar_t *Name);
 static void PR_ShellDeleteMsg();
 
-static int ReadOnlyDeleteMode,SkipMode,SkipWipeMode,SkipFoldersMode,SkipRecycleMode;
+static int ReadOnlyDeleteMode, SkipMode, SkipWipeMode, SkipFoldersMode, SkipRecycleMode;
 static bool DeleteAllFolders;
 ULONG ProcessedItems;
 
 struct AskDeleteReadOnly
 {
-	AskDeleteReadOnly(const wchar_t *Name,bool Wipe);
-	
+	AskDeleteReadOnly(const wchar_t *Name, bool Wipe);
+
 	~AskDeleteReadOnly()
 	{
 		if (_ump)
 			_ump->Unmake();
 	}
-	
-	inline DeletionResult Choice() const
-	{
-		return _r;
-	}
 
-	private:
+	inline DeletionResult Choice() const { return _r; }
+
+private:
 	IUnmakeWritablePtr _ump;
 	DeletionResult _r;
 };
-
 
 class ShellDeleteMsgState
 {
@@ -118,15 +111,16 @@ public:
 	{
 		const clock_t now = GetProcessUptimeMSec();
 
-		if (now - _last_redraw > RedrawTimeout)
-		{
+		if (now - _last_redraw > RedrawTimeout) {
 			_last_redraw = now;
 
 			const int percent = (Opt.DelOpt.DelShowTotal && total != (ULONG)-1)
-				? ( total ? (processed * 100 / total) : 0) : -1;
+					? (total ? (processed * 100 / total) : 0)
+					: -1;
 
 			if (percent != -1)
-				_delete_title.Set(L"{%d%%} %ls", percent, (wipe ? Msg::DeleteWipeTitle : Msg::DeleteTitle).CPtr());
+				_delete_title.Set(L"{%d%%} %ls", percent,
+						(wipe ? Msg::DeleteWipeTitle : Msg::DeleteTitle).CPtr());
 
 			ShellDeleteMsg(name, wipe, percent);
 
@@ -159,9 +153,9 @@ static DeletionResult ShellConfirmDirectoryDeletion(const FARString &strFullName
 		return DELETE_YES;
 
 	const int MsgCode = Message(MSG_WARNING, 4, (Wipe ? Msg::WipeFolderTitle : Msg::DeleteFolderTitle),
-	                (Wipe ? Msg::WipeFolderConfirm : Msg::DeleteFolderConfirm), strFullName,
-	                (Wipe ? Msg::DeleteFileWipe : Msg::DeleteFileDelete), Msg::DeleteFileAll,
-	                Msg::DeleteFileSkip, Msg::DeleteFileCancel);
+			(Wipe ? Msg::WipeFolderConfirm : Msg::DeleteFolderConfirm), strFullName,
+			(Wipe ? Msg::DeleteFileWipe : Msg::DeleteFileDelete), Msg::DeleteFileAll, Msg::DeleteFileSkip,
+			Msg::DeleteFileCancel);
 
 	if (MsgCode < 0 || MsgCode == 3)
 		return DELETE_CANCEL;
@@ -175,12 +169,12 @@ static DeletionResult ShellConfirmDirectoryDeletion(const FARString &strFullName
 	return DELETE_YES;
 }
 
-static DeletionResult ShellDeleteDirectory(int ItemsCount, bool UpdateDiz, Panel *SrcPanel, FARString strSelName, DWORD FileAttr, bool Wipe, int Opt_DeleteToRecycleBin)
+static DeletionResult ShellDeleteDirectory(int ItemsCount, bool UpdateDiz, Panel *SrcPanel,
+		FARString strSelName, DWORD FileAttr, bool Wipe, int Opt_DeleteToRecycleBin)
 {
 	// для symlink`а не нужно подтверждение
 	DeletionResult DR;
-	if (!(FileAttr & FILE_ATTRIBUTE_REPARSE_POINT))
-	{
+	if (!(FileAttr & FILE_ATTRIBUTE_REPARSE_POINT)) {
 		FARString strFullName;
 		ConvertNameToFull(strSelName, strFullName);
 		DR = ShellConfirmDirectoryDeletion(strFullName, Wipe);
@@ -188,42 +182,36 @@ static DeletionResult ShellDeleteDirectory(int ItemsCount, bool UpdateDiz, Panel
 			return DR;
 	}
 
-	bool DirSymLink = (FileAttr&FILE_ATTRIBUTE_DIRECTORY && FileAttr&FILE_ATTRIBUTE_REPARSE_POINT);
+	bool DirSymLink = (FileAttr & FILE_ATTRIBUTE_DIRECTORY && FileAttr & FILE_ATTRIBUTE_REPARSE_POINT);
 
-	if (!DirSymLink && (!Opt_DeleteToRecycleBin || Wipe))
-	{
+	if (!DirSymLink && (!Opt_DeleteToRecycleBin || Wipe)) {
 		ShellDeleteMsgState SDMS;
-		ScanTree ScTree(TRUE,TRUE,FALSE);
+		ScanTree ScTree(TRUE, TRUE, FALSE);
 		FARString strSelFullName = PanelItemFullName(SrcPanel, strSelName);
 
-		ScTree.SetFindPath(strSelFullName,L"*", 0);
+		ScTree.SetFindPath(strSelFullName, L"*", 0);
 		FAR_FIND_DATA_EX FindData;
 		FARString strFullName;
-		while (ScTree.GetNextName(&FindData, strFullName))
-		{
+		while (ScTree.GetNextName(&FindData, strFullName)) {
 			if (!SDMS.Update(strFullName, Wipe, ProcessedItems, ItemsCount))
 				return DELETE_CANCEL;
 
-			if (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-			{
-				if (!ScTree.IsDirSearchDone() && (FindData.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) == 0)
-				{
+			if (FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+				if (!ScTree.IsDirSearchDone()
+						&& (FindData.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) == 0) {
 					DR = ShellConfirmDirectoryDeletion(strFullName, Wipe);
 					if (DR == DELETE_SKIP)
 						ScTree.SkipDir();
-				}
-				else
-				{
+				} else {
 					if (FindData.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
 						apiMakeWritable(strFullName);
 
-					DR = ERemoveDirectory(strFullName,Wipe);
+					DR = ERemoveDirectory(strFullName, Wipe);
 
 					if (DR == DELETE_SUCCESS)
 						TreeList::DelTreeName(strFullName);
 				}
-			}
-			else
+			} else
 				DR = ShellRemoveFile(strFullName, Wipe, Opt_DeleteToRecycleBin);
 
 			if (DR == DELETE_CANCEL)
@@ -237,8 +225,10 @@ static DeletionResult ShellDeleteDirectory(int ItemsCount, bool UpdateDiz, Panel
 	if (FileAttr & FILE_ATTRIBUTE_READONLY)
 		apiMakeWritable(strSelName);
 
-	// нефига здесь выделываться, а надо учесть, что удаление
-	// симлинка в корзину чревато потерей оригинала.
+	/*
+		нефига здесь выделываться, а надо учесть, что удаление
+		симлинка в корзину чревато потерей оригинала.
+	*/
 	if (DirSymLink || !Opt_DeleteToRecycleBin || Wipe)
 		return ERemoveDirectory(strSelName, Wipe);
 
@@ -253,11 +243,9 @@ static void FormatDeleteMultipleFilesMsg(FARString &strDeleteFilesMsg, const int
 	_itow(SelCount, StrItems, 10);
 	const int LenItems = StrLength(StrItems);
 
-	if (LenItems > 0)
-	{
-		if ((LenItems >= 2 && StrItems[LenItems - 2] == L'1') ||
-		        StrItems[LenItems - 1] >= L'5' ||
-		        StrItems[LenItems - 1] == L'0')
+	if (LenItems > 0) {
+		if ((LenItems >= 2 && StrItems[LenItems - 2] == L'1') || StrItems[LenItems - 1] >= L'5'
+				|| StrItems[LenItems - 1] == L'0')
 			Ends = Msg::AskDeleteItemsS;
 		else if (StrItems[LenItems - 1] == L'1')
 			Ends = Msg::AskDeleteItems0;
@@ -266,7 +254,7 @@ static void FormatDeleteMultipleFilesMsg(FARString &strDeleteFilesMsg, const int
 	strDeleteFilesMsg.Format(Msg::AskDeleteItems, SelCount, Ends);
 }
 
-static bool ShellConfirmDeletion(Panel *SrcPanel, bool Wipe)
+static bool ShellConfirmDeletion(Panel *SrcPanel, bool &Wipe)
 {
 	const int SelCount = SrcPanel->GetSelCount();
 	if (SelCount <= 0)
@@ -281,58 +269,74 @@ static bool ShellConfirmDeletion(Panel *SrcPanel, bool Wipe)
 	const bool IsLink = (FileAttr & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
 	FARString strDeleteFilesMsg;
 
-	if (SelCount == 1)
-	{
+	if (SelCount == 1) {
 		if (strSelName.IsEmpty() || TestParentFolderName(strSelName))
 			return false;
 
 		strDeleteFilesMsg = strSelName;
-	}
-	else
-	{
+	} else {
 		FormatDeleteMultipleFilesMsg(strDeleteFilesMsg, SelCount);
 	}
 
-	if (Opt.Confirm.Delete || SelCount > 1)// || (FileAttr & FILE_ATTRIBUTE_DIRECTORY)))
+	if (Opt.Confirm.Delete && SelCount == 1 && IsLink)
+	{
+		FARString str;
+		str.Format(L"%ls %ls",  Msg::AskDeleteLink.CPtr(),  (IsDir ? Msg::AskDeleteLinkFolder.CPtr() : Msg::AskDeleteLinkFile.CPtr()));
+		if (Wipe & IsDir)
+			Wipe = false; // never wipe directory by symlink
+		FarLangMsg OkMsg = (Opt.DeleteToRecycleBin ? Msg::DeleteRecycle : Msg::Delete);
+		SetMessageHelp(L"DeleteFile");
+		if (Wipe) {
+			switch (Message(0, 3, Msg::DeleteLinkTitle, Msg::AskDelete, strDeleteFilesMsg, str, Msg::DeleteWipe, OkMsg, Msg::Cancel)) {
+				case 2:
+					return false;
+				case 1:
+					Wipe = false;
+			}
+		}
+		else if (Message(0, 2, Msg::DeleteLinkTitle, Msg::AskDelete, strDeleteFilesMsg, str, OkMsg, Msg::Cancel))
+			return false;
+	}
+	else if (Opt.Confirm.Delete || SelCount > 1)		// || (FileAttr & FILE_ATTRIBUTE_DIRECTORY)))
 	{
 		FarLangMsg TitleMsg = Wipe ? Msg::DeleteWipeTitle : Msg::DeleteTitle;
-		/* $ 05.01.2001 IS
-		   ! Косметика в сообщениях - разные сообщения в зависимости от того,
-		     какие и сколько элементов выделено.
+		/*
+			$ 05.01.2001 IS
+			! Косметика в сообщениях - разные сообщения в зависимости от того,
+			какие и сколько элементов выделено.
 		*/
 		FarLangMsg DelMsg;
-		if (SelCount == 1)
-		{
+		if (SelCount == 1) {
 			if (Wipe && !IsLink)
 				DelMsg = IsDir ? Msg::AskWipeFolder : Msg::AskWipeFile;
 			else if (Opt.DeleteToRecycleBin && !IsLink)
 				DelMsg = IsDir ? Msg::AskDeleteRecycleFolder : Msg::AskDeleteRecycleFile;
 			else
 				DelMsg = IsDir ? Msg::AskDeleteFolder : Msg::AskDeleteFile;
-		}
-		else if (Wipe && !IsLink)
+		} else if (Wipe && !IsLink)
 			DelMsg = Msg::AskWipe;
 		else if (Opt.DeleteToRecycleBin && !IsLink)
 			DelMsg = Msg::AskDeleteRecycle;
 		else
 			DelMsg = Msg::AskDelete;
 
-		FarLangMsg OkMsg = Wipe ? Msg::DeleteWipe : (Opt.DeleteToRecycleBin ? Msg::DeleteRecycle : Msg::Delete);
+		FarLangMsg OkMsg =
+				Wipe ? Msg::DeleteWipe : (Opt.DeleteToRecycleBin ? Msg::DeleteRecycle : Msg::Delete);
 
 		SetMessageHelp(L"DeleteFile");
 		if (Message(0, 2, TitleMsg, DelMsg, strDeleteFilesMsg, OkMsg, Msg::Cancel))
 			return false;
 	}
 
-	if (Opt.Confirm.Delete && SelCount > 1)
-	{
-		//SaveScreen SaveScr;
+	if (Opt.Confirm.Delete && SelCount > 1) {
+		// SaveScreen SaveScr;
 		SetCursorType(FALSE, 0);
 		SetMessageHelp(L"DeleteFile");
 
 		FarLangMsg TitleMsg = Wipe ? Msg::WipeFilesTitle : Msg::DeleteFilesTitle;
 		FarLangMsg DelMsg = Wipe ? Msg::AskWipe : Msg::AskDelete;
-		if (Message(MSG_WARNING, 2, TitleMsg, DelMsg, strDeleteFilesMsg, Msg::DeleteFileAll, Msg::DeleteFileCancel))
+		if (Message(MSG_WARNING, 2, TitleMsg, DelMsg, strDeleteFilesMsg, Msg::DeleteFileAll,
+					Msg::DeleteFileCancel))
 			return false;
 	}
 
@@ -347,26 +351,23 @@ static ULONG ShellCalcCountOfItemsToDelete(Panel *SrcPanel, bool Wipe)
 	FARString strSelName;
 	ShellDeleteMsgState SDMS;
 
-	SrcPanel->GetSelNameCompat(nullptr,FileAttr);
-	while (SrcPanel->GetSelNameCompat(&strSelName, FileAttr))
-	{
-		if (!(FileAttr&FILE_ATTRIBUTE_REPARSE_POINT))
-		{
-			if (FileAttr&FILE_ATTRIBUTE_DIRECTORY)
-			{
+	SrcPanel->GetSelNameCompat(nullptr, FileAttr);
+	while (SrcPanel->GetSelNameCompat(&strSelName, FileAttr)) {
+		if (!(FileAttr & FILE_ATTRIBUTE_REPARSE_POINT)) {
+			if (FileAttr & FILE_ATTRIBUTE_DIRECTORY) {
 				if (!SDMS.Update(strSelName, Wipe))
 					return (ULONG)-1;
 
-				uint32_t CurrentFileCount,CurrentDirCount,ClusterSize;
-				UINT64 FileSize,PhysicalSize;
+				uint32_t CurrentFileCount, CurrentDirCount, ClusterSize;
+				UINT64 FileSize, PhysicalSize;
 
-				if (GetDirInfo(nullptr,strSelName,CurrentDirCount,CurrentFileCount,FileSize,PhysicalSize,ClusterSize,-1,nullptr,0) <= 0)
+				if (GetDirInfo(nullptr, strSelName, CurrentDirCount, CurrentFileCount, FileSize, PhysicalSize,
+							ClusterSize, -1, nullptr, 0)
+						<= 0)
 					return (ULONG)-1;
 
 				ItemsCount+= CurrentFileCount + CurrentDirCount + 1;
-			}
-			else
-			{
+			} else {
 				ItemsCount++;
 			}
 		}
@@ -375,7 +376,6 @@ static ULONG ShellCalcCountOfItemsToDelete(Panel *SrcPanel, bool Wipe)
 	return ItemsCount;
 }
 
-
 void ShellDelete(Panel *SrcPanel, bool Wipe)
 {
 	SudoClientRegion scr;
@@ -383,12 +383,12 @@ void ShellDelete(Panel *SrcPanel, bool Wipe)
 	DeleteAllFolders = !Opt.Confirm.DeleteFolder;
 
 	const bool UpdateDiz = (Opt.Diz.UpdateMode == DIZ_UPDATE_ALWAYS
-		|| (SrcPanel->IsDizDisplayed() && Opt.Diz.UpdateMode == DIZ_UPDATE_IF_DISPLAYED));
+			|| (SrcPanel->IsDizDisplayed() && Opt.Diz.UpdateMode == DIZ_UPDATE_IF_DISPLAYED));
 
 	if (!ShellConfirmDeletion(SrcPanel, Wipe))
 		return;
 
-	// TODO: Удаление в корзину только для  FIXED-дисков
+	// TODO: Удаление в корзину только для FIXED-дисков
 	int Opt_DeleteToRecycleBin = Opt.DeleteToRecycleBin;
 
 	if (UpdateDiz)
@@ -403,23 +403,22 @@ void ShellDelete(Panel *SrcPanel, bool Wipe)
 	LockCurrentFrame LCF;
 	LCF.RefreshOnUnlock();
 	wakeful W;
-	if (SrcPanel->GetType()==TREE_PANEL)
+	if (SrcPanel->GetType() == TREE_PANEL)
 		FarChDir(L"/");
-	//SaveScreen SaveScr;
-	SetCursorType(FALSE,0);
-	ReadOnlyDeleteMode=-1;
-	SkipMode=-1;
-	SkipWipeMode=-1;
-	SkipFoldersMode=-1;
-	SkipRecycleMode=-1;
-	ProcessedItems=0;
+	// SaveScreen SaveScr;
+	SetCursorType(FALSE, 0);
+	ReadOnlyDeleteMode = -1;
+	SkipMode = -1;
+	SkipWipeMode = -1;
+	SkipFoldersMode = -1;
+	SkipRecycleMode = -1;
+	ProcessedItems = 0;
 
 	ULONG ItemsCount = 0;
 
-	if (Opt.DelOpt.DelShowTotal)
-	{
+	if (Opt.DelOpt.DelShowTotal) {
 		ItemsCount = ShellCalcCountOfItemsToDelete(SrcPanel, Wipe);
-		if (ItemsCount == (ULONG)-1) // cancelled?
+		if (ItemsCount == (ULONG)-1)	// cancelled?
 			return;
 	}
 
@@ -429,8 +428,7 @@ void ShellDelete(Panel *SrcPanel, bool Wipe)
 	bool NeedSetUpADir = false;
 	ShellDeleteMsgState SDMS;
 	FARString strSelName;
-	while (SrcPanel->GetSelNameCompat(&strSelName,FileAttr))
-	{
+	while (SrcPanel->GetSelNameCompat(&strSelName, FileAttr)) {
 		if (strSelName.IsEmpty())
 			continue;
 
@@ -438,25 +436,22 @@ void ShellDelete(Panel *SrcPanel, bool Wipe)
 			break;
 
 		DeletionResult DR;
-		if (FileAttr & FILE_ATTRIBUTE_DIRECTORY)
-		{
+		if (FileAttr & FILE_ATTRIBUTE_DIRECTORY) {
 			if (!NeedSetUpADir)
 				NeedSetUpADir = CheckUpdateAnotherPanel(SrcPanel, strSelName);
 
-			DR = ShellDeleteDirectory(ItemsCount, UpdateDiz, SrcPanel, strSelName, FileAttr, Wipe, Opt_DeleteToRecycleBin);
+			DR = ShellDeleteDirectory(ItemsCount, UpdateDiz, SrcPanel, strSelName, FileAttr, Wipe,
+					Opt_DeleteToRecycleBin);
 			if (DR == DELETE_NO_RECYCLE_BIN)
 				DR = ShellDeleteDirectory(ItemsCount, UpdateDiz, SrcPanel, strSelName, FileAttr, Wipe, FALSE);
-		}
-		else
-		{
+		} else {
 			DR = ShellRemoveFile(strSelName, Wipe, Opt_DeleteToRecycleBin);
 		}
 
 		if (DR == DELETE_CANCEL)
 			break;
 
-		if (DR == DELETE_SUCCESS && UpdateDiz)
-		{
+		if (DR == DELETE_SUCCESS && UpdateDiz) {
 			SrcPanel->DeleteDiz(strSelName);
 		}
 	}
@@ -469,69 +464,74 @@ void ShellDelete(Panel *SrcPanel, bool Wipe)
 
 static void PR_ShellDeleteMsg()
 {
-	PreRedrawItem preRedrawItem=PreRedraw.Peek();
-	ShellDeleteMsg(static_cast<const wchar_t*>(preRedrawItem.Param.Param1),static_cast<int>(reinterpret_cast<INT_PTR>(preRedrawItem.Param.Param4)),static_cast<int>(preRedrawItem.Param.Param5));
+	PreRedrawItem preRedrawItem = PreRedraw.Peek();
+	ShellDeleteMsg(static_cast<const wchar_t *>(preRedrawItem.Param.Param1),
+			static_cast<int>(reinterpret_cast<INT_PTR>(preRedrawItem.Param.Param4)),
+			static_cast<int>(preRedrawItem.Param.Param5));
 }
 
-void ShellDeleteMsg(const wchar_t *Name,bool Wipe,int Percent)
+void ShellDeleteMsg(const wchar_t *Name, bool Wipe, int Percent)
 {
 	FARString strProgress;
-	size_t Width=52;
+	size_t Width = 52;
 
-	if (Percent!=-1)
-	{
-		size_t Length=Width-5; // -5 под проценты
-		size_t CurPos=Min(Percent,100)*Length/100;
+	if (Percent != -1) {
+		size_t Length = Width - 5;	// -5 под проценты
+		size_t CurPos = Min(Percent, 100) * Length / 100;
 		strProgress.Reserve(Length);
 		strProgress.Append(BoxSymbols[BS_X_DB], CurPos);
 		strProgress.Append(BoxSymbols[BS_X_B0], Length - CurPos);
 		FormatString strTmp;
-		strTmp<<L" "<<fmt::Expand(3)<<Percent<<L"%";
-		strProgress+=strTmp;
+		strTmp << L" " << fmt::Expand(3) << Percent << L"%";
+		strProgress+= strTmp;
 	}
 
 	FARString strOutFileName(Name);
-	TruncPathStr(strOutFileName,static_cast<int>(Width));
-	CenterStr(strOutFileName,strOutFileName,static_cast<int>(Width));
-	Message(0,0,(Wipe?Msg::DeleteWipeTitle:Msg::DeleteTitle),(Percent>=0||!Opt.DelOpt.DelShowTotal)?(Wipe?Msg::DeletingWiping:Msg::Deleting):Msg::ScanningFolder,strOutFileName,strProgress.IsEmpty()?nullptr:strProgress.CPtr());
-	PreRedrawItem preRedrawItem=PreRedraw.Peek();
-	preRedrawItem.Param.Param1=static_cast<void*>(const_cast<wchar_t*>(Name));
-	preRedrawItem.Param.Param4=(void *)(INT_PTR)Wipe;
-	preRedrawItem.Param.Param5=(int64_t)Percent;
+	TruncPathStr(strOutFileName, static_cast<int>(Width));
+	CenterStr(strOutFileName, strOutFileName, static_cast<int>(Width));
+	Message(0, 0, (Wipe ? Msg::DeleteWipeTitle : Msg::DeleteTitle),
+			(Percent >= 0 || !Opt.DelOpt.DelShowTotal)
+					? (Wipe ? Msg::DeletingWiping : Msg::Deleting)
+					: Msg::ScanningFolder,
+			strOutFileName, strProgress.IsEmpty() ? nullptr : strProgress.CPtr());
+	PreRedrawItem preRedrawItem = PreRedraw.Peek();
+	preRedrawItem.Param.Param1 = static_cast<void *>(const_cast<wchar_t *>(Name));
+	preRedrawItem.Param.Param4 = (void *)(INT_PTR)Wipe;
+	preRedrawItem.Param.Param5 = (int64_t)Percent;
 	PreRedraw.SetParam(preRedrawItem.Param);
 }
 
-AskDeleteReadOnly::AskDeleteReadOnly(const wchar_t *Name,bool Wipe) 
-	: _r(DELETE_YES)
+AskDeleteReadOnly::AskDeleteReadOnly(const wchar_t *Name, bool Wipe)
+	:
+	_r(DELETE_YES)
 {
 	int MsgCode;
 	_ump = apiMakeWritable(Name);
 
-	if (!_ump)//(Attr & FILE_ATTRIBUTE_READONLY))
-		return;//(DELETE_YES);
+	if (!_ump)		//(Attr & FILE_ATTRIBUTE_READONLY))
+		return;		//(DELETE_YES);
 
 	if (!Opt.Confirm.RO)
-		ReadOnlyDeleteMode=1;
+		ReadOnlyDeleteMode = 1;
 
-	if (ReadOnlyDeleteMode!=-1)
-		MsgCode=ReadOnlyDeleteMode;
-	else
-	{
-		MsgCode=Message(MSG_WARNING,5,Msg::Warning,Msg::DeleteRO,Name,
-		                (Wipe?Msg::AskWipeRO:Msg::AskDeleteRO),(Wipe?Msg::DeleteFileWipe:Msg::DeleteFileDelete),
-						Msg::DeleteFileAll,Msg::DeleteFileSkip,Msg::DeleteFileSkipAll,Msg::DeleteFileCancel);
+	if (ReadOnlyDeleteMode != -1)
+		MsgCode = ReadOnlyDeleteMode;
+	else {
+		MsgCode = Message(MSG_WARNING, 5, Msg::Warning, Msg::DeleteRO, Name,
+				(Wipe ? Msg::AskWipeRO : Msg::AskDeleteRO),
+				(Wipe ? Msg::DeleteFileWipe : Msg::DeleteFileDelete), Msg::DeleteFileAll, Msg::DeleteFileSkip,
+				Msg::DeleteFileSkipAll, Msg::DeleteFileCancel);
 	}
 
-	switch (MsgCode)
-	{
+	switch (MsgCode) {
 		case 1:
-			ReadOnlyDeleteMode=1;
+			ReadOnlyDeleteMode = 1;
 			break;
 		case 2:
 			_r = DELETE_SKIP;
 			return;
 		case 3:
-			ReadOnlyDeleteMode=3;
+			ReadOnlyDeleteMode = 3;
 			_r = DELETE_SKIP;
 			return;
 		case -1:
@@ -541,79 +541,88 @@ AskDeleteReadOnly::AskDeleteReadOnly(const wchar_t *Name,bool Wipe)
 			return;
 	}
 
-	//apiSetFileAttributes(Name,FILE_ATTRIBUTE_NORMAL);
-	//return(DELETE_YES);
+	// apiSetFileAttributes(Name,FILE_ATTRIBUTE_NORMAL);
+	// return(DELETE_YES);
 }
-
-
 
 static DeletionResult ShellRemoveFile(const wchar_t *Name, bool Wipe, int Opt_DeleteToRecycleBin)
 {
 	ProcessedItems++;
-	int MsgCode=0;
+	int MsgCode = 0;
 	std::unique_ptr<AskDeleteReadOnly> AskDeleteRO;
-	/* have to pretranslate to full path otherwise plain remove()
-	 * below will malfunction if current directory requires sudo
-	 */
+	/*
+		have to pretranslate to full path otherwise plain remove()
+		below will malfunction if current directory requires sudo
+	*/
 	FARString strFullName;
 	ConvertNameToFull(Name, strFullName);
 
-	if (Wipe || Opt_DeleteToRecycleBin)
-	{  /* in case its a not a simple deletion - check/sanitize RO files prior any actions,
-		* cuz code that doing such things is not aware about such complications
+	if (Wipe || Opt_DeleteToRecycleBin) {
+		/*
+			in case its a not a simple deletion - check/sanitize RO files prior any actions,
+			cuz code that doing such things is not aware about such complications
 		*/
 		AskDeleteRO.reset(new AskDeleteReadOnly(strFullName, Wipe));
 		if (AskDeleteRO->Choice() != DELETE_YES)
 			return AskDeleteRO->Choice();
 	}
 
-	for (;;)
-	{
-		if (Wipe)
-		{
-			if (SkipWipeMode!=-1)
-			{
-				MsgCode=SkipWipeMode;
-			}
-			else if (GetNumberOfLinks(strFullName) > 1)
-			{
-				/*
-				                            Файл
-				                         "имя файла"
-				                Файл имеет несколько жестких ссылок.
-				  Уничтожение файла приведет к обнулению всех ссылающихся на него файлов.
-				                        Уничтожать файл?
-				*/
-				MsgCode=Message(MSG_WARNING,5,Msg::Error,strFullName,
-				                Msg::DeleteHardLink1,Msg::DeleteHardLink2,Msg::DeleteHardLink3,
-				                Msg::DeleteFileWipe,Msg::DeleteFileAll,Msg::DeleteFileSkip,Msg::DeleteFileSkipAll,Msg::DeleteCancel);
+	for (;;) {
+		if (Wipe) {
+			bool is_symlink = false;
+			int n_hardlinks = 1;
+			struct stat s{};
+			if ( sdc_lstat(Wide2MB(Name).c_str(), &s) == 0 ) {
+				n_hardlinks = (s.st_nlink > 0) ? s.st_nlink : 1;
+				is_symlink = (s.st_mode & S_IFMT) == S_IFLNK;
 			}
 
-			switch (MsgCode)
-			{
+			if (SkipWipeMode != -1) {
+				MsgCode = SkipWipeMode;
+			} else if (is_symlink) {
+				//                            Файл
+				//                         "имя файла"
+				//                     Это symlink на файл.
+				//  Уничтожение файла приведет к обнулению всех ссылающихся на него файлов.
+				//                        Уничтожать файл?
+				MsgCode = Message(MSG_WARNING, 5, Msg::Error, strFullName, Msg::DeleteSymLink1,
+						Msg::DeleteHardLink2, Msg::DeleteHardLink3, Msg::DeleteFileWipe, Msg::DeleteFileAll,
+						Msg::DeleteFileSkip, Msg::DeleteFileSkipAll, Msg::DeleteCancel);
+			} else if (n_hardlinks > 1) {
+				//                            Файл
+				//                         "имя файла"
+				//                Файл имеет несколько жестких ссылок.
+				//  Уничтожение файла приведет к обнулению всех ссылающихся на него файлов.
+				//                        Уничтожать файл?
+				MsgCode = Message(MSG_WARNING, 5, Msg::Error, strFullName, Msg::DeleteHardLink1,
+						Msg::DeleteHardLink2, Msg::DeleteHardLink3, Msg::DeleteFileWipe, Msg::DeleteFileAll,
+						Msg::DeleteFileSkip, Msg::DeleteFileSkipAll, Msg::DeleteCancel);
+			}
+			// !!! [All] & [Skip all] now equivalent for wipe symlink & file with several hardlink - may be do separate?
+
+			switch (MsgCode) {
 				case -1:
 				case -2:
 				case 4:
 					return DELETE_CANCEL;
 				case 3:
-					SkipWipeMode=2;
+					SkipWipeMode = 2;
 				case 2:
 					return DELETE_SKIP;
 				case 1:
-					SkipWipeMode=0;
+					SkipWipeMode = 0;
 				case 0:
 
 					if (WipeFile(strFullName))
 						return DELETE_SUCCESS;
 			}
-		}
-		else if (!Opt_DeleteToRecycleBin)
-		{
-			// first try simple removal, only if it will fail
-			// then fallback to AskDeleteRO and sdc_remove
+		} else if (!Opt_DeleteToRecycleBin) {
+			/*
+				first try simple removal, only if it will fail
+				then fallback to AskDeleteRO and sdc_remove
+			*/
 			const std::string &mbFullName = strFullName.GetMB();
-			if (!AskDeleteRO)
-			{
+			if (!AskDeleteRO) {
 				if (remove(mbFullName.c_str()) == 0 || errno == ENOENT) {
 					break;
 				}
@@ -624,35 +633,29 @@ static DeletionResult ShellRemoveFile(const wchar_t *Name, bool Wipe, int Opt_De
 			if (sdc_remove(mbFullName.c_str()) == 0 || errno == ENOENT) {
 				break;
 			}
-		}
-		else
-		{
+		} else {
 			const auto DR = RemoveToRecycleBin(strFullName);
-			if (DR == DELETE_NO_RECYCLE_BIN)
-			{
+			if (DR == DELETE_NO_RECYCLE_BIN) {
 				Opt_DeleteToRecycleBin = 0;
 				continue;
 			}
 			return DR;
 		}
 
-		if (SkipMode!=-1)
-			MsgCode=SkipMode;
-		else
-		{
-			MsgCode=Message(MSG_WARNING|MSG_ERRORTYPE,4,Msg::Error,
-				Msg::CannotDeleteFile,strFullName,Msg::DeleteRetry,
-				Msg::DeleteSkip,Msg::DeleteFileSkipAll,Msg::DeleteCancel);
+		if (SkipMode != -1)
+			MsgCode = SkipMode;
+		else {
+			MsgCode = Message(MSG_WARNING | MSG_ERRORTYPE, 4, Msg::Error, Msg::CannotDeleteFile, strFullName,
+					Msg::DeleteRetry, Msg::DeleteSkip, Msg::DeleteFileSkipAll, Msg::DeleteCancel);
 		}
 
-		switch (MsgCode)
-		{
+		switch (MsgCode) {
 			case -1:
 			case -2:
 			case 3:
 				return DELETE_CANCEL;
 			case 2:
-				SkipMode=1;
+				SkipMode = 1;
 			case 1:
 				return DELETE_SKIP;
 		}
@@ -661,22 +664,21 @@ static DeletionResult ShellRemoveFile(const wchar_t *Name, bool Wipe, int Opt_De
 	return DELETE_SUCCESS;
 }
 
-
-DeletionResult ERemoveDirectory(const wchar_t *Name,bool Wipe)
+DeletionResult ERemoveDirectory(const wchar_t *Name, bool Wipe)
 {
+	bool is_symlink;
+	struct stat s{};
+
 	ProcessedItems++;
 
-	for (;;)
-	{
-		if (Wipe)
-		{
+	for (;;) {
+		is_symlink = sdc_lstat(Wide2MB(Name).c_str(), &s) == 0 && (s.st_mode & S_IFMT) == S_IFLNK;
+		if (Wipe && !is_symlink) { // !!! silently never wipe symlink, may be need message ???
 			if (WipeDirectory(Name))
 				break;
 		} else {
-			struct stat s = {};
-			if (sdc_lstat(Wide2MB(Name).c_str(), &s)==0 && (s.st_mode & S_IFMT)==S_IFLNK )
-			{
-				if (sdc_unlink(Wide2MB(Name).c_str()) == 0) //if (apiDeleteFile(Name))
+			if (is_symlink) {
+				if (sdc_unlink(Wide2MB(Name).c_str()) == 0)		// if (apiDeleteFile(Name))
 					break;
 			}
 			if (apiRemoveDirectory(Name))
@@ -685,26 +687,23 @@ DeletionResult ERemoveDirectory(const wchar_t *Name,bool Wipe)
 
 		int MsgCode;
 
-		if (SkipFoldersMode!=-1)
-			MsgCode=SkipFoldersMode;
-		else
-		{
+		if (SkipFoldersMode != -1)
+			MsgCode = SkipFoldersMode;
+		else {
 			FARString strFullName;
-			ConvertNameToFull(Name,strFullName);
+			ConvertNameToFull(Name, strFullName);
 
-			MsgCode=Message(MSG_WARNING|MSG_ERRORTYPE,4,Msg::Error,
-			                Msg::CannotDeleteFolder,Name,Msg::DeleteRetry,
-			                Msg::DeleteSkip,Msg::DeleteFileSkipAll,Msg::DeleteCancel);
+			MsgCode = Message(MSG_WARNING | MSG_ERRORTYPE, 4, Msg::Error, Msg::CannotDeleteFolder, Name,
+					Msg::DeleteRetry, Msg::DeleteSkip, Msg::DeleteFileSkipAll, Msg::DeleteCancel);
 		}
 
-		switch (MsgCode)
-		{
+		switch (MsgCode) {
 			case -1:
 			case -2:
 			case 3:
 				return DELETE_CANCEL;
 			case 2:
-				SkipFoldersMode=2;
+				SkipFoldersMode = 2;
 				return DELETE_SKIP;
 			case 1:
 				return DELETE_SKIP;
@@ -719,7 +718,9 @@ static DeletionResult RemoveToRecycleBin(const wchar_t *Name)
 	FARString err_file;
 	FarMkTempEx(err_file, L"trash");
 
-	std::string name_arg = Wide2MB(Name);
+	FARString FullName;
+	ConvertNameToFull(Name, FullName);
+	std::string name_arg = FullName.GetMB();
 	std::string err_file_arg = err_file.GetMB();
 
 	unsigned int flags = EF_HIDEOUT;
@@ -751,13 +752,13 @@ static DeletionResult RemoveToRecycleBin(const wchar_t *Name)
 			return DELETE_SUCCESS;
 
 		const int MsgCode = (SkipRecycleMode != -1)
-					? SkipRecycleMode
-					: Message(MSG_WARNING|MSG_ERRORTYPE, 5, Msg::Error,
-						Msg::CannotDeleteFile, Name,
-						Msg::DeleteRetry, Msg::DeleteRetryNotRecycleBin,
-						Msg::DeleteSkip, Msg::DeleteFileSkipAll, Msg::DeleteCancel);
+				? SkipRecycleMode
+				: Message(MSG_WARNING | MSG_ERRORTYPE, 5, Msg::Error, Msg::CannotDeleteFile, Name,
+						Msg::DeleteRetry, Msg::DeleteRetryNotRecycleBin, Msg::DeleteSkip,
+						Msg::DeleteFileSkipAll, Msg::DeleteCancel);
 
 		switch (MsgCode) {
+			case -1:
 			case 4:
 				return DELETE_CANCEL;
 			case 3:
@@ -773,50 +774,51 @@ static DeletionResult RemoveToRecycleBin(const wchar_t *Name)
 static FARString WipingRename(const wchar_t *Name)
 {
 	FARString strTempName = Name;
-	CutToSlash(strTempName, false);
-	for (size_t i = 0, ii = 3 + (rand() % 4);
-			(i < ii || apiPathExists(strTempName)); ++i)
-	{
-		strTempName+= (wchar_t)'a' + (rand() % 26);
+	char tmpName[33]{};
+	for (size_t tmpLen = 4;;) {
+		CutToSlash(strTempName, false);
+		RandomStringBuffer(tmpName, tmpLen, tmpLen, RNDF_ALNUM);
+		strTempName+= tmpName;
+		if (!apiPathExists(strTempName)) {
+			break;
+		}
+		if (tmpLen + 1 < sizeof(tmpName) - 1) {
+			++tmpLen;
+		}
 	}
 
-	if (!apiMoveFile(Name, strTempName))
-	{
-		fprintf(stderr, "%s: error %u renaming '%ls' to '%ls'\n",
-			__FUNCTION__, errno, Name, strTempName.CPtr());
+	if (!apiMoveFile(Name, strTempName)) {
+		fprintf(stderr, "%s: error %u renaming '%ls' to '%ls'\n", __FUNCTION__, errno, Name,
+				strTempName.CPtr());
 		return Name;
 	}
 
-	fprintf(stderr, "%s: renamed '%ls' to '%ls'\n",
-		__FUNCTION__, Name, strTempName.CPtr());
+	fprintf(stderr, "%s: renamed '%ls' to '%ls'\n", __FUNCTION__, Name, strTempName.CPtr());
 
 	return strTempName;
 }
 
 static bool WipeFile(const wchar_t *Name)
 {
-	apiMakeWritable(Name); //apiSetFileAttributes(Name,FILE_ATTRIBUTE_NORMAL);
+	apiMakeWritable(Name);	// apiSetFileAttributes(Name,FILE_ATTRIBUTE_NORMAL);
 	File WipeFile;
 	uint64_t FileSize;
-	if (!WipeFile.Open(Name, GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_FLAG_WRITE_THROUGH|FILE_FLAG_SEQUENTIAL_SCAN)
-	  || !WipeFile.GetSize(FileSize))
-	{
+	if (!WipeFile.Open(Name, GENERIC_WRITE, 0, nullptr, OPEN_EXISTING,
+				FILE_FLAG_WRITE_THROUGH | FILE_FLAG_SEQUENTIAL_SCAN)
+			|| !WipeFile.GetSize(FileSize)) {
 		return false;
 	}
 
-	if (FileSize)
-	{
+	if (FileSize) {
 		std::vector<BYTE> Buf(0x10000, (BYTE)(unsigned int)Opt.WipeSymbol);
 		// fill equal to actual size of file to ensure it will overwrite original sectors
-		for (uint64_t WrittenSize = 0; WrittenSize < FileSize; )
-		{
+		for (uint64_t WrittenSize = 0; WrittenSize < FileSize;) {
 			DWORD WriteSize = (DWORD)Min((uint64_t)Buf.size(), FileSize - WrittenSize);
 			if (!WipeFile.Write(Buf.data(), WriteSize, &WriteSize) || WriteSize == 0)
 				return false;
 
 			WrittenSize+= WriteSize;
-			if (WriteSize < Buf.size())
-			{ // append alignment tail to hide original size
+			if (WriteSize < Buf.size()) {	// append alignment tail to hide original size
 				if (WipeFile.Write(Buf.data(), DWORD(Buf.size() - WriteSize), &WriteSize))
 					WrittenSize+= WriteSize;
 			}
@@ -831,13 +833,11 @@ static bool WipeFile(const wchar_t *Name)
 	return apiDeleteFile(strRemoveName) != FALSE;
 }
 
-
 static bool WipeDirectory(const wchar_t *Name)
 {
 	FARString strTempName, strPath;
 
-	if (FirstSlash(Name))
-	{
+	if (FirstSlash(Name)) {
 		strPath = Name;
 		DeleteEndSlash(strPath);
 		CutToSlash(strPath);
@@ -863,7 +863,7 @@ int DeleteFileWithFolder(const wchar_t *FileName)
 
 	if (Ret)*/
 	{
-		if (apiDeleteFile(strFileOrFolderName)) //BUGBUG
+		if (apiDeleteFile(strFileOrFolderName))		// BUGBUG
 		{
 			return apiRemoveDirectory(strParentFolder);
 		}
@@ -873,7 +873,6 @@ int DeleteFileWithFolder(const wchar_t *FileName)
 	return FALSE;
 }
 
-
 void DeleteDirTree(const wchar_t *Dir)
 {
 	if (!*Dir || (IsSlash(Dir[0]) && !Dir[1]))
@@ -882,24 +881,22 @@ void DeleteDirTree(const wchar_t *Dir)
 	SudoClientRegion scr;
 	FARString strFullName;
 	FAR_FIND_DATA_EX FindData;
-	ScanTree ScTree(TRUE,TRUE,FALSE);
-	ScTree.SetFindPath(Dir,L"*",0);
+	ScanTree ScTree(TRUE, TRUE, FALSE);
+	ScTree.SetFindPath(Dir, L"*", 0);
 
-	while (ScTree.GetNextName(&FindData, strFullName))
-	{
+	while (ScTree.GetNextName(&FindData, strFullName)) {
 		if (FindData.dwFileAttributes & FILE_ATTRIBUTE_READONLY)
 			apiMakeWritable(strFullName);
-//		apiSetFileAttributes(strFullName,FILE_ATTRIBUTE_NORMAL);
+		//		apiSetFileAttributes(strFullName,FILE_ATTRIBUTE_NORMAL);
 
-		if ( (FindData.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) == FILE_ATTRIBUTE_DIRECTORY)
-		{
+		if ((FindData.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT))
+				== FILE_ATTRIBUTE_DIRECTORY) {
 			if (ScTree.IsDirSearchDone())
 				apiRemoveDirectory(strFullName);
-		}
-		else
+		} else
 			apiDeleteFile(strFullName);
 	}
 	apiMakeWritable(Dir);
-//	apiSetFileAttributes(Dir,FILE_ATTRIBUTE_NORMAL);
+	//	apiSetFileAttributes(Dir,FILE_ATTRIBUTE_NORMAL);
 	apiRemoveDirectory(Dir);
 }

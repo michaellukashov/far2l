@@ -265,7 +265,7 @@ void HRCParserImpl::parseHrcBlockElements(const xercesc::DOMElement* elem)
       return;
     }
     if (xercesc::XMLString::equals(elem->getNodeName(), hrcTagAnnotation)) {
-      // not read anotation
+      // not read annotation
       return;
     }
     logger->warn("Unused element '{0}'. Current file {1}.", *XStr(elem->getNodeName()).get_stdstr() , *XStr(current_input_source->getInputSource()->getSystemId()).get_stdstr());
@@ -330,7 +330,7 @@ void HRCParserImpl::parsePrototypeBlock(const xercesc::DOMElement* elem)
         addPrototypeDetectParam(subelem);
         continue;
       }
-      if (xercesc::XMLString::equals(subelem->getNodeName(), hrcTagParametrs)) {
+      if (xercesc::XMLString::equals(subelem->getNodeName(), hrcTagParameters)) {
         addPrototypeParameters(subelem);
         continue;
       }
@@ -460,7 +460,7 @@ void HRCParserImpl::parseTypeBlock(const xercesc::DOMElement* elem)
         continue;
       }
       if (xercesc::XMLString::equals(subelem->getNodeName(), hrcTagAnnotation)) {
-        // not read anotation
+        // not read annotation
         continue;
       }
     }
@@ -590,7 +590,7 @@ void HRCParserImpl::parseSchemeBlock(SchemeImpl* scheme, const xercesc::DOMEleme
         continue;
       }
       if (xercesc::XMLString::equals(subelem->getNodeName(), hrcTagAnnotation)) {
-        // not read anotation
+        // not read annotation
         continue;
       }
     }
@@ -1005,7 +1005,7 @@ String* HRCParserImpl::qualifyOwnName(const String* name)
   size_t colon = name->indexOf(':');
   if (colon != String::npos) {
     if (parseType && CString(name, 0, colon) != *parseType->name) {
-      logger->error("type name qualifer in '{0}' doesn't match type '{1}'", name->getChars(), parseType->name->getChars());
+      logger->error("type name qualifier in '{0}' doesn't match type '{1}'", name->getChars(), parseType->name->getChars());
       return nullptr;
     } else {
       return new SString(name);
@@ -1054,7 +1054,7 @@ String* HRCParserImpl::qualifyForeignName(const String* name, QualifyNameType qn
 
     if (prefType == nullptr) {
       if (logErrors) {
-        logger->error("type name qualifer in '{0}' doesn't match any type", name->getChars());
+        logger->error("type name qualifier in '{0}' doesn't match any type", name->getChars());
       }
       return nullptr;
     } else if (!prefType->type_loaded) {

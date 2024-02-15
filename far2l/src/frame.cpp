@@ -33,13 +33,13 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "headers.hpp"
 
-
 #include "frame.hpp"
 #include "keybar.hpp"
 #include "manager.hpp"
 #include "syslog.hpp"
 
-Frame::Frame():
+Frame::Frame()
+	:
 	FrameToBack(nullptr),
 	NextModal(nullptr),
 	PrevModal(nullptr),
@@ -59,7 +59,7 @@ Frame::~Frame()
 	_OT(SysLog(L"[%p] Frame::~Frame()", this));
 	SetRegularIdle(false);
 	DestroyAllModal();
-//  free(ModalStack);
+	// free(ModalStack);
 }
 
 void Frame::SetRegularIdle(bool enabled)
@@ -76,7 +76,7 @@ void Frame::SetRegularIdle(bool enabled)
 
 void Frame::SetKeyBar(KeyBar *FrameKeyBar)
 {
-	Frame::FrameKeyBar=FrameKeyBar;
+	Frame::FrameKeyBar = FrameKeyBar;
 }
 
 void Frame::UpdateKeyBar()
@@ -92,98 +92,90 @@ int Frame::IsTopFrame()
 
 void Frame::OnChangeFocus(int focus)
 {
-	if (focus)
-	{
+	if (focus) {
 		Show();
-		Frame *iModal=NextModal;
+		Frame *iModal = NextModal;
 
-		while (iModal)
-		{
-			if (iModal->GetType()!=MODALTYPE_COMBOBOX && iModal->IsVisible())
+		while (iModal) {
+			if (iModal->GetType() != MODALTYPE_COMBOBOX && iModal->IsVisible())
 				iModal->Show();
 
-			iModal=iModal->NextModal;
+			iModal = iModal->NextModal;
 		}
-	}
-	else
-	{
+	} else {
 		Hide();
 	}
 }
 
-void Frame::Push(Frame* Modalized)
+void Frame::Push(Frame *Modalized)
 {
-	if (!NextModal)
-	{
-		NextModal=Modalized;
-		NextModal->PrevModal=this;
-	}
-	else
-	{
+	if (!NextModal) {
+		NextModal = Modalized;
+		NextModal->PrevModal = this;
+	} else {
 		NextModal->Push(Modalized);
 	}
 }
 
 /*
 bool Frame::Pop(){
-  if (!NextModal) {
-    return false;
-  }
-  while (NextFrame->Pop()){
-    NextFrame->Pop();
-    return true;
-  }
+	if (!NextModal) {
+		return false;
+	}
+	while (NextFrame->Pop()){
+		NextFrame->Pop();
+		return true;
+	}
 }
 
 Frame *Frame::operator[](int Index)
 {
-  Frame *Result=nullptr;
-  if (Index>=0 && Index<ModalStackSize){
-    Result=ModalStack[Index];
-  }
-  return Result;
+	Frame *Result=nullptr;
+	if (Index>=0 && Index<ModalStackSize){
+		Result=ModalStack[Index];
+	}
+	return Result;
 }
 
 int Frame::operator[](Frame *ModalFrame)
 {
-  int Result=-1;
-  for (int i=0;i<ModalStackSize;i++){
-    if (ModalStack[i]==ModalFrame){
-      Result=i;
-      break;
-    }
-  }
-  return Result;
+	int Result=-1;
+	for (int i=0;i<ModalStackSize;i++){
+		if (ModalStack[i]==ModalFrame){
+			Result=i;
+			break;
+		}
+	}
+	return Result;
 }
 */
 
 void Frame::DestroyAllModal()
 {
 	// найти вершину
-	Frame *Prev=this;
-	Frame *Next=NextModal;
+	Frame *Prev = this;
+	Frame *Next = NextModal;
 
-	while (NextModal)
-	{
-		Prev->NextModal=nullptr;
-		Prev=Next;
-		Next=Next->NextModal;
-//    if (GetDynamicallyBorn())
+	while (NextModal) {
+		Prev->NextModal = nullptr;
+		Prev = Next;
+		Next = Next->NextModal;
+		// if (GetDynamicallyBorn())
 	}
 }
 
 /*
-int Frame::ProcessKey(int Key)
+int Frame::ProcessKey(FarKey Key)
 {
-  if (ModalSize()){
-    return (ModalStack[ModalStackSize-1])->ProcessKey(Key);
-  }
-  return FALSE;
+	if (ModalSize()){
+		return (ModalStack[ModalStackSize-1])->ProcessKey(Key);
+	}
+	return FALSE;
 }
 
 int Frame::ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent)
 {
-  return FALSE;
+	return FALSE;
 }
 */
 
@@ -197,38 +189,31 @@ void Frame::OnDestroy()
 	DestroyAllModal();
 }
 
-
 bool Frame::RemoveModal(Frame *aFrame)
 {
-	if (!aFrame)
-	{
+	if (!aFrame) {
 		return false;
 	}
 
-	Frame *Prev=this;
-	Frame *Next=NextModal;
-	bool fFound=false;
+	Frame *Prev = this;
+	Frame *Next = NextModal;
+	bool fFound = false;
 
-	while (Next)
-	{
-		if (Next==aFrame)
-		{
-			fFound=true;
+	while (Next) {
+		if (Next == aFrame) {
+			fFound = true;
 			break;
 		}
 
-		Prev=Next;
-		Next=Next->NextModal;
+		Prev = Next;
+		Next = Next->NextModal;
 	}
 
-	if (fFound)
-	{
+	if (fFound) {
 		RemoveModal(Next->NextModal);
-		Prev->NextModal=nullptr;
+		Prev->NextModal = nullptr;
 		return true;
-	}
-	else
-	{
+	} else {
 		return false;
 	}
 }
@@ -240,14 +225,13 @@ void Frame::ResizeConsole()
 
 bool Frame::HasSaveScreen()
 {
-	if (this->SaveScr||this->ShadowSaveScr)
-	{
+	if (this->SaveScr || this->ShadowSaveScr) {
 		return true;
 	}
 
 	return false;
 }
 
-//bool Frame::ifFullConsole() {
-//  return !X1 && !Y1 && X2>=ScrX && Y2>=ScrY-1;
-//}
+// bool Frame::ifFullConsole() {
+//	return !X1 && !Y1 && X2>=ScrX && Y2>=ScrY-1;
+// }

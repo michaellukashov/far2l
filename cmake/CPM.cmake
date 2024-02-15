@@ -340,7 +340,7 @@ function(cpm_parse_add_package_single_arg arg outArgs)
     endif()
   endif()
 
-  # For all packages we interpret @... as version. Only replace the last occurence. Thus URIs
+  # For all packages we interpret @... as version. Only replace the last occurrence. Thus URIs
   # containing '@' can be used
   string(REGEX REPLACE "@([^@]+)$" ";VERSION;\\1" out "${out}")
 
@@ -379,7 +379,7 @@ function(cpm_check_git_working_dir_is_clean repoPath gitTag isClean)
     return()
   endif()
 
-  # check for uncommited changes
+  # check for uncommitted changes
   execute_process(
     COMMAND ${GIT_EXECUTABLE} status --porcelain
     RESULT_VARIABLE resultGitStatus
@@ -405,7 +405,7 @@ function(cpm_check_git_working_dir_is_clean repoPath gitTag isClean)
     return()
   endif()
 
-  # check for commited changes
+  # check for committed changes
   execute_process(
     COMMAND ${GIT_EXECUTABLE} diff -s --exit-code ${gitTag}
     RESULT_VARIABLE resultGitDiff
@@ -717,7 +717,7 @@ macro(cpm_export_variables name)
 endmacro()
 
 # declares a package, so that any call to CPMAddPackage for the package name will use these
-# arguments instead. Previous declarations will not be overriden.
+# arguments instead. Previous declarations will not be overridden.
 macro(CPMDeclarePackage Name)
   if(NOT DEFINED "CPM_DECLARATION_${Name}")
     set("CPM_DECLARATION_${Name}" "${ARGN}")

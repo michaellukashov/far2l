@@ -18,15 +18,12 @@ matrix:
             - cmake
             - libwxgtk3.0-dev
             - libxerces-c-dev
-            - libspdlog-dev
             - libuchardet-dev 
             - libssh-dev
             - libsmbclient-dev
             - libnfs-dev
             - libneon27-dev
             - libarchive-dev
-            - gawk
-            - m4
             - ninja-build
       env: CXX=g++-5
       install:
@@ -44,15 +41,12 @@ matrix:
             - cmake
             - libwxgtk3.0-dev
             - libxerces-c-dev
-            - libspdlog-dev
             - libuchardet-dev 
             - libssh-dev
             - libsmbclient-dev
             - libnfs-dev
             - libneon27-dev
             - libarchive-dev
-            - gawk
-            - m4
             - ninja-build
       env: CXX=g++-6
       install:
@@ -71,15 +65,12 @@ matrix:
             - cmake
             - libwxgtk3.0-dev
             - libxerces-c-dev
-            - libspdlog-dev
             - libuchardet-dev 
             - libssh-dev
             - libsmbclient-dev
             - libnfs-dev
             - libneon27-dev
             - libarchive-dev
-            - gawk
-            - m4
             - ninja-build
       env: CXX=clang++-3.6
       install:
@@ -98,15 +89,12 @@ matrix:
             - cmake
             - libwxgtk3.0-dev
             - libxerces-c-dev
-            - libspdlog-dev
             - libuchardet-dev 
             - libssh-dev
             - libsmbclient-dev
             - libnfs-dev
             - libneon27-dev
             - libarchive-dev
-            - gawk
-            - m4
             - libpcre3-dev
             - zlib1g-dev
             - ninja-build

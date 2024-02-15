@@ -25,8 +25,8 @@ public:
   void closeStream();
   int length() const;
 protected:
-  SharedInputSource *getShared() const { return sharedIS; };
-  const String *getInJarLocation() const { return inJarLocation; };
+  SharedInputSource *getShared() const { return sharedIS; }
+  const String *getInJarLocation() const { return inJarLocation; }
   colorer::InputSource *createRelative(const String *relPath);
   JARInputSource(const String *basePath, JARInputSource *base, bool faked);
 private:

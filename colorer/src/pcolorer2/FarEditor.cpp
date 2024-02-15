@@ -606,10 +606,10 @@ int FarEditor::editorEvent(int event, void *param)
 
     // fills back
     if (lno == ei.CurLine && showHorizontalCross){
-      addFARColor(lno, 0, ei.LeftPos + ei.WindowSizeX, horzCrossColor);
+      addFARColor(lno, 0, 0, horzCrossColor); // ei.LeftPos + ei.WindowSizeX
     }
     else{
-      addFARColor(lno, 0, ei.LeftPos + ei.WindowSizeX, convert(nullptr));
+      addFARColor(lno, 0, 0, convert(nullptr)); // ei.LeftPos + ei.WindowSizeX
     }
 
     if (showVerticalCross){
@@ -626,11 +626,11 @@ int FarEditor::editorEvent(int event, void *param)
     bool vertCrossDone = false;
 
     if (drawSyntax){
-			for (; l1; l1 = l1->next){
-				if (l1->special){
-					continue;
-				}
-				if (l1->start == l1->end){
+            for (; l1; l1 = l1->next){
+                if (l1->special){
+                    continue;
+                }
+                if (l1->start == l1->end){
           continue;
         }
         if (l1->start > ei.LeftPos+ei.WindowSizeX){
@@ -667,7 +667,7 @@ int FarEditor::editorEvent(int event, void *param)
           int lend = l1->end;
 
           if (lend == -1){
-            lend = fullBackground ? ei.LeftPos+ei.WindowSizeX : llen;
+            lend = fullBackground ? 0 : llen; // ei.LeftPos+ei.WindowSizeX
           }
 
           addFARColor(lno, l1->start, lend, col);
@@ -1310,28 +1310,28 @@ void FarEditor::addFARColor(int lno, int s, int e, color col)
     ec.Base.StringNumber = lno;
     ec.Base.StartPos = s;
     ec.Base.EndPos = e-1;
-	if (col.fg || col.bk) {
-      ec.TrueFore.R = ((col.fg >> 16) & 0xFF);
-      ec.TrueFore.G = ((col.fg >> 8) & 0xFF);
-      ec.TrueFore.B = ((col.fg) & 0xFF);
-      ec.TrueFore.Flags = 1;
-      ec.TrueBack.R = ((col.bk >> 16) & 0xFF);
-      ec.TrueBack.G = ((col.bk >> 8) & 0xFF);
-      ec.TrueBack.B = ((col.bk) & 0xFF);
-      ec.TrueBack.Flags = 1;
+    if (col.fg || col.bk) {
+      ec.TrueColor.Fore.R = ((col.fg >> 16) & 0xFF);
+      ec.TrueColor.Fore.G = ((col.fg >> 8) & 0xFF);
+      ec.TrueColor.Fore.B = ((col.fg) & 0xFF);
+      ec.TrueColor.Fore.Flags = 1;
+      ec.TrueColor.Back.R = ((col.bk >> 16) & 0xFF);
+      ec.TrueColor.Back.G = ((col.bk >> 8) & 0xFF);
+      ec.TrueColor.Back.B = ((col.bk) & 0xFF);
+      ec.TrueColor.Back.Flags = 1;
 
-      if (ec.TrueFore.R > 0x10) ec.Base.Color|= FOREGROUND_RED;
-      if (ec.TrueFore.G > 0x10) ec.Base.Color|= FOREGROUND_GREEN;
-      if (ec.TrueFore.B > 0x10) ec.Base.Color|= FOREGROUND_BLUE;
+      if (ec.TrueColor.Fore.R > 0x10) ec.Base.Color|= FOREGROUND_RED;
+      if (ec.TrueColor.Fore.G > 0x10) ec.Base.Color|= FOREGROUND_GREEN;
+      if (ec.TrueColor.Fore.B > 0x10) ec.Base.Color|= FOREGROUND_BLUE;
 
-      if (ec.TrueBack.R > 0x10) ec.Base.Color|= BACKGROUND_RED;
-      if (ec.TrueBack.G > 0x10) ec.Base.Color|= BACKGROUND_GREEN;
-      if (ec.TrueBack.B > 0x10) ec.Base.Color|= BACKGROUND_BLUE;
+      if (ec.TrueColor.Back.R > 0x10) ec.Base.Color|= BACKGROUND_RED;
+      if (ec.TrueColor.Back.G > 0x10) ec.Base.Color|= BACKGROUND_GREEN;
+      if (ec.TrueColor.Back.B > 0x10) ec.Base.Color|= BACKGROUND_BLUE;
 
-      if (ec.TrueFore.R > 0x80 || ec.TrueFore.G > 0x80 || ec.TrueFore.B > 0x80) {
+      if (ec.TrueColor.Fore.R > 0x80 || ec.TrueColor.Fore.G > 0x80 || ec.TrueColor.Fore.B > 0x80) {
         ec.Base.Color = FOREGROUND_INTENSITY;
       }
-      if (ec.Base.Color == 0 || ec.TrueBack.R > 0x80 || ec.TrueBack.G > 0x80 || ec.TrueBack.B > 0x80) {
+      if (ec.Base.Color == 0 || ec.TrueColor.Back.R > 0x80 || ec.TrueColor.Back.G > 0x80 || ec.TrueColor.Back.B > 0x80) {
         ec.Base.Color = BACKGROUND_INTENSITY;
       }
       if (col.style & AI_STYLE_UNDERLINE) {
@@ -1340,7 +1340,7 @@ void FarEditor::addFARColor(int lno, int s, int e, color col)
       if (col.style & AI_STYLE_STRIKEOUT) {
         ec.Base.Color|= COMMON_LVB_STRIKEOUT;
       }
-	}
+    }
 
 #if 0
     CLR_TRACE("FarEditor", "line:%d, %d-%d, color:%x", lno, s, e, col);
@@ -1375,7 +1375,7 @@ void FarEditor::addAnnotation(int lno, int s, int e, AnnotationInfo &ai)
   ea.EndPos = e-1;
   memcpy(ea.annotation_raw, ai.raw, sizeof(ai.raw));
   info->EditorControl(ECTL_ADDANNOTATION, &ea);*/
-} 	
+}
 
 const wchar_t *FarEditor::GetMsg(int msg)
 {
@@ -1388,7 +1388,7 @@ void FarEditor::cleanEditor()
   col.concolor = (int)info->AdvControl(info->ModuleNumber,ACTL_GETCOLOR,(void *)COL_EDITORTEXT);
   enterHandler();
   for (int i=0; i<ei.TotalLines; i++){
-    EditorGetString egs;
+/*    EditorGetString egs;
     egs.StringNumber=i;
     info->EditorControl(ECTL_GETSTRING,&egs);
 
@@ -1398,41 +1398,21 @@ void FarEditor::cleanEditor()
     else{
       addFARColor(i,0,egs.StringLength,col);
     }
+*/
+    addFARColor(i,0,0,col);
   }
 }
 
 /* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Colorer Library.
- *
- * The Initial Developer of the Original Code is
- * Cail Lomecb <cail@nm.ru>.
- * Portions created by the Initial Developer are Copyright (C) 1999-2005
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
+ * Copyright (C) 1999-2009 Cail Lomecb <irusskih at gmail dot com>.
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with this program; If not, see <http://www.gnu.org/licenses/>.
  * ***** END LICENSE BLOCK ***** */

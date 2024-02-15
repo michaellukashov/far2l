@@ -21,6 +21,7 @@
 #include "Op/OpEnumDirectory.h"
 #include "Op/OpExecute.h"
 #include "Op/OpChangeMode.h"
+#include "Op/OpGetLinkTarget.h"
 
 static std::unique_ptr<ConnectionsPool> g_conn_pool;
 
@@ -284,7 +285,8 @@ int PluginImpl::SetDirectory(const wchar_t *Dir, int OpMode)
 		GetItems gi(false);
 		for (const auto &item : gi) {
 			if ( (item.FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0
-			  && site_w == item.FindData.lpwszFileName) {
+				&& site_w == item.FindData.lpwszFileName)
+			{
 				ri.CurrentItem = ri.TopPanelItem = &item - &gi[0];
 				break;
 			}
@@ -413,6 +415,14 @@ void PluginImpl::GetOpenPluginInfo(struct OpenPluginInfo *Info)
 //	snprintf(_panel_title, ARRAYSIZE(_panel_title),
 //	          " Inside: %ls@%s ", _dir.c_str(), _name.c_str());
 	Info->Flags = OPIF_SHOWPRESERVECASE | OPIF_USEHIGHLIGHTING;
+	if (_remote) {
+		IHost::Identity identity;
+		_remote->GetIdentity(identity);
+		const auto *pi = ProtocolInfoLookup(identity.protocol.c_str());
+		if (pi && pi->inaccurate_timestamps) {
+			Info->Flags|= OPIF_COMPAREFATTIME;
+		}
+	}
 	Info->HostFile = _standalone_config.empty() ? NULL : _standalone_config.c_str();
 	Info->CurDir = _cur_dir;
 	Info->Format = _format;
@@ -543,6 +553,19 @@ int PluginImpl::PutFiles(struct PluginPanelItem *PanelItem, int ItemsNumber, int
 		default:
 			return FALSE;
 	}
+}
+
+int PluginImpl::GetLinkTarget(struct PluginPanelItem *PanelItem, wchar_t *Target, size_t TargetSize, int OpMode)
+{
+	if (!_remote || !PanelItem) {
+		return 0;
+    }
+   	std::wstring result;
+	if (!OpGetLinkTarget(OpMode, _remote, CurrentSiteDir(true), PanelItem).Do(result)) {
+		return 0;
+	}
+	wcsncpy(Target, result.c_str(), TargetSize);
+	return result.size() + 1;
 }
 
 int PluginImpl::DeleteFiles(struct PluginPanelItem *PanelItem, int ItemsNumber, int OpMode)
@@ -738,7 +761,8 @@ bool PluginImpl::ByKey_TryCrossload(bool mv)
 			}
 
 			for (const auto &item : gi) if ( (item.FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0
-			  && wcscmp(item.FindData.lpwszFileName, L"..") != 0) {
+				&& wcscmp(item.FindData.lpwszFileName, L"..") != 0)
+			{
 				_sites_cfg_location.Transfer(sites_cfg_location, Wide2MB(item.FindData.lpwszFileName), mv);
 
 			} else if ( (item.FindData.dwFileAttributes & FILE_ATTRIBUTE_EXECUTABLE) != 0) {
@@ -787,7 +811,7 @@ bool PluginImpl::ByKey_TryEnterSelectedSite()
 	}
 
 	if ( (gfi->FindData.dwFileAttributes & FILE_ATTRIBUTE_EXECUTABLE) == 0) {
-         //&& wcscmp(gfi->FindData.lpwszFileName, G.GetMsgWide(MCreateSiteConnection)) == 0) {
+		//&& wcscmp(gfi->FindData.lpwszFileName, G.GetMsgWide(MCreateSiteConnection)) == 0) {
 		ByKey_EditSiteConnection(true);
 		return true;
 	}
@@ -939,8 +963,9 @@ void PluginImpl::DismissRemoteHost()
 	g_conn_pool->Put(CurrentConnectionPoolId(), _remote);
 
 	if (_allow_remember_location_dir &&
-	  _location.server_kind == Location::SK_SITE
-	  && G.GetGlobalConfigBool("RememberDirectory", false) ) {
+		_location.server_kind == Location::SK_SITE
+		&& G.GetGlobalConfigBool("RememberDirectory", false))
+	{
 		SiteSpecification site_specification(StrWide2MB(_standalone_config), _location.server);
 		SitesConfig sc(site_specification.sites_cfg_location);
 		sc.SetDirectory(site_specification.site.c_str(), _location.ToString(false).c_str());

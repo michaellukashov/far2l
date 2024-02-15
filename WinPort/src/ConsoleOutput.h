@@ -8,6 +8,7 @@
 
 class ConsoleOutput : public IConsoleOutput
 {
+	HANDLE _con_handle{NULL};
 	std::mutex _mutex;
 	ConsoleBuffer _buf;
 	std::vector<CHAR_INFO> _temp_chars;
@@ -16,6 +17,12 @@ class ConsoleOutput : public IConsoleOutput
 	DWORD _mode;	
 	DWORD64 _attributes;
 	COORD _prev_pos{-1, -1};
+	unsigned short _repaint_defer{0}; // unlikely it will be more than 10..
+	struct DeferredRepaints : std::vector<SMALL_RECT>
+	{
+		void Add(const SMALL_RECT &area);
+		void Add(const SMALL_RECT *areas, size_t cnt);
+	} _deferred_repaints;
 	
 	struct {
 		COORD pos;
@@ -56,6 +63,7 @@ class ConsoleOutput : public IConsoleOutput
 	virtual CHAR_INFO *LockedDirectLineAccess(size_t line_index, unsigned int &width);
 	virtual void Unlock();
 	void SetUpdateCellArea(SMALL_RECT &area, COORD pos);
+	void CopyFrom(const ConsoleOutput &co);
 
 public:
 	ConsoleOutput();
@@ -106,4 +114,10 @@ public:
 	virtual bool ConsoleBackgroundMode(bool TryEnterBackgroundMode);
 	virtual bool SetFKeyTitles(const CHAR **titles);
 	virtual BYTE GetColorPalette();
+	virtual void OverrideColor(DWORD Index, DWORD *ColorFG, DWORD *ColorBK);
+	virtual void RepaintsDeferStart();
+	virtual void RepaintsDeferFinish();
+
+	virtual IConsoleOutput *ForkConsoleOutput(HANDLE con_handle);
+	virtual void JoinConsoleOutput(IConsoleOutput *con_out);
 };

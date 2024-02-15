@@ -12,7 +12,7 @@ using namespace xercesc;
   <hrd-sets>
     <hrd class="" name="" description="">
       <location link=""/>
-    </hrd>   
+    </hrd>
   </hrd-sets>
 </catalog>
 */
@@ -75,10 +75,10 @@ const XMLCh hrcPrototypeAttrGroup[] = {chLatin_g, chLatin_r, chLatin_o, chLatin_
 const XMLCh hrcTagLocation[] = {chLatin_l, chLatin_o, chLatin_c, chLatin_a, chLatin_t, chLatin_i, chLatin_o, chLatin_n, chNull};
 const XMLCh hrcLocationAttrLink[] = {chLatin_l, chLatin_i, chLatin_n, chLatin_k, chNull};
 const XMLCh hrcTagFilename[] = {chLatin_f, chLatin_i, chLatin_l, chLatin_e, chLatin_n, chLatin_a, chLatin_m, chLatin_e, chNull};
-const XMLCh hrcFilenameAttrWeight[] = {chLatin_w, chLatin_e, chLatin_i, chLatin_g, chLatin_h, chLatin_t, chNull}; 
+const XMLCh hrcFilenameAttrWeight[] = {chLatin_w, chLatin_e, chLatin_i, chLatin_g, chLatin_h, chLatin_t, chNull};
 const XMLCh hrcTagFirstline[] = {chLatin_f, chLatin_i, chLatin_r, chLatin_s, chLatin_t, chLatin_l, chLatin_i, chLatin_n, chLatin_e, chNull};
-const XMLCh hrcFirstlineAttrWeight[] = {chLatin_w, chLatin_e, chLatin_i, chLatin_g, chLatin_h, chLatin_t, chNull}; 
-const XMLCh hrcTagParametrs[] = {chLatin_p, chLatin_a, chLatin_r, chLatin_a, chLatin_m, chLatin_e, chLatin_t, chLatin_e, chLatin_r, chLatin_s, chNull};
+const XMLCh hrcFirstlineAttrWeight[] = {chLatin_w, chLatin_e, chLatin_i, chLatin_g, chLatin_h, chLatin_t, chNull};
+const XMLCh hrcTagParameters[] = {chLatin_p, chLatin_a, chLatin_r, chLatin_a, chLatin_m, chLatin_e, chLatin_t, chLatin_e, chLatin_r, chLatin_s, chNull};
 const XMLCh hrcTagParam[] = {chLatin_p, chLatin_a, chLatin_r, chLatin_a, chLatin_m, chNull};
 const XMLCh hrcParamAttrName[] = {chLatin_n, chLatin_a, chLatin_m, chLatin_e, chNull};
 const XMLCh hrcParamAttrValue[] = {chLatin_v, chLatin_a, chLatin_l, chLatin_u, chLatin_e, chNull};
@@ -91,7 +91,7 @@ const XMLCh hrcTagType[] = {chLatin_t, chLatin_y, chLatin_p, chLatin_e, chNull};
 const XMLCh hrcTypeAttrName[] = {chLatin_n, chLatin_a, chLatin_m, chLatin_e, chNull};
 const XMLCh hrcTagImport[] = {chLatin_i, chLatin_m, chLatin_p, chLatin_o, chLatin_r, chLatin_t, chNull};
 const XMLCh hrcImportAttrType[] = {chLatin_t, chLatin_y, chLatin_p, chLatin_e, chNull};
-const XMLCh hrcTagRegion[] = {chLatin_r, chLatin_e, chLatin_g, chLatin_i, chLatin_o, chLatin_n, chNull}; 
+const XMLCh hrcTagRegion[] = {chLatin_r, chLatin_e, chLatin_g, chLatin_i, chLatin_o, chLatin_n, chNull};
 const XMLCh hrcRegionAttrName[] = {chLatin_n, chLatin_a, chLatin_m, chLatin_e, chNull};
 const XMLCh hrcRegionAttrParent[] = {chLatin_p, chLatin_a, chLatin_r, chLatin_e, chLatin_n, chLatin_t, chNull};
 const XMLCh hrcRegionAttrDescription[] = {chLatin_d, chLatin_e, chLatin_s, chLatin_c, chLatin_r, chLatin_i, chLatin_p, chLatin_t, chLatin_i, chLatin_o, chLatin_n, chNull};

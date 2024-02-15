@@ -8,12 +8,12 @@
 ///   Something changed in code below.
 ///   "WinCompat.h" changed in a way affecting code below.
 ///   Behavior of backend's code changed in incompatible way.
-#define FAR2L_BACKEND_ABI_VERSION	0x03
+#define FAR2L_BACKEND_ABI_VERSION	0x07
 
 class IConsoleOutputBackend
 {
 protected:
-	virtual ~IConsoleOutputBackend() {};
+	virtual ~IConsoleOutputBackend() {}
 
 public:
 	virtual void OnConsoleOutputUpdated(const SMALL_RECT *areas, size_t count) = 0;
@@ -32,13 +32,14 @@ public:
 	virtual bool OnConsoleBackgroundMode(bool TryEnterBackgroundMode) = 0;
 	virtual bool OnConsoleSetFKeyTitles(const char **titles) = 0;
 	virtual BYTE OnConsoleGetColorPalette() = 0;
+	virtual void OnConsoleOverrideColor(DWORD Index, DWORD *ColorFG, DWORD *ColorBK) = 0;
 };
 
 class IClipboardBackend
 {
 protected:
 	friend class ClipboardBackendSetter;
-	virtual ~IClipboardBackend() {};
+	virtual ~IClipboardBackend() {}
 
 public:
 	virtual bool OnClipboardOpen() = 0;
@@ -90,15 +91,19 @@ public:
 class IConsoleInput
 {
 protected:
-	virtual ~IConsoleInput() {};
+	virtual ~IConsoleInput() {}
 
 public:
+	virtual IConsoleInput *ForkConsoleInput(HANDLE con_handle) = 0;
+	virtual void JoinConsoleInput(IConsoleInput *con_in) = 0;
+
 	virtual void Enqueue(const INPUT_RECORD *data, DWORD size) = 0;
 	virtual DWORD Peek(INPUT_RECORD *data, DWORD size, unsigned int requestor_priority = 0) = 0;
 	virtual DWORD Dequeue(INPUT_RECORD *data, DWORD size, unsigned int requestor_priority = 0) = 0;
 	virtual DWORD Count(unsigned int requestor_priority = 0) = 0;
 	virtual DWORD Flush(unsigned int requestor_priority = 0) = 0;
-	virtual bool WaitForNonEmpty(unsigned int timeout_msec = (unsigned int)-1, unsigned int requestor_priority = 0) = 0;
+	virtual void WaitForNonEmpty(unsigned int requestor_priority = 0) = 0;
+	virtual bool WaitForNonEmptyWithTimeout(unsigned int timeout_msec = (unsigned int)-1, unsigned int requestor_priority = 0) = 0;
 
 	virtual unsigned int RaiseRequestorPriority() = 0;
 	virtual void LowerRequestorPriority(unsigned int released_priority) = 0;
@@ -130,7 +135,7 @@ class ConsoleInputPriority
 class IConsoleOutput
 {
 protected:
-	virtual ~IConsoleOutput() {};
+	virtual ~IConsoleOutput() {}
 
 	friend class DirectLineAccess;
 
@@ -139,6 +144,9 @@ protected:
 	virtual void Unlock() = 0;
 
 public:
+	virtual IConsoleOutput *ForkConsoleOutput(HANDLE con_handle) = 0;
+	virtual void JoinConsoleOutput(IConsoleOutput *con_out) = 0;
+
 	virtual void SetBackend(IConsoleOutputBackend *listener) = 0;
 
 	virtual void SetAttributes(DWORD64 attributes) = 0;
@@ -186,6 +194,9 @@ public:
 	virtual bool ConsoleBackgroundMode(bool TryEnterBackgroundMode) = 0;
 	virtual bool SetFKeyTitles(const CHAR **titles) = 0;
 	virtual BYTE GetColorPalette() = 0;
+	virtual void OverrideColor(DWORD Index, DWORD *ColorFG, DWORD *ColorBK) = 0;
+	virtual void RepaintsDeferStart() = 0;
+	virtual void RepaintsDeferFinish() = 0;
 
 	inline std::wstring GetTitle()
 	{
@@ -234,5 +245,7 @@ struct WinPortMainBackendArg
 	int *result;
 	IConsoleOutput *winport_con_out;
 	IConsoleInput *winport_con_in;
+	bool ext_clipboard;
+	bool norgb;
 };
 

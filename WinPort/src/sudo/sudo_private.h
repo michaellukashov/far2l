@@ -38,6 +38,8 @@ namespace Sudo
 		SUDO_CMD_FSFLAGSGET,
 		SUDO_CMD_FSFLAGSSET,
 		SUDO_CMD_FCHMOD,
+		SUDO_CMD_MKFIFO,
+		SUDO_CMD_MKNOD
 	};
 
 	class BaseTransaction
@@ -56,7 +58,7 @@ namespace Sudo
 
 		void RecvBuf(void *buf, size_t len);
 		void RecvStr(std::string &str);
-		template <class POD>  void RecvPOD(POD &v) { RecvBuf(&v, sizeof(v)); }
+		template <class POD> void RecvPOD(POD &v) { RecvBuf(&v, sizeof(v)); }
 		int RecvInt();
 		inline int RecvFD() { return _sock.RecvFD(); }
 		inline void RecvErrno() { errno = RecvInt(); }
@@ -91,12 +93,12 @@ namespace Sudo
 		const char * &_path;
 	public:
 		ClientReconstructCurDir(const ClientReconstructCurDir&) = delete;
+		ClientReconstructCurDir(const ClientReconstructCurDir&) = delete;
 		ClientReconstructCurDir& operator=(const ClientReconstructCurDir&) = delete;
-		explicit ClientReconstructCurDir(const char * &path);
 		~ClientReconstructCurDir();
 	};
 
-#if !defined(__APPLE__) && !defined(__FreeBSD__)
+#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__DragonFly__)
 	int bugaware_ioctl_pint(int fd, unsigned long req, unsigned long *v);
 #endif
 

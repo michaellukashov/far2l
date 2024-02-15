@@ -41,8 +41,8 @@ class Archive:public File
     size_t ReadHeader14();
     size_t ReadHeader15();
     size_t ReadHeader50();
-    void ProcessExtra50(RawRead *Raw,size_t ExtraSize,BaseBlock *bb);
-    void RequestArcPassword();
+    void ProcessExtra50(RawRead *Raw,size_t ExtraSize,const BaseBlock *bb);
+    void RequestArcPassword(RarCheckPassword *SelPwd);
     void UnexpEndArcMsg();
     void BrokenHeaderMsg();
     void UnkEncVerMsg(const wchar *Name,const wchar *Info);
@@ -54,7 +54,7 @@ class Archive:public File
 #endif
     ComprDataIO SubDataIO;
     bool DummyCmd;
-    RAROptions *Cmd;
+    CommandData *Cmd;
 
 
     RarTime LatestTime;
@@ -67,7 +67,7 @@ class Archive:public File
     bool ProhibitQOpen;
 #endif
   public:
-    Archive(RAROptions *InitCmd=NULL);
+    Archive(CommandData *InitCmd=NULL);
     ~Archive();
     static RARFORMAT IsSignature(const byte *D,size_t Size);
     bool IsArchive(bool EnableBroken);
@@ -92,7 +92,7 @@ class Archive:public File
          const wchar *Name,uint Flags);
     bool ReadSubData(Array<byte> *UnpData,File *DestFile,bool TestMode);
     HEADER_TYPE GetHeaderType() {return CurHeaderType;}
-    RAROptions* GetRAROptions() {return Cmd;}
+    CommandData* GetCommandData() {return Cmd;}
     void SetSilentOpen(bool Mode) {SilentOpen=Mode;}
 #if 0
     void GetRecoveryInfo(bool Required,int64 *Size,int *Percent);

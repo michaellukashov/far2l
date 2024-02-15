@@ -12,7 +12,7 @@ WinPortPalette g_winport_palette __attribute__ ((visibility("default")));
 
 static void InitDefaultPalette()
 {
-	for ( unsigned int i = 0; i < 16; ++i) {
+	for ( unsigned int i = 0; i < BASE_PALETTE_SIZE; ++i) {
 
 		switch (i) {
 			case FOREGROUND_INTENSITY: {
@@ -25,6 +25,19 @@ static void InitDefaultPalette()
 				g_winport_palette.foreground[i].r =
 					g_winport_palette.foreground[i].g =
 						g_winport_palette.foreground[i].b = 0xc0;
+			} break;
+
+			// tweaked blue to make it more readable on dark background
+			case FOREGROUND_BLUE: {
+				g_winport_palette.foreground[i].r = 0;
+				g_winport_palette.foreground[i].g = 0x28;
+				g_winport_palette.foreground[i].b = 0xa0;
+			} break;
+
+			case (FOREGROUND_BLUE|FOREGROUND_INTENSITY): {
+				g_winport_palette.foreground[i].r = 0;
+				g_winport_palette.foreground[i].g = 0x55;
+				g_winport_palette.foreground[i].b = 0xff;
 			} break;
 
 			default: {
@@ -78,7 +91,7 @@ static bool LoadPalette(KeyFileHelper &kfh)
 {
 	char name[16];
 	bool out = true;
-	for (unsigned int i = 0; i < 16; ++i) {
+	for (unsigned int i = 0; i < BASE_PALETTE_SIZE; ++i) {
 		snprintf(name, sizeof(name), "%d", i);
 
 		if (!LoadPaletteEntry(kfh, "foreground", name, g_winport_palette.foreground[i])
@@ -92,7 +105,7 @@ static bool LoadPalette(KeyFileHelper &kfh)
 static void SavePalette(KeyFileHelper &kfh)
 {
 	char name[16], value[16];
-	for (int i=0; i<16; i++) {
+	for (int i = 0; i < BASE_PALETTE_SIZE; ++i) {
 		snprintf(name, sizeof(name), "%d", i);
 
 		snprintf(value, sizeof(value), "#%02X%02X%02X",
@@ -102,7 +115,7 @@ static void SavePalette(KeyFileHelper &kfh)
 		snprintf(value, sizeof(value), "#%02X%02X%02X",
 			g_winport_palette.background[i].r, g_winport_palette.background[i].g, g_winport_palette.background[i].b);
 		kfh.SetString("background", name, value);
-    }
+	}
 }
 
 void InitPalette()

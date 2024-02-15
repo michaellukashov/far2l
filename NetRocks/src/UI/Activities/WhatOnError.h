@@ -1,4 +1,5 @@
 #pragma once
+#include <icecream.hpp>
 #include <string>
 #include <map>
 #include <mutex>
@@ -31,7 +32,7 @@ class WhatOnErrorState
 	WhatOnErrorAction Query(ProgressState &progress_state, WhatOnErrorKind wek, const std::string &error, const std::string &object, const std::string &site, bool may_recovery = false);
 	void ResetAutoRetryDelay();
 
-	bool IsShowingUIRightNow() const { return _showing_ui != 0; };
+	bool IsShowingUIRightNow() const { return _showing_ui != 0; }
 
 	bool HasAnyAutoAction() const;
 	void ResetAutoActions();
@@ -44,6 +45,7 @@ template <WhatOnErrorKind WEK, class FN, class FN_ON_RETRY = void(*)(bool &)>
 	static void WhatOnErrorWrap(std::shared_ptr<WhatOnErrorState> &wea_state,
 		ProgressState &progress_state, IHost *indicted, const std::string &object, FN fn, FN_ON_RETRY fn_on_retry = WhatOnErrorWrap_DummyOnRetry, bool may_recovery = false)
 {
+	icecream::ic.output(std::cerr);
 	for (;;) try {
 		fn();
 		wea_state->ResetAutoRetryDelay();

@@ -33,7 +33,6 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "headers.hpp"
 
-
 #include "mix.hpp"
 #include "CFileMask.hpp"
 #include "scantree.hpp"
@@ -42,71 +41,68 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "dirmix.hpp"
 #include "InterThreadCall.hpp"
 
-int ToPercent(uint32_t N1,uint32_t N2)
+int ToPercent(uint32_t N1, uint32_t N2)
 {
-	if (N1 > 10000)
-	{
-		N1/=100;
-		N2/=100;
+	if (N1 > 10000) {
+		N1/= 100;
+		N2/= 100;
 	}
 
 	if (!N2)
 		return 0;
 
-	if (N2<N1)
-		return(100);
+	if (N2 < N1)
+		return (100);
 
-	return((int)(N1*100/N2));
+	return ((int)(N1 * 100 / N2));
 }
 
 int ToPercent64(uint64_t N1, uint64_t N2)
 {
-	if (N1 > 10000)
-	{
-		N1/=100;
-		N2/=100;
+	if (N1 > 10000) {
+		N1/= 100;
+		N2/= 100;
 	}
 
 	if (!N2)
 		return 0;
 
-	if (N2<N1)
+	if (N2 < N1)
 		return 100;
 
-	return static_cast<int>(N1*100/N2);
+	return static_cast<int>(N1 * 100 / N2);
 }
 
-/* $ 30.07.2001 IS
-     1. Проверяем правильность параметров.
-     2. Теперь обработка каталогов не зависит от маски файлов
-     3. Маска может быть стандартного фаровского вида (со скобками,
-        перечислением и пр.). Может быть несколько масок файлов, разделенных
-        запятыми или точкой с запятой, можно указывать маски исключения,
-        можно заключать маски в кавычки. Короче, все как и должно быть :-)
+/*
+	$ 30.07.2001 IS
+	1. Проверяем правильность параметров.
+	2. Теперь обработка каталогов не зависит от маски файлов
+	3. Маска может быть стандартного фаровского вида (со скобками,
+	перечислением и пр.). Может быть несколько масок файлов, разделенных
+	запятыми или точкой с запятой, можно указывать маски исключения,
+	можно заключать маски в кавычки. Короче, все как и должно быть :-)
 */
-void WINAPI FarRecursiveSearch(const wchar_t *InitDir,const wchar_t *Mask,FRSUSERFUNC Func,DWORD Flags,void *Param)
+void WINAPI
+FarRecursiveSearch(const wchar_t *InitDir, const wchar_t *Mask, FRSUSERFUNC Func, DWORD Flags, void *Param)
 {
-	if (Func && InitDir && *InitDir && Mask && *Mask)
-	{
+	if (Func && InitDir && *InitDir && Mask && *Mask) {
 		CFileMask FMask;
 
-		if (!FMask.Set(Mask, FMF_SILENT)) return;
+		if (!FMask.Set(Mask, FMF_SILENT))
+			return;
 
-		Flags=Flags&0x000000FF; // только младший байт!
-		ScanTree ScTree(Flags & FRS_RETUPDIR,Flags & FRS_RECUR, Flags & FRS_SCANSYMLINK);
+		Flags = Flags & 0x000000FF;		// только младший байт!
+		ScanTree ScTree(Flags & FRS_RETUPDIR, Flags & FRS_RECUR, Flags & FRS_SCANSYMLINK);
 		FAR_FIND_DATA_EX FindData;
 		FARString strFullName;
-		ScTree.SetFindPath(InitDir,L"*");
+		ScTree.SetFindPath(InitDir, L"*");
 
-		while (ScTree.GetNextName(&FindData,strFullName))
-		{
-			if (FMask.Compare(FindData.strFileName))
-			{
+		while (ScTree.GetNextName(&FindData, strFullName)) {
+			if (FMask.Compare(FindData.strFileName)) {
 				FAR_FIND_DATA fdata;
 				apiFindDataExToData(&FindData, &fdata);
 
-				if (!Func(&fdata,strFullName,Param))
-				{
+				if (!Func(&fdata, strFullName, Param)) {
 					apiFreeFindData(&fdata);
 					break;
 				}
@@ -117,59 +113,56 @@ void WINAPI FarRecursiveSearch(const wchar_t *InitDir,const wchar_t *Mask,FRSUSE
 	}
 }
 
-/* $ 14.09.2000 SVS
- + Функция FarMkTemp - получение имени временного файла с полным путем.
-    Dest - приемник результата
-    Template - шаблон по правилам функции mktemp, например "FarTmpXXXXXX"
-    Вернет требуемый размер приемника.
+/*
+	$ 14.09.2000 SVS
+	+ Функция FarMkTemp - получение имени временного файла с полным путем.
+	Dest - приемник результата
+	Template - шаблон по правилам функции mktemp, например "FarTmpXXXXXX"
+	Вернет требуемый размер приемника.
 */
 int WINAPI FarMkTemp(wchar_t *Dest, DWORD size, const wchar_t *Prefix)
 {
 	FARString strDest;
-	if (FarMkTempEx(strDest, Prefix, TRUE) && Dest && size)
-	{
+	if (FarMkTempEx(strDest, Prefix, TRUE) && Dest && size) {
 		far_wcsncpy(Dest, strDest, size);
 	}
-	return static_cast<int>(strDest.GetLength()+1);
+	return static_cast<int>(strDest.GetLength() + 1);
 }
 
-/*
-             v - точка
-   prefXXX X X XXX
-       \ / ^   ^^^\ PID + TID
-        |  \------/
-        |
-        +---------- [0A-Z]
-*/
-FARString& FarMkTempEx(FARString &strDest, const wchar_t *Prefix, BOOL WithTempPath, const wchar_t *UserTempPath)
+//             v - точка
+//   prefXXX X X XXX
+//       \ / ^   ^^^\ PID + TID
+//        |  \------/
+//        |
+//        +---------- [0A-Z]
+
+FARString &
+FarMkTempEx(FARString &strDest, const wchar_t *Prefix, BOOL WithTempPath, const wchar_t *UserTempPath)
 {
 	if (!(Prefix && *Prefix))
-		Prefix=L"FTMP";
+		Prefix = L"FTMP";
 	FARString strPath = L".";
 
-	if (WithTempPath)
-	{
+	if (WithTempPath) {
 		apiGetTempPath(strPath);
-	}
-	else if(UserTempPath)
-	{
-		strPath=UserTempPath;
+	} else if (UserTempPath) {
+		strPath = UserTempPath;
 	}
 
 	AddEndSlash(strPath);
 
-	wchar_t *lpwszDest = strDest.GetBuffer(StrLength(Prefix)+strPath.GetLength()+13);
+	wchar_t *lpwszDest = strDest.GetBuffer(StrLength(Prefix) + strPath.GetLength() + 13);
 	UINT uniq = WINPORT(GetCurrentProcessId)(), savePid = uniq;
 
-	for (;;)
-	{
-		if (!uniq) ++uniq;
+	for (;;) {
+		if (!uniq)
+			++uniq;
 
 		if (WINPORT(GetTempFileName)(strPath, Prefix, uniq, lpwszDest)
-		        && apiGetFileAttributes(lpwszDest) == INVALID_FILE_ATTRIBUTES) break;
+				&& apiGetFileAttributes(lpwszDest) == INVALID_FILE_ATTRIBUTES)
+			break;
 
-		if (++uniq == savePid)
-		{
+		if (++uniq == savePid) {
 			*lpwszDest = 0;
 			break;
 		}

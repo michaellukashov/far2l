@@ -4,6 +4,18 @@
 #include <map>
 #include <WinCompat.h>
 #include <StackSerializer.h>
+#include "../WinPortRGB.h"
+
+extern long _iterm2_cmd_ts;
+extern bool _iterm2_cmd_state;
+
+struct TTYBasePalette
+{
+	TTYBasePalette();
+
+	DWORD foreground[BASE_PALETTE_SIZE];
+	DWORD background[BASE_PALETTE_SIZE];
+};
 
 class TTYOutput
 {
@@ -26,8 +38,8 @@ class TTYOutput
 	} _true_colors;
 
 	int _out;
-	bool _far2l_tty, _kernel_tty;
-	bool _palette_overriden{false};
+	bool _far2l_tty, _norgb, _kernel_tty, _screen_tty;
+	TTYBasePalette _palette;
 	bool _prev_attr_valid{false};
 	DWORD64 _prev_attr{};
 	std::string _tmp_attrs;
@@ -42,12 +54,12 @@ class TTYOutput
 	void WriteUpdatedAttributes(DWORD64 new_attr, bool is_space);
 
 public:
-	TTYOutput(int out, bool far2l_tty);
+	TTYOutput(int out, bool far2l_tty, bool norgb);
 	~TTYOutput();
 
 	void Flush();
 
-	void ChangePalette(bool override_palette);
+	void ChangePalette(const TTYBasePalette &palette);
 	void ChangeCursorHeight(unsigned int height);
 	void ChangeCursor(bool visible, bool force = false);
 	int WeightOfHorizontalMoveCursor(unsigned int y, unsigned int x) const;
@@ -58,6 +70,8 @@ public:
 	void ChangeMouse(bool enable);
 	void ChangeTitle(std::string title);
 
-	void SendFar2lInterract(const StackSerializer &stk_ser);
+	void SendFar2lInteract(const StackSerializer &stk_ser);
 	void SendOSC52ClipSet(const std::string &clip_data);
+
+	void CheckiTerm2Hack();
 };

@@ -22,12 +22,12 @@ template <class I>
 
 
 const char *utf8index(const char *s, size_t bytes, size_t pos)
-{    
-    for ( ++pos; bytes; ++s, --bytes) {
-        if ((*s & 0xC0) != 0x80) --pos;
-        if (pos == 0) break;
-    }
-    return s;
+{
+	for ( ++pos; bytes; ++s, --bytes) {
+		if ((*s & 0xC0) != 0x80) --pos;
+		if (pos == 0) break;
+	}
+	return s;
 }
 
 size_t utf8_char_len(const char *s, size_t bytes)
@@ -35,10 +35,41 @@ size_t utf8_char_len(const char *s, size_t bytes)
 	return utf8index(s, bytes, 1) - s;
 }
 
+void ConsoleOutput::DeferredRepaints::Add(const SMALL_RECT &area)
+{
+//	fprintf(stderr, "[%u %u %u %u]", area.Left, area.Top, area.Right, area.Bottom);
+	if (!empty()) {
+		auto &last = back();
+		if (area.Top == last.Top && area.Bottom == last.Bottom && area.Left == last.Right + 1) {
+//			fprintf(stderr, " !H\n");
+			last.Right = area.Right;
+			return;
+		}
+		if (area.Left == last.Left && area.Right == last.Right && area.Top == last.Bottom + 1) {
+//			fprintf(stderr, " !V\n");
+			last.Bottom = area.Bottom;
+			return;
+		}
+		if (area.Left == last.Left && area.Right == last.Right && area.Top == last.Top && area.Bottom == last.Bottom) {
+//			fprintf(stderr, " !!\n");
+			return;
+		}
+	}
+//	fprintf(stderr, " ?\n");
+	emplace_back(area);
+}
+
+void ConsoleOutput::DeferredRepaints::Add(const SMALL_RECT *areas, size_t cnt)
+{
+	for (size_t i = 0; i < cnt; ++i) {
+		Add(areas[i]);
+	}
+}
+
 
 ConsoleOutput::ConsoleOutput() :
 	_backend(NULL),
-	_mode(ENABLE_PROCESSED_OUTPUT|ENABLE_WRAP_AT_EOL_OUTPUT),
+	_mode(ENABLE_PROCESSED_OUTPUT|ENABLE_WRAP_AT_EOL_OUTPUT | ENABLE_QUICK_EDIT_MODE | ENABLE_EXTENDED_FLAGS),
 	_attributes(FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED)
 {
 	memset(&_cursor.pos, 0, sizeof(_cursor.pos));	
@@ -49,6 +80,19 @@ ConsoleOutput::ConsoleOutput() :
 	_scroll_region.top = 0;
 	_scroll_region.bottom = MAXSHORT;
 	SetSize(80, 25);
+}
+
+
+void ConsoleOutput::CopyFrom(const ConsoleOutput &co)
+{
+	_mode = co._mode;
+	_attributes = co._attributes;
+	_cursor = co._cursor;
+	_title = co._title;
+	_scroll_callback = co._scroll_callback;
+	_scroll_region = co._scroll_region;
+	_buf = co._buf;
+	_prev_pos = co._prev_pos;
 }
 
 void ConsoleOutput::SetBackend(IConsoleOutputBackend *backend)
@@ -94,6 +138,10 @@ void ConsoleOutput::SetCursor(COORD pos)
 		SetUpdateCellArea(area[0], _cursor.pos);
 		_cursor.pos = pos;
 		SetUpdateCellArea(area[1], _cursor.pos);
+		if (_repaint_defer) {
+			_deferred_repaints.Add(&area[0], 2);
+			return;
+		}
 	}
 	if (_backend) {
 		_backend->OnConsoleOutputUpdated(&area[0], 2);
@@ -108,9 +156,14 @@ void ConsoleOutput::SetCursor(UCHAR height, bool visible)
 		_cursor.height = height;
 		_cursor.visible = visible;
 		SetUpdateCellArea(area, _cursor.pos);
+		if (_repaint_defer) {
+			_deferred_repaints.Add(area);
+			return;
+		}
 	}
-	if (_backend)
+	if (_backend) {
 		_backend->OnConsoleOutputUpdated(&area, 1);
+	}
 }
 
 COORD ConsoleOutput::GetCursor()
@@ -135,6 +188,12 @@ void ConsoleOutput::SetSize(unsigned int width, unsigned int height)
 		std::lock_guard<std::mutex> lock(_mutex);
 		_scroll_region = {0, MAXSHORT};
 		_buf.SetSize(width, height, _attributes);
+		if (_cursor.pos.X >= (int)width && width > 0) {
+			_cursor.pos.X = width - 1;
+		}
+		if (_cursor.pos.Y >= (int)height && height > 0) {
+			_cursor.pos.Y = height - 1;
+		}
 	}
 	if (_backend)
 		_backend->OnConsoleOutputResized();
@@ -198,6 +257,10 @@ DWORD ConsoleOutput::GetMode()
 void ConsoleOutput::SetMode(DWORD mode)
 {
 	std::lock_guard<std::mutex> lock(_mutex);	
+	if ((mode & ENABLE_EXTENDED_FLAGS)==0) {
+		mode&= ~(ENABLE_QUICK_EDIT_MODE|ENABLE_INSERT_MODE);
+		mode|= (_mode & (ENABLE_QUICK_EDIT_MODE|ENABLE_INSERT_MODE));
+	}
 	_mode = mode;
 }
 
@@ -212,9 +275,15 @@ void ConsoleOutput::Write(const CHAR_INFO *data, COORD data_size, COORD data_pos
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
 		_buf.Write(data, data_size, data_pos, screen_rect);
+		if (_repaint_defer) {
+			_deferred_repaints.Add(screen_rect);
+			return;
+		}
+
 	}
-	if (_backend)
+	if (_backend) {
 		_backend->OnConsoleOutputUpdated(&screen_rect, 1);
+	}
 }
 
 bool ConsoleOutput::Read(CHAR_INFO &data, COORD screen_pos)
@@ -225,6 +294,7 @@ bool ConsoleOutput::Read(CHAR_INFO &data, COORD screen_pos)
 
 bool ConsoleOutput::Write(const CHAR_INFO &data, COORD screen_pos)
 {
+	SMALL_RECT area;
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
 		switch (_buf.Write(data, screen_pos)) {
@@ -232,13 +302,18 @@ bool ConsoleOutput::Write(const CHAR_INFO &data, COORD screen_pos)
 			case ConsoleBuffer::WR_SAME: return true;
 			case ConsoleBuffer::WR_MODIFIED: break;
 		}
+
+		SetUpdateCellArea(area, screen_pos);
+		if (_repaint_defer) {
+			_deferred_repaints.Add(area);
+			return true;
+		}
 	}
 
 	if (_backend) {
-		SMALL_RECT area;
-		SetUpdateCellArea(area, screen_pos);
 		_backend->OnConsoleOutputUpdated(&area, 1);
 	}
+
 	return true;
 }
 
@@ -280,7 +355,7 @@ void ConsoleOutput::ScrollOutputOnOverflow(SMALL_RECT &area)
 		COORD line_size = {(SHORT)width, 1};
 		SMALL_RECT line_rect = {0, 0, (SHORT)(width - 1), 0};
 		_buf.Read(&_temp_chars[0], line_size, tmp_pos, line_rect);
-		_scroll_callback.pfn(_scroll_callback.context, width, &_temp_chars[0]);
+		_scroll_callback.pfn(_scroll_callback.context, _con_handle, width, &_temp_chars[0]);
 	}
 	
 	COORD tmp_size = {(SHORT)width, (SHORT)(height - 1 - _scroll_region.top)};
@@ -385,6 +460,7 @@ size_t ConsoleOutput::ModifySequenceAt(SequenceModifier &sm, COORD &pos)
 	size_t rv = 0;
 	SMALL_RECT areas[3] = {NO_AREA, NO_AREA, NO_AREA}; // pos1, pos2, main
 	bool refresh_pos_areas = false;
+	bool refresh_main_area;
 	{
 		std::lock_guard<std::mutex> lock(_mutex);
 		SetUpdateCellArea(areas[0], pos);
@@ -449,11 +525,19 @@ size_t ConsoleOutput::ModifySequenceAt(SequenceModifier &sm, COORD &pos)
 			areas[1].Left = areas[1].Right = pos.X;
 			areas[1].Top = areas[1].Bottom = pos.Y;
 		}
+
+		refresh_main_area = (areas[2].Left <= areas[2].Right && areas[2].Top <= areas[2].Bottom);
+
+		if (_repaint_defer) {
+			if (refresh_pos_areas) {
+				_deferred_repaints.Add(&areas[0], refresh_main_area ? 3 : 2);
+			} else if (refresh_main_area) {
+				_deferred_repaints.Add(areas[2]);
+			}
+			return rv;
+		}
 	}
 	if (_backend) {
-		bool refresh_main_area = (areas[2].Left <= areas[2].Right
-			&& areas[2].Top <= areas[2].Bottom);
-
 		if (refresh_pos_areas) {
 			_backend->OnConsoleOutputUpdated(&areas[0], refresh_main_area ? 3 : 2);
 		} else if (refresh_main_area) {
@@ -518,7 +602,7 @@ static void ClipRect(SMALL_RECT &rect, const SMALL_RECT &clip, COORD *offset = N
 }
 
 bool ConsoleOutput::Scroll(const SMALL_RECT *lpScrollRectangle, 
-	const SMALL_RECT *lpClipRectangle,  COORD dwDestinationOrigin, const CHAR_INFO *lpFill)
+	const SMALL_RECT *lpClipRectangle, COORD dwDestinationOrigin, const CHAR_INFO *lpFill)
 {
 	union {
 		SMALL_RECT both[2];
@@ -575,10 +659,19 @@ bool ConsoleOutput::Scroll(const SMALL_RECT *lpScrollRectangle,
 			areas.n.dst.Left, areas.n.dst.Top, areas.n.dst.Right, areas.n.dst.Bottom);
 		fprintf(stderr, "\n");
 		_buf.Write(&_temp_chars[0], data_size, data_pos, areas.n.dst);
+
+		if (_repaint_defer) {
+			_deferred_repaints.Add(areas.both[0]);
+			if (lpFill) {
+				_deferred_repaints.Add(areas.both[1]);
+			}
+			return true;
+		}
 	}
 
-	if (_backend)
+	if (_backend) {
 		_backend->OnConsoleOutputUpdated(&areas.both[0], lpFill ? 2 : 1);
+	}
 
 	return true;
 }
@@ -662,6 +755,33 @@ BYTE ConsoleOutput::GetColorPalette()
 	return _backend ? _backend->OnConsoleGetColorPalette() : 4;
 }
 
+void ConsoleOutput::OverrideColor(DWORD Index, DWORD *ColorFG, DWORD *ColorBK)
+{
+	if (_backend)
+		_backend->OnConsoleOverrideColor(Index, ColorFG, ColorBK);
+}
+
+void ConsoleOutput::RepaintsDeferStart()
+{
+	std::lock_guard<std::mutex> lock(_mutex);
+	++_repaint_defer;
+	ASSERT(_repaint_defer > 0);
+}
+
+void ConsoleOutput::RepaintsDeferFinish()
+{
+	std::vector<SMALL_RECT> deferred_repaints;
+	{
+		std::lock_guard<std::mutex> lock(_mutex);
+		ASSERT(_repaint_defer > 0);
+		--_repaint_defer;
+		deferred_repaints.swap(_deferred_repaints);
+	}
+	if (!deferred_repaints.empty() && _backend) {
+		_backend->OnConsoleOutputUpdated(&deferred_repaints[0], deferred_repaints.size());
+	}
+}
+
 const WCHAR *ConsoleOutput::LockedGetTitle()
 {
 	_mutex.lock();
@@ -680,3 +800,28 @@ void ConsoleOutput::Unlock()
 	_mutex.unlock();
 }
 
+IConsoleOutput *ConsoleOutput::ForkConsoleOutput(HANDLE con_handle)
+{
+	ConsoleOutput *co = new ConsoleOutput;
+	std::lock_guard<std::mutex> lock(_mutex);
+	co->CopyFrom(*this);
+	co->_con_handle = con_handle;
+	return co;
+}
+
+void ConsoleOutput::JoinConsoleOutput(IConsoleOutput *con_out)
+{
+	ConsoleOutput *co = (ConsoleOutput *)con_out;
+	unsigned int w = 0, h = 0;
+	{
+		std::lock_guard<std::mutex> lock(_mutex);
+		_buf.GetSize(w, h);
+		CopyFrom(*co);
+		_buf.SetSize(w, h, _attributes);
+	}
+	if (_backend) {
+		SMALL_RECT screen_rect{0, 0, SHORT(w ? w - 1 : 0), SHORT(h ? h - 1 : 0)};
+		_backend->OnConsoleOutputUpdated(&screen_rect, 1);
+	}
+	delete co;
+}

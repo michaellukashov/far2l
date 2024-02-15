@@ -5,8 +5,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <dlfcn.h>
 
-#if !defined(__FreeBSD__) && !defined(__MUSL__) && !defined(__UCLIBC__) && !defined(__HAIKU__) // todo: pass to linker -lexecinfo under BSD and then may remove this ifndef
+#if !defined(__FreeBSD__) && !defined(__DragonFly__) && !defined(__MUSL__) && !defined(__UCLIBC__) && !defined(__HAIKU__) && !defined(__ANDROID__) // todo: pass to linker -lexecinfo under BSD and then may remove this ifndef
 # include <execinfo.h>
 # define HAS_BACKTRACE
 #endif
@@ -132,6 +133,17 @@ static inline void WriteCrashSigLog(int num, siginfo_t *info, void *ctx)
 		bt_count = backtrace(bt, bt_count);
 		backtrace_symbols_fd(bt, bt_count, fd);
 #endif
+		fsync(fd);
+		void **stk = (void **)&ctx;
+		for (unsigned int i = 0; i < 0x1000 && ((uintptr_t(&stk[i]) ^ uintptr_t(stk)) < 0x1000); ++i) {
+			Dl_info dli = {0};
+			if (dladdr(stk[i], &dli) && dli.dli_fname) {
+				FDWriteStr(fd, dli.dli_fname);
+				char tail[32];
+				sprintf(tail, " + 0x%x\n", unsigned(uintptr_t(stk[i]) - uintptr_t(dli.dli_fbase)));
+				FDWriteStr(fd, tail);
+			}
+		}
 		fsync(fd);
 	}
 
@@ -272,7 +284,7 @@ void SafeMMap::Slide(off_t file_offset)
 	// So for that systems use approach looking most optimal: remap same pages to
 	// different region of file. At least this should allow VMM to avoid searching
 	// for free pages as well as reduce syscalls count by avoiding call to munmap().
-#if defined(__linux__) || defined(__FreeBSD__)
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__)
 	void *new_view = mmap(_view, new_len, _prot, _flags | MAP_FIXED, _fd, file_offset);
 #else
 	void *new_view = mmap(nullptr, new_len, _prot, _flags, _fd, file_offset);
@@ -282,7 +294,7 @@ void SafeMMap::Slide(off_t file_offset)
 	}
 
 	if (_view != new_view) {
-#if !defined(__linux__) && !defined(__FreeBSD__)
+#if !defined(__linux__) && !defined(__FreeBSD__) && !defined(__DragonFly__)
 		fprintf(stderr, "SafeMMap::Slide: _view[%p] != new_view[%p]\n", _view, new_view);
 #endif
 		if (munmap(_view, _len) == -1) {
@@ -295,10 +307,10 @@ void SafeMMap::Slide(off_t file_offset)
 		const size_t al_new_len = AlignUp(new_len, _pg);
 		const size_t al_len = AlignUp(_len, _pg);
 		if (al_new_len < al_len) {
-			// From documentation:
-			//   If the memory region specified by addr and len overlaps pages of any existing
-			//   mapping(s), then the overlapped part of the existing mapping(s) will be discarded
-			// That means if not whole range remapped - then have to explicitly unmap remainder.
+			//	From documentation:
+			//		If the memory region specified by addr and len overlaps pages of any existing
+			//		mapping(s), then the overlapped part of the existing mapping(s) will be discarded
+			//	That means if not whole range remapped - then have to explicitly unmap remainder.
 			if (munmap((unsigned char *)_view + al_new_len, al_len - al_new_len) == -1) {
 				perror("SafeMMap::Slide: munmap remainder");
 			}

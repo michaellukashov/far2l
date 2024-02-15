@@ -6,19 +6,19 @@
 #include <fcntl.h>
 #include <string.h>
 #include <sys/stat.h>
-#if defined(__APPLE__) || defined(__FreeBSD__)
-  #include <sys/mount.h>
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__DragonFly__)
+	#include <sys/mount.h>
 #elif !defined(__HAIKU__)
-  #include <sys/statfs.h>
-  #include <sys/ioctl.h>
+	#include <sys/statfs.h>
+	#include <sys/ioctl.h>
 #  if !defined(__CYGWIN__)
-#   include <linux/fs.h>
+#    include <linux/fs.h>
 #  endif
 #endif
 #include <sys/statvfs.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__DragonFly__)
 # include <sys/xattr.h>
 #endif
 #include <stdexcept>
@@ -236,7 +236,7 @@ namespace Sudo
 			bt.SendErrno();
 	}
 
-	static void OnSudoDispatch_TwoPathes(int (*pfn)(const char *, const char *), BaseTransaction &bt)
+	static void OnSudoDispatch_TwoPaths(int (*pfn)(const char *, const char *), BaseTransaction &bt)
 	{
 		std::string path1, path2;
 		
@@ -280,7 +280,7 @@ namespace Sudo
 	
 	static void OnSudoDispatch_FSFlagsGet(BaseTransaction &bt)
 	{
-#if !defined(__APPLE__) && !defined(__FreeBSD__) && !defined(__CYGWIN__) && !defined(__HAIKU__)
+#if !defined(__APPLE__) && !defined(__FreeBSD__)  && !defined(__DragonFly__) && !defined(__CYGWIN__) && !defined(__HAIKU__)
 		std::string path;
 		bt.RecvStr(path);
 		int r = -1;
@@ -307,14 +307,14 @@ namespace Sudo
 		bt.RecvStr(path);
 		bt.RecvPOD(flags);
 		
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__DragonFly__)
 		if (chflags(path.c_str(), flags) == 0) {
 			bt.SendInt(0);
 			return;
 		}
 
 #elif defined(__HAIKU__)
-        // ???
+// ???
 #elif !defined(__CYGWIN__)
 		int fd = open(path.c_str(), O_RDONLY);
 		if (fd != -1) {
@@ -342,6 +342,34 @@ namespace Sudo
 		}
 		bt.SendInt(r);
 	}
+
+	static void OnSudoDispatch_MkFifo(BaseTransaction &bt)
+	{
+		std::string path;
+		mode_t mode;
+		bt.RecvStr(path);
+		bt.RecvPOD(mode);
+		int r = mkfifo(path.c_str(), mode);
+		bt.SendInt(r);
+		if (r != 0) {
+			bt.SendErrno();
+		}
+	}
+
+	static void OnSudoDispatch_MkNod(BaseTransaction &bt)
+	{
+		std::string path;
+		mode_t mode;
+		dev_t dev;
+		bt.RecvStr(path);
+		bt.RecvPOD(mode);
+		bt.RecvPOD(dev);
+		int r = mknod(path.c_str(), mode, dev);
+		bt.SendInt(r);
+		if (r != 0) {
+			bt.SendErrno();
+		}
+	}
 	
 	void OnSudoDispatch(SudoCommand cmd, BaseTransaction &bt)
 	{
@@ -363,7 +391,7 @@ namespace Sudo
 				break;
 #endif
 			case SUDO_CMD_STATVFS:
-                OnSudoDispatch_StatCommon<struct statvfs>(&statvfs, bt);
+				OnSudoDispatch_StatCommon<struct statvfs>(&statvfs, bt);
 				break;
 				
 			case SUDO_CMD_STAT:
@@ -419,15 +447,15 @@ namespace Sudo
 				break;
 			
 			case SUDO_CMD_RENAME:
-				OnSudoDispatch_TwoPathes(&rename, bt);
+				OnSudoDispatch_TwoPaths(&rename, bt);
 				break;
 
 			case SUDO_CMD_SYMLINK:
-				OnSudoDispatch_TwoPathes(&symlink, bt);
+				OnSudoDispatch_TwoPaths(&symlink, bt);
 				break;
 				
 			case SUDO_CMD_LINK:
-				OnSudoDispatch_TwoPathes(&link, bt);
+				OnSudoDispatch_TwoPaths(&link, bt);
 				break;
 
 			case SUDO_CMD_REALPATH:
@@ -448,6 +476,14 @@ namespace Sudo
 
 			case SUDO_CMD_FCHMOD:
 				OnSudoDispatch_FChMod(bt);
+				break;
+
+			case SUDO_CMD_MKFIFO:
+				OnSudoDispatch_MkFifo(bt);
+				break;
+
+			case SUDO_CMD_MKNOD:
+				OnSudoDispatch_MkNod(bt);
 				break;
 				
 			default:

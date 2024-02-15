@@ -48,7 +48,7 @@ namespace Mounts
 
 	static int GenerateIdFromPath(const FARString &path)
 	{
-		if (path == L"/")
+		if (path == WGOOD_SLASH)
 			return ID_ROOT;
 
 		const std::string &path_mb = path.GetMB();
@@ -72,7 +72,7 @@ namespace Mounts
 		AddFavorites(has_rootfs);
 
 		if (!has_rootfs) {
-			emplace(begin(), Entry(L"/", Msg::MountsRoot, false, ID_ROOT));
+			emplace(begin(), Entry(WGOOD_SLASH, Msg::MountsRoot, false, ID_ROOT));
 		}
 
 		emplace(begin(), Entry( GetMyHome(), Msg::MountsHome, false, ID_HOME));
@@ -108,10 +108,10 @@ namespace Mounts
 		FileSizeToStr(val, mp.avail, -1, COLUMN_ECONOMIC | COLUMN_FLOATSIZE | COLUMN_SHOWBYTESINDEX);
 		ReplaceStrings(str, L"$A", val);
 
-		FileSizeToStr(val, mp.freee, -1, COLUMN_ECONOMIC | COLUMN_FLOATSIZE | COLUMN_SHOWBYTESINDEX);
+		FileSizeToStr(val, mp.free_, -1, COLUMN_ECONOMIC | COLUMN_FLOATSIZE | COLUMN_SHOWBYTESINDEX);
 		ReplaceStrings(str, L"$F", val);
 
-		FileSizeToStr(val, mp.total - mp.freee, -1, COLUMN_ECONOMIC | COLUMN_FLOATSIZE | COLUMN_SHOWBYTESINDEX);
+		FileSizeToStr(val, mp.total - mp.free_, -1, COLUMN_ECONOMIC | COLUMN_FLOATSIZE | COLUMN_SHOWBYTESINDEX);
 		ReplaceStrings(str, L"$U", val);
 
 		if (mp.total)
@@ -121,13 +121,13 @@ namespace Mounts
 		ReplaceStrings(str, L"$a", val);
 
 		if (mp.total)
-			val.Format(L"%lld", (mp.freee * 100) / mp.total);
+			val.Format(L"%lld", (mp.free_ * 100) / mp.total);
 		else
 			val = L"NA";
 		ReplaceStrings(str, L"$f", val);
 
 		if (mp.total)
-			val.Format(L"%lld", ((mp.total - mp.freee) * 100) / mp.total);
+			val.Format(L"%lld", ((mp.total - mp.free_) * 100) / mp.total);
 		else
 			val = L"NA";
 		ReplaceStrings(str, L"$u", val);
@@ -150,11 +150,11 @@ namespace Mounts
 
 		static size_t LeftWordLength(const FARString &str, size_t pos)
 		{
-			size_t out = pos;
-			while (out > 0 && !IsWordDiv(str.At(out))) {
+			ssize_t out = pos;
+			while (out >= 0 && !IsWordDiv(str.At(out))) {
 				--out;
 			}
-			return pos + 1 - out;
+			return ssize_t(pos) - out;
 		}
 
 		static size_t RightWordLength(const FARString &str, size_t pos)
@@ -167,13 +167,13 @@ namespace Mounts
 		}
 
 	public:
-		void Analize(const FARString &str)
+		void Analyze(const FARString &str)
 		{
 			size_t m = 0;
 			const int str_len = str.GetLength();
 			for (int i = str_len - 2; i >= 0; --i) {
-				if (str.At(i) == '$' && ((str.At(i + 1) == '<' && i > 0)
-						|| (str.At(i + 1) == '>' && i + 2 < str_len))
+				if (str.At(i) == '$' && ((str.At(i + 1) == '<' && i >= 0)
+						|| (str.At(i + 1) == '>' && i + 2 <= str_len))
 					) {
 					const size_t len = (str.At(i + 1) == '>')
 						? RightWordLength(str, i + 2) : LeftWordLength(str, i - 1);
@@ -192,7 +192,9 @@ namespace Mounts
 			size_t m = 0;
 			const int str_len = str.GetLength();
 			for (int i = str_len - 2; i >= 0; --i) {
-				if (str.At(i) == '$' && (str.At(i + 1) == '>' || str.At(i + 1) == '<')) {
+				if (str.At(i) == '$' && ((str.At(i + 1) == '<' && i >= 0)
+						|| (str.At(i + 1) == '>' && i + 2 <= str_len))
+					) {
 					const size_t len = (str.At(i + 1) == '>')
 						? RightWordLength(str, i + 2) : LeftWordLength(str, i - 1);
 					str.Replace(i, 2, L' ', _maximums[m] - len);
@@ -214,7 +216,7 @@ namespace Mounts
 			ExpandMountpointInfo(mp, e.col2);
 			ExpandMountpointInfo(mp, e.col3);
 			
-			if (e.path == L"/") {
+			if (e.path == WGOOD_SLASH) {
 				has_rootfs = true;
 			} else {
 				e.unmountable = true;
@@ -225,9 +227,9 @@ namespace Mounts
 		// apply replace $> and $< spacers
 		Aligner al_path, al_col2, al_col3;
 		for (const auto &e : *this) {
-			al_path.Analize(e.path);
-			al_col2.Analize(e.col2);
-			al_col3.Analize(e.col3);
+			al_path.Analyze(e.path);
+			al_col2.Analyze(e.col2);
+			al_col3.Analyze(e.col3);
 		}
 		for (auto &e : *this) {
 			al_path.Apply(e.path);
@@ -263,7 +265,7 @@ namespace Mounts
 							}
 						}
 						e.id = GenerateIdFromPath(e.path);
-						if (e.path == L"/") {
+						if (e.path == WGOOD_SLASH) {
 							has_rootfs = true;
 
 						} else if (*e.path.CPtr() == L'/') {

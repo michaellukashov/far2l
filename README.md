@@ -2,7 +2,7 @@
 
 # far2l [![tag](https://img.shields.io/github/tag/elfmz/far2l.svg)](https://github.com/elfmz/far2l/tags)
 Linux fork of FAR Manager v2 (http://farmanager.com/)   
-Works also on OSX/MacOS and BSD (but later not tested on regular manner)   
+Works also on OSX/MacOS and BSD (but latter not tested on regular manner)   
 BETA VERSION.   
 **Use on your own risk!**
 
@@ -25,31 +25,45 @@ FreeBSD/MacOS (Cirrus CI): [![Cirrus](https://api.cirrus-ci.com/github/elfmz/far
 ## Contributing, Hacking
 #### Required dependencies
 
-* gawk
-* m4
-* libwxgtk3.0-gtk3-dev (or in older distributives - libwxgtk3.0-dev)  (needed for GUI backend, not needed with -DUSEWX=no)
+* libwxgtk3.0-gtk3-dev (or libwxgtk3.2-dev in newer distributions, or libwxgtk3.0-dev in older ones, optional - needed for GUI backend, not needed with -DUSEWX=no)
 * libx11-dev (optional - needed for X11 extension that provides better UX for TTY backend wherever X11 is available)
 * libxi-dev (optional - needed for X11/Xi extension that provides best UX for TTY backend wherever X11 Xi extension is available)
-* libxerces-c-dev
-* libspdlog-dev
-* libuchardet-dev
-* libssh-dev (needed for NetRocks/SFTP)
-* libssl-dev (needed for NetRocks/FTPS)
-* libsmbclient-dev (needed for NetRocks/SMB)
-* libnfs-dev (needed for NetRocks/NFS)
-* libneon27-dev (or later, needed for NetRocks/WebDAV)
-* libarchive-dev (needed for better archives support in multiarc)
-* libpcre3-dev (or in older distributives - libpcre2-dev) (needed for custom archives support in multiarc)
+* libxerces-c-dev (optional - needed for Colorer plugin, not needed with -DCOLORER=no)
+* libuchardet-dev (optional - needed for auto charset detection, not needed with -DUSEUCD=no)
+* libssh-dev (optional - needed for NetRocks/SFTP)
+* libssl-dev (optional - needed for NetRocks/FTPS)
+* libsmbclient-dev (optional - needed for NetRocks/SMB)
+* libnfs-dev (optional - needed for NetRocks/NFS)
+* libneon27-dev (or later, optional - needed for NetRocks/WebDAV)
+* libarchive-dev (optional - needed for better archives support in multiarc)
+* libunrar-dev (optional - needed for RAR archives support in multiarc, see UNRAR command line option)
+* libpcre3-dev (or libpcre2-dev in older distributions, optional - needed for advanced custom archive formats support in multiarc)
 * cmake ( >= 3.2.2 )
+* pkg-config
 * g++
 * git (needed for downloading source code)
 
 #### Or simply on Debian/Ubuntu:
 ``` sh
-apt-get install gawk m4 libwxgtk3.0-gtk3-dev libx11-dev libxi-dev libpcre3-dev libxerces-c-dev libspdlog-dev libuchardet-dev libssh-dev libssl-dev libsmbclient-dev libnfs-dev libneon27-dev libarchive-dev cmake g++ git
+apt-get install libwxgtk3.0-gtk3-dev libx11-dev libxi-dev libpcre3-dev libxerces-c-dev libuchardet-dev libssh-dev libssl-dev libsmbclient-dev libnfs-dev libneon27-dev libarchive-dev cmake pkg-config g++ git
+```
+
+On Debian unstable/sid:
+
+`apt-get install far2l`
+
+A simple sid back port should be as easy as (build your own binary deb from the official source deb package):
 
 ```
-In older distributives: use libpcre2-dev and libwxgtk3.0-dev instead of libpcre3-dev and libwxgtk3.0-gtk3-dev
+# you will find the latest dsc link at http://packages.debian.org/sid/far2l
+dget http://deb.debian.org/debian/pool/main/f/far2l/far2l_2.5.0~beta+git20230223+ds-2.dsc
+dpkg-source -x *.dsc
+cd far2l-*/
+debuild
+# cd .. and install your self built far2l*.deb
+```
+
+In older distributions: use libpcre2-dev and libwxgtk3.0-dev instead of libpcre3-dev and libwxgtk3.0-gtk3-dev
 
 #### Clone and Build
  * Clone current master `git clone https://github.com/elfmz/far2l`
@@ -74,17 +88,22 @@ cmake --build .
 
  * If above commands finished without errors - you may also install far2l, `sudo cmake --install .`
 
- * Also its possible to create far2l_2.X.X_ARCH.deb or ...tar.gz packages in `_build` directory by running `cmake --build . --target package` command.
+ * Also it's possible to create far2l_2.X.X_ARCH.deb or ...tar.gz packages in `_build` directory by running `cmake --build . --target package` command.
 
 ##### Additional build configuration options:
 
-To build without WX backend (console version only): change -DUSEWX=yes to -DUSEWX=no also in this case dont need to install libwxgtk\*-dev package
+To build without WX backend (console version only): change `-DUSEWX=yes` to `-DUSEWX=no` also in this case dont need to install libwxgtk\*-dev package
 
-To force-disable TTY|X and TTY|Xi backends: add argument -DTTYX=no; to disable only TTY|Xi - add argument -DTTYXI=no
+To force-disable TTY|X and TTY|Xi backends: add argument `-DTTYX=no`; to disable only TTY|Xi - add argument `-DTTYXI=no`
 
 To eliminate libuchardet requirement to reduce far2l dependencies by cost of losing automatic charset detection functionality: add -DUSEUCD=no
 
-To build with Python plugin: add argument -DPYTHON=yes
+To build with Python plugin: add argument `-DPYTHON=yes`
+
+To control how RAR archives will be handled in multiarc:
+ `-DUNRAR=bundled` (default) use bundled sources found in multiarc/src/formats/rar/unrar
+ `-DUNRAR=lib` use libunrar and unrar utility, also build requires libunrar-dev to be installed
+ `-DUNRAR=NO` dont use special unrar code, rar archives will be handled by libarchive unless its also disabled
 
 There're also options to toggle other plugins build in same way: ALIGN AUTOWRAP CALC COLORER COMPARE DRAWLINE EDITCASE EDITORCOMP FARFTP FILECASE INCSRCH INSIDE MULTIARC NETROCKS SIMPLEINDENT TMPPANEL
 
@@ -116,7 +135,7 @@ brew install --HEAD yurikoles/yurikoles/far2l --without-wxwidgets
  * Additionally you can enable python support by adding `--with-python@3.10` to the one of two above commands.
 
 ##### Full OSX/MacOS build from sources (harder):
-Some issues can be caused by conflicting dependencies, like having two versions of wxWidgets, so avoid such situation when installing dependecies.
+Some issues can be caused by conflicting dependencies, like having two versions of wxWidgets, so avoid such situation when installing dependencies.
 
  * Clone:
 ```sh
@@ -125,11 +144,13 @@ cd far2l
 ```
  * Install needed dependencies with MacPorts:
 ``` sh
-sudo port install cmake gawk pkgconfig wxWidgets-3.2 libssh openssl xercesc3 libfmt spdlog uchardet neon
+sudo port install cmake pkgconfig wxWidgets-3.2 libssh openssl xercesc3 libfmt uchardet neon
+export PKG_CONFIG_PATH=/opt/local/lib/pkgconfig
 ```
  * OR if you prefer to use brew packages, then:
 ```sh
 brew bundle -v
+export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$(brew --prefix)/opt/openssl/lib/pkgconfig:$(brew --prefix)/opt/libarchive/lib/pkgconfig"
 ```
  * After dependencies installed - you can build far2l:
 _with make:_
@@ -151,10 +172,19 @@ Note that this step sometimes fails and may succeed from not very first attempt.
 Its recommended not to do anything on machine while cpack is in progress.
 After .dmg successfully created, you may install it by running `open ...path/to/created/far2l-*.dmg`
 
+##### macOS workaround if far2l in macOS regularly asks permission to folders
+After command
+```
+ sudo codesign --force --deep --sign - /Applications/far2l.app
+```
+it is enough to confirm permission only once.
+
+Details see in [`issue`](https://github.com/elfmz/far2l/issues/1754).
+
 #### Building on Gentoo (and derivatives)
 For absolute minimum you need:
 ```
-emerge -avn dev-libs/xerces-c app-i18n/uchardet dev-util/cmake dev-libs/spdlog
+emerge -avn dev-libs/xerces-c app-i18n/uchardet dev-util/cmake
 ```
 If you want to build far2l with wxGTK support also install it:
 ```
@@ -201,10 +231,12 @@ You can import the project into your favourite IDE like QtCreator, CodeLite, or 
  * Fork of Putty (Windows SSH client) with added far2l TTY extensions support (fluent keypresses, clipboard sharing etc): https://github.com/unxed/putty4far2l
  * Kitty (another fork of Putty) also have far2l TTY extensions support: https://github.com/cyd01/KiTTY
  * putty-nd, one more putty fork with extensions support: https://sourceforge.net/p/putty-nd/
- * Tool to import color schemes from windows FAR manager 2 .reg format: https://github.com/unxed/far2l-deb/blob/master/far2l_import.pl
+ * Turbo Vision, TUI framework supporting far2l terminal extensions: https://github.com/magiblot/tvision
+ * turbo, text editor supporting far2l terminal extensions: https://github.com/magiblot/turbo
+ * Tool to import color schemes from windows FAR manager 2 .reg format: https://github.com/unxed/far2l-deb/blob/master/misc/far2l_import.pl
 
 ## Notes on porting and FAR Plugin API changes
  * See HACKING.md
 
 ## Known issues:
-* Only valid translations are English, Russian and Ukrainian, all other languages require deep correction.
+* Only valid translations are English, Russian, Ukrainian and Belarussian (interface only), all other languages require deep correction.

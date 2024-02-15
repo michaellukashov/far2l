@@ -32,7 +32,7 @@ if(NOT DEFINED VCPKG_METRICS_FLAG)
 endif()
 
 
-# check_conditions and find neccessary packages
+# check_conditions and find necessary packages
 find_package(Git REQUIRED)
 
 
@@ -83,7 +83,7 @@ function(vcpkg_init)
         endif()
         string(REGEX REPLACE "[/\\]$" "" VCPKG_PARENT_DIR "${VCPKG_PARENT_DIR}")
 
-        # set varible to expected path; necessary to detect after a CMake cache clean
+        # set variable to expected path; necessary to detect after a CMake cache clean
         vcpkg_set_vcpkg_executable()
     
         # executable is present ? configuring done : fetch and build

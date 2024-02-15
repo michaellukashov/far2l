@@ -30,7 +30,7 @@ private:
     int suggestionCol = 0;
     int suggestionLen = 0;
     State state = OFF;
-    bool isEnabled = false;
+    bool isEnabled = true;
 
     EditorInfo previousEditorInfo = {0};
 
