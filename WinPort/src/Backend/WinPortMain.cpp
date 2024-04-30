@@ -1,4 +1,5 @@
 #include <fstream>
+#include <memory>
 
 #include <sys/ioctl.h>
 #include <signal.h>
@@ -33,19 +34,26 @@
 #include "PathHelpers.h"
 #include "../sudo/sudo_askpass_ipc.h"
 #include "SudoAskpassImpl.h"
-
-#include <memory>
+#ifdef TESTING
+# include "TestController.h"
+#endif
 
 IConsoleOutput *g_winport_con_out = nullptr;
 IConsoleInput *g_winport_con_in = nullptr;
 const wchar_t *g_winport_backend = L"";
+static BOOL g_winport_testing = FALSE;
 
 bool WinPortMainTTY(const char *full_exe_path, int std_in, int std_out,
-	bool ext_clipboard, bool norgb, const char *nodetect, bool far2l_tty,
+	bool ext_clipboard, bool norgb, DWORD nodetect, bool far2l_tty,
 	unsigned int esc_expiration, int notify_pipe, int argc, char **argv,
 	int(*AppMain)(int argc, char **argv), int *result);
 
 extern "C" void WinPortInitRegistry();
+
+extern "C" BOOL WinPortTesting()
+{
+	return g_winport_testing;
+}
 
 class FScope
 {
@@ -247,7 +255,7 @@ extern "C" void WinPortHelp()
 
 struct ArgOptions
 {
-	const char *nodetect = "";
+	DWORD nodetect = NODETECT_NONE;
 	bool tty = false, far2l_tty = false, notty = false, norgb = false;
 	bool mortal = false;
 	bool x11 = false;
@@ -282,11 +290,17 @@ struct ArgOptions
 			norgb = true;
 
 		} else if (strcmp(a, "--nodetect") == 0) {
-			nodetect = "fx";
+			nodetect = NODETECT_F | NODETECT_X;
 
 		} else if (strstr(a, "--nodetect=") == a) {
-			nodetect = a + 11;
-
+			if(strstr(a+11,"xi")) {
+				nodetect = NODETECT_XI;
+			} else if (strchr(a+11,'x')) {
+				nodetect = NODETECT_X;
+			}
+			if(strchr(a+11,'f')) {
+				nodetect |= NODETECT_F;
+			}
 		} else if (strstr(a, "--clipboard=") == a) {
 			ext_clipboard = a + 12;
 
@@ -400,7 +414,7 @@ extern "C" int WinPortMain(const char *full_exe_path, int argc, char **argv, int
 	std::unique_ptr<TTYRawMode> tty_raw_mode;
 	if (!arg_opts.notty) {
 		tty_raw_mode.reset(new TTYRawMode(std_in, std_out));;
-		if (!strchr(arg_opts.nodetect, 'f')) {
+		if ((arg_opts.nodetect & NODETECT_F) == 0) {
 	//		tty_raw_mode.reset(new TTYRawMode(std_out));
 			if (tty_raw_mode->Applied() || IsFar2lFISHTerminal()) {
 				arg_opts.far2l_tty = TTYNegotiateFar2l(std_in, std_out, true);
@@ -432,6 +446,27 @@ extern "C" int WinPortMain(const char *full_exe_path, int argc, char **argv, int
 		ext_clipboard_backend_setter.Set<ExtClipboardBackend>(arg_opts.ext_clipboard.c_str());
 	}
 //	g_winport_con_out->WriteString(L"Hello", 5);
+#ifdef TESTING
+	std::unique_ptr<TestController> test_ctl;
+#endif
+
+	const char *test_ctl_id = getenv("FAR2L_TESTCTL");
+	if (test_ctl_id && *test_ctl_id) {
+#ifdef TESTING
+		// derive console output size from terminal now to avoid smoketest race condition on getting terminal size
+		struct winsize w{};
+		int r = ioctl(std_out, TIOCGWINSZ, &w);
+		if (r == 0 && w.ws_col > 80 && w.ws_row > 25) {
+			winport_con_out->SetSize(w.ws_col, w.ws_row);
+		}
+		test_ctl.reset(new TestController(test_ctl_id));
+		g_winport_testing = TRUE;
+		unsetenv("FAR2L_TESTCTL");
+#else
+		fprintf(stderr, "Testing facilities not enabled, rebuild with -DTESTING=YES to use FAR2L_TESTCTL environment variable\n");
+		return -1;
+#endif
+	}
 
 	int result = -1;
 	if (!arg_opts.tty) {

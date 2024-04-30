@@ -22,7 +22,36 @@ FreeBSD/MacOS (Cirrus CI): [![Cirrus](https://api.cirrus-ci.com/github/elfmz/far
 * 7z ANSI-C Decoder
 * utf-cpp by ww898
 
-## Contributing, Hacking
+
+## Installing, Running
+#### Debian/Ubuntu 23.10+ binaries
+
+```sh
+apt-get install far2l
+```
+
+Under Ubuntu Desktop 23.10 run as
+`far2l --nodetect=xi --ee`
+
+#### OSX/MacOS binaries
+
+You can install prebuilt package for x86_64 platform via Homebrew Cask, by command:
+```sh
+brew install --cask far2l
+```
+
+You can also manually download and install prebuilt package for x86_64 platform from Releases page: <https://github.com/elfmz/far2l/releases>
+
+#### Docker
+
+You can use containers to try `far2l` without installing anything.
+```sh
+docker build . -l far2l
+docker run -it far2l
+```
+
+
+## Building, Contributing, Hacking
 #### Required dependencies
 
 * libwxgtk3.0-gtk3-dev (or libwxgtk3.2-dev in newer distributions, or libwxgtk3.0-dev in older ones, optional - needed for GUI backend, not needed with -DUSEWX=no)
@@ -48,13 +77,8 @@ FreeBSD/MacOS (Cirrus CI): [![Cirrus](https://api.cirrus-ci.com/github/elfmz/far
 apt-get install libwxgtk3.0-gtk3-dev libx11-dev libxi-dev libpcre3-dev libxerces-c-dev libuchardet-dev libssh-dev libssl-dev libsmbclient-dev libnfs-dev libneon27-dev libarchive-dev cmake pkg-config g++ git
 ```
 
-On Debian unstable/sid:
-
-`apt-get install far2l`
-
 A simple sid back port should be as easy as (build your own binary deb from the official source deb package):
-
-```
+```sh
 # you will find the latest dsc link at http://packages.debian.org/sid/far2l
 dget http://deb.debian.org/debian/pool/main/f/far2l/far2l_2.5.0~beta+git20230223+ds-2.dsc
 dpkg-source -x *.dsc
@@ -66,12 +90,16 @@ debuild
 In older distributions: use libpcre2-dev and libwxgtk3.0-dev instead of libpcre3-dev and libwxgtk3.0-gtk3-dev
 
 #### Clone and Build
- * Clone current master `git clone https://github.com/elfmz/far2l`
+ * Clone current master
+```sh
+git clone https://github.com/elfmz/far2l
+cd far2l
+```
  * Checkout some stable release tag (master considered unstable): `git checkout v_2.#.#`
  * Prepare build directory:
-``` sh
-mkdir -p far2l/_build
-cd far2l/_build
+```sh
+mkdir -p _build
+cd _build
 ```
 
  * Build:
@@ -107,14 +135,10 @@ To control how RAR archives will be handled in multiarc:
 
 There're also options to toggle other plugins build in same way: ALIGN AUTOWRAP CALC COLORER COMPARE DRAWLINE EDITCASE EDITORCOMP FARFTP FILECASE INCSRCH INSIDE MULTIARC NETROCKS SIMPLEINDENT TMPPANEL
 
-#### OSX/MacOS install
+#### OSX/MacOS build
 
- * You can install prebuilt package for x86_64 platform via Homebrew Cask, by command:
- ```sh
- brew install --cask far2l
- ```
- * You can also manually download and install prebuilt package for x86_64 platform from Releases page: <https://github.com/elfmz/far2l/releases>
- * But if you need custom/recent build, you can proceed to build steps below: using brew or MacPorts.
+To make custom/recent build use brew or MacPorts.
+
  * Supported compiler: `AppleClang 8.0.0.x` or newer. Check your version, and install/update Xcode if necessary.
  ```sh
  clang++ -v
@@ -225,18 +249,30 @@ You can import the project into your favourite IDE like QtCreator, CodeLite, or 
  * **CLion**: the same as **QtCreator**.
  * **CodeLite**: use this guide to setup a project: https://wiki.codelite.org/pmwiki.php/Main/TheCMakePlugin (to avoid polluting your source tree, don't create your workspace inside of the far2l directory)
 
+### Terminals and SSH clients
+Supporting extended far2l keyboard shortcuts and clipboard access
+
+ * kovidgoyal's kitty (Linux, macOS, *BSD): https://github.com/kovidgoyal/kitty & https://sw.kovidgoyal.net/kitty (TTY|k backend: keys by kovidgoyal's kitty keyboard protocol; turn on OSC 52 in far2l and kitty for clipboard support)
+ * Wez's Terminal Emulator (Linux, FreeBSD, Windows): https://github.com/wez/wezterm & https://wezfurlong.org/wezterm (TTY|k backend: keys in Linux, FreeBSD by kovidgoyal's kitty keyboard protocol; TTY|w backend: keys in Windows by win32-input-mode, enabled by default; turn on OSC 52 for clipboard support) [kitty keyboard protocol not supported in macOS & Windows]
+ * iTerm2 (macOS): https://gitlab.com/gnachman/iterm2 & https://iterm2.com (TTY|a backend: keys by iTerm2 "raw keyboard" protocol; turn on OSC 52 for clipboard support)
+ * Windows Terminal (TTY|w backend: keys by win32-input-mode; turn on OSC 52 for clipboard support)
+ * Fork of Putty (Windows SSH client) with added far2l TTY extensions support (fluent keypresses, clipboard sharing etc): https://github.com/ivanshatsky/putty4far2l/releases
+ * Kitty (another fork of Putty) also have far2l TTY extensions support: https://github.com/cyd01/KiTTY
+ * putty-nd, one more putty fork with extensions support: https://sourceforge.net/p/putty-nd/
+
 ### Useful 3rd-party extras
 
  * A collection of macros for far2l: https://github.com/corporateshark/far2l-macros
- * Fork of Putty (Windows SSH client) with added far2l TTY extensions support (fluent keypresses, clipboard sharing etc): https://github.com/unxed/putty4far2l
- * Kitty (another fork of Putty) also have far2l TTY extensions support: https://github.com/cyd01/KiTTY
- * putty-nd, one more putty fork with extensions support: https://sourceforge.net/p/putty-nd/
  * Turbo Vision, TUI framework supporting far2l terminal extensions: https://github.com/magiblot/tvision
  * turbo, text editor supporting far2l terminal extensions: https://github.com/magiblot/turbo
- * Tool to import color schemes from windows FAR manager 2 .reg format: https://github.com/unxed/far2l-deb/blob/master/misc/far2l_import.pl
+ * Tool to import color schemes from windows FAR manager 2 .reg format: https://github.com/unxed/far2ltricks/blob/main/misc/far2l_import.pl
+ * Community wiki & tips (in Russian; unofficial): https://github.com/akruphi/far2l/wiki
 
 ## Notes on porting and FAR Plugin API changes
- * See HACKING.md
+ * See [HACKING.md](HACKING.md)
+
+## Testing
+ * See [testing/README.md](testing/README.md)
 
 ## Known issues:
 * Only valid translations are English, Russian, Ukrainian and Belarussian (interface only), all other languages require deep correction.
