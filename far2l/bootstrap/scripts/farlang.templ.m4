@@ -1865,6 +1865,50 @@ ConfigSaveViewHistory
 "Зберігати історію п&ерегляду та редагування"
 "Захоўваць гісторыю п&раглядаў і зменаў"
 
+ConfigHistoryRemoveDupsRule
+"Удаление &дубликатов в истории:"
+"&Remove duplicates in history:"
+upd:"&Remove duplicates in history:"
+upd:"&Remove duplicates in history:"
+upd:"&Remove duplicates in history:"
+upd:"&Remove duplicates in history:"
+upd:"&Remove duplicates in history:"
+upd:"&Remove duplicates in history:"
+upd:"&Remove duplicates in history:"
+
+ConfigHistoryRemoveDupsRuleNever
+"никогда"
+"never"
+upd:"never"
+upd:"never"
+upd:"never"
+upd:"never"
+upd:"never"
+upd:"never"
+upd:"never"
+
+ConfigHistoryRemoveDupsRuleByName
+"по имени"
+"by name"
+upd:"by name"
+upd:"by name"
+upd:"by name"
+upd:"by name"
+upd:"by name"
+upd:"by name"
+upd:"by name"
+
+ConfigHistoryRemoveDupsRuleByNameExtra
+"по имени и пути"
+"by name and extra"
+upd:"by name and extra"
+upd:"by name and extra"
+upd:"by name and extra"
+upd:"by name and extra"
+upd:"by name and extra"
+upd:"by name and extra"
+upd:"by name and extra"
+
 ConfigAutoHighlightHistory
 "Автоподсветка в списках истории"
 "Autohighlight in history"
@@ -2707,15 +2751,15 @@ upd:"Do nothing"
 "Нічога не рабіць"
 
 ConfigVMenuStopEdge
-"Остановить обертывание по краю"
-"Stop wrap on edge"
-"Zastavte obalení na okraji"
-"Stoppen Sie das Umwickeln am Rand"
-"Állítsd meg az szélén történő csomagolást"
-"Przerwij obracanie wzdłuż krawędzi"
-"Detenga el envoltorio en el borde"
-"Зупинити обертання по краю"
-"Паздзерджыць абгортку па краі"
+"Прокрутка списка по кругу"
+"Loop list scrolling"
+"Procházení seznamu smyčkou"
+"Schleifenlisten-Bildlauf"
+"Hurok lista görgetés"
+"Przewijanie listy w pętli"
+"Desplazamiento en bucle de la lista"
+"Прокручування списку зациклено"
+"Цыклічная прокрутка спісу"
 
 ConfigCmdlineTitle
 l:
