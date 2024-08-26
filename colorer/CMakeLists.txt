@@ -29,6 +29,7 @@ set(SOURCES
 
 # set options for colorer-library
 set(COLORER_USE_ICU_STRINGS OFF)
+set(COLORER_USE_LIBXML ON)
 set(COLORER_BUILD_HARD_WARNINGS OFF)
 set(COLORER_BUILD_OLD_COMPILERS ON)
 
@@ -62,7 +63,7 @@ endif()
 
 add_library(colorer MODULE ${SOURCES})
 
-FIND_PACKAGE(XercesC REQUIRED)
+FIND_PACKAGE(LibXml2 REQUIRED)
 
 # sometimes libstd requires linking to libfmt, sometimes not
 # so, if libfmt there - lets link to it, if not - then dont care
@@ -84,7 +85,6 @@ endif()
 
 target_include_directories(colorer
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/Colorer-library/src
-    PUBLIC ${XERCESC_INCLUDE_DIR}
     )
 
 if(USESPDLOG)
@@ -92,7 +92,6 @@ if(USESPDLOG)
 endif()
 
 target_link_libraries(colorer
-    ${XERCESC_LIBRARIES}
     ${fmt_LIBRARY_OPTIONAL}
     utils
     colorer_lib
