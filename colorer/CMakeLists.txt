@@ -25,6 +25,7 @@ set(SOURCES
     src/pcolorer2/FarHrcSettings.cpp
     src/pcolorer2/pcolorer.cpp
     src/pcolorer2/tools.cpp
+    src/pcolorer2/CerrLogger.cpp
     src/pcolorer2/CerrLogger.h
 )
 
@@ -77,5 +78,5 @@ add_subdirectory("${LIBCOLORER_TREE}" "${CMAKE_BINARY_DIR}/Colorer-library/src")
 set_target_properties(colorer PROPERTIES
     CXX_STANDARD 17
     CXX_STANDARD_REQUIRED YES
-    CXX_EXTENSIONS NO
+    CXX_EXTENSIONS YES
 )
