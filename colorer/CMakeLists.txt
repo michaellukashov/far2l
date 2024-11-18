@@ -43,11 +43,20 @@ target_include_directories(colorer
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/Colorer-library/src
     )
 
-target_link_libraries(colorer
+target_link_libraries(colorer PRIVATE
     utils
     colorer_lib
     far2l
     )
+    if(OPT_USE_STATIC_EXT_LIBS)
+        FIND_PACKAGE(ZLIB REQUIRED)
+        target_link_libraries(colorer PRIVATE
+            # ${VCPKG_INSTALLED_PATH}/lib/libz.a
+            ZLIB::ZLIB
+            ${VCPKG_INSTALLED_PATH}/lib/libxml2.a
+            ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
+            dl)
+    endif(OPT_USE_STATIC_EXT_LIBS)
 
 target_compile_definitions(colorer PUBLIC
     _UNICODE

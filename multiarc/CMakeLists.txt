@@ -259,6 +259,11 @@ if(LibArchive_FOUND)
             #LibLZMA::LibLZMA
             BZip2::BZip2
         )
+        target_link_libraries(multiarc
+            ${VCPKG_INSTALLED_PATH}/lib/libz.a
+            ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
+            dl
+        )
     endif(OPT_USE_STATIC_EXT_LIBS)
     target_link_libraries(multiarc ${LibArchive_LIBRARIES} ${OPENSSL_LIBRARIES})
     target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
