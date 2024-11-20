@@ -586,7 +586,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
     endif (OPT_USE_STATIC_EXT_LIBS)
     endif (FALSE)
 
-    if(OPT_USE_STATIC_EXT_LIBS)
+    if(OPT_USE_STATIC_EXT_LIBS AND EXISTS LIBNEON_ROOT_DIR)
       find_library(LIBNEON_LIBRARY
         NAMES
           neon
@@ -595,11 +595,11 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
           ${LIBNEON_ROOT_DIR}/lib
         NO_CMAKE_SYSTEM_PATH
       )
-      #message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
-      #message("LIBNEON_ROOT_DIR: ${LIBNEON_ROOT_DIR}")
-      #message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
-      if(EXISTS ${LIBNEON_LIBRARY})
-        set(LIBNEON_FOUND TRUE)
+      message(STATUS "LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
+      message(STATUS "LIBNEON_ROOT_DIR: ${LIBNEON_ROOT_DIR}")
+      message(STATUS "LIBNEON_FOUND: '${LIBNEON_FOUND}'")
+      if(LIBNEON_FOUND STREQUAL TRUE AND EXISTS ${LIBNEON_LIBRARY})
+        # set(LIBNEON_FOUND TRUE)
         set(LIBNEON_LIBRARIES ${LIBNEON_LIBRARY})
         set(LIBNEON_INCLUDE_DIR ${LIBNEON_ROOT_DIR}/include)
         set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
@@ -609,7 +609,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
     else()
       include(cmake/modules/FindLibNEON.cmake)
       find_package(LibNEON CONFIG)
-    endif(OPT_USE_STATIC_EXT_LIBS)
+    endif()
 
     find_package(LibNfs)
     if(LIBNFS_FOUND)
@@ -619,19 +619,19 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
     endif(LIBNFS_FOUND)
 
     find_package(LibNEON)
-    if(LIBNEON_FOUND)
+    if(LIBNEON_FOUND STREQUAL TRUE AND EXISTS ${LIBNEON_LIBRARY})
         message(STATUS "libneon found -> enjoy WebDav support in NetRocks")
     else()
         message(WARNING "${ColorRed}libneon not found, NetRocks will not have WebDav protocol support. Install libneon*-dev if you want WebDav protocol available in NetRocks.${ColorNormal}")
-    endif(LIBNEON_FOUND)
+    endif()
 
     add_subdirectory (NetRocks)
 
     #message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
     if(OPT_USE_STATIC_EXT_LIBS)
         #add_dependencies(NetRocks-NFS LibNfs)
-        if(LIBNEON_FOUND)
-        add_dependencies(NetRocks-WebDAV LibNEON)
+        if(LIBNEON_FOUND STREQUAL TRUE AND EXISTS ${LIBNEON_LIBRARY})
+        # add_dependencies(NetRocks-WebDAV LibNEON)
         target_link_libraries(NetRocks-WebDAV ${LIBNEON_LIBRARY})
         target_link_libraries(NetRocks-WebDAV ${OPENSSL_LIBRARIES} #${OPENSSL_SSL_LIBRARY} #LibXml2::LibXml2 LibLZMA::LibLZMA
             ${VCPKG_INSTALLED_PATH}/lib/libz.a
@@ -639,7 +639,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
             ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
             #${VCPKG_INSTALLED_PATH}/lib/liproxy.a
             dl)
-        endif(LIBNEON_FOUND)
+        endif()
     endif(OPT_USE_STATIC_EXT_LIBS)
 
 else()
