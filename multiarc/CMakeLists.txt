@@ -218,15 +218,8 @@ else()
 endif()
 
 target_include_directories(multiarc PRIVATE src)
-target_include_directories(multiarc PRIVATE src/libpcre)
 target_include_directories(multiarc PRIVATE ../WinPort)
 target_include_directories(multiarc PRIVATE ../far2l/far2sdk)
-
-if(PCRE_FOUND)
-    target_compile_definitions(multiarc PRIVATE -DHAVE_PCRE)
-    target_link_libraries(multiarc ${PCRE_LDFLAGS} ${PCRE_LIBRARIES})
-    target_include_directories(multiarc PRIVATE ${PCRE_INCLUDE_DIRS})
-endif()
 
 message("LibArchive_LIBRARIES: ${LibArchive_LIBRARIES}")
 message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
