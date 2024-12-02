@@ -254,7 +254,9 @@ if(LibArchive_FOUND)
         )
         target_link_libraries(multiarc
             ${VCPKG_INSTALLED_PATH}/lib/libz.a
+            ${VCPKG_INSTALLED_PATH}/lib/libarchive.a
             ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
+            ${VCPKG_INSTALLED_PATH}/lib/libzstd.a
             dl
         )
     else()
