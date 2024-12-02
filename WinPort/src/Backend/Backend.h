@@ -8,7 +8,15 @@
 ///   Something changed in code below.
 ///   "WinCompat.h" changed in a way affecting code below.
 ///   Behavior of backend's code changed in incompatible way.
-#define FAR2L_BACKEND_ABI_VERSION	0x07
+#define FAR2L_BACKEND_ABI_VERSION	0x0C
+
+#define NODETECT_NONE   0x0000
+#define NODETECT_XI     0x0001
+#define NODETECT_X      0x0002
+#define NODETECT_F      0x0004
+#define NODETECT_W      0x0008
+#define NODETECT_A      0x0010
+#define NODETECT_K      0x0020
 
 class IConsoleOutputBackend
 {
@@ -32,7 +40,11 @@ public:
 	virtual bool OnConsoleBackgroundMode(bool TryEnterBackgroundMode) = 0;
 	virtual bool OnConsoleSetFKeyTitles(const char **titles) = 0;
 	virtual BYTE OnConsoleGetColorPalette() = 0;
+	virtual void OnConsoleGetBasePalette(void *pbuff) = 0;
+	virtual bool OnConsoleSetBasePalette(void *pbuff) = 0;
 	virtual void OnConsoleOverrideColor(DWORD Index, DWORD *ColorFG, DWORD *ColorBK) = 0;
+	virtual void OnConsoleSetCursorBlinkTime(DWORD interval) = 0;
+	virtual const char *OnConsoleBackendInfo(int entity) = 0;
 };
 
 class IClipboardBackend
@@ -144,6 +156,8 @@ protected:
 	virtual void Unlock() = 0;
 
 public:
+	virtual unsigned int WaitForChange(unsigned int prev_change_id, unsigned int timeout_msec = -1) = 0;
+
 	virtual IConsoleOutput *ForkConsoleOutput(HANDLE con_handle) = 0;
 	virtual void JoinConsoleOutput(IConsoleOutput *con_out) = 0;
 
@@ -151,6 +165,8 @@ public:
 
 	virtual void SetAttributes(DWORD64 attributes) = 0;
 	virtual DWORD64 GetAttributes() = 0;
+
+	virtual void SetCursorBlinkTime(DWORD interval) = 0;
 	virtual void SetCursor(COORD pos) = 0;
 	virtual void SetCursor(UCHAR height, bool visible) = 0;
 	virtual COORD GetCursor() = 0;
@@ -194,9 +210,13 @@ public:
 	virtual bool ConsoleBackgroundMode(bool TryEnterBackgroundMode) = 0;
 	virtual bool SetFKeyTitles(const CHAR **titles) = 0;
 	virtual BYTE GetColorPalette() = 0;
+	virtual void GetBasePalette(void *p) = 0;
+	virtual bool SetBasePalette(void *p) = 0;
 	virtual void OverrideColor(DWORD Index, DWORD *ColorFG, DWORD *ColorBK) = 0;
 	virtual void RepaintsDeferStart() = 0;
-	virtual void RepaintsDeferFinish() = 0;
+	virtual void RepaintsDeferFinish(bool force) = 0;
+
+	virtual const char *BackendInfo(int entity) = 0;
 
 	inline std::wstring GetTitle()
 	{
@@ -232,7 +252,6 @@ public:
 
 extern IConsoleOutput *g_winport_con_out;
 extern IConsoleInput *g_winport_con_in;
-extern const wchar_t *g_winport_backend;
 
 //////////////////////////////////////////////////////////////////////////////////
 

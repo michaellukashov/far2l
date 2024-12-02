@@ -67,9 +67,8 @@ $^#Configuration menu#
  #Enable desktop notifications# this options controls if NetRocks will use desktop environment notifications on operation completions or errors. Note that behavior of this notifications partially controlled by FAR.
  #<ENTER> to execute files remotely when possible# if enabled then pressing <ENTER> on remote executable file will execute it remotely instead of download and run locally. Note that this option only works for protocols that support it (like SFTP/SCP) and doesn't affect non-executable files, like documents, - they will be still downloaded and opened locally.
  #Smart symlinks copying# if (by default) enabled then NetRocks will translate symlinks paths to refer file that copied in same copy operation, or, if symlinks refer file that is not being copied - then such symlink will be converted to plain file. If disabled then NetRocks will just copy symlinks as is, without any efforts to ensure their validity in the new location.
- #Copy attributes that override umask# enable this options if want to have copied files modes to be exactly same as on source files, even in target system umask prevents some mode bits from being set.
+ #Use of chmod# change this options if want to have copied files modes to be exactly same as on source files, even in target system umask prevents some mode bits from being set. Or if you want to disable using of chmod at all - for example to avoid other inherited ACLs from being overriden by it.
  #Connections pool expiration# when exiting from some remote FS navigation NetRocks will keep actual connection active for specified amount of time and if same server connection will be established before expiration - it will use preserved connection instead of establishing new.
- #Connect using proxy# enable this option to enable protocol-invariant proxy server tunneling. This options uses tsocks library and thus can be enabled only if it installed. Also you will need to edit its configuration file to adjust it to your needs.
  
  ~Contents~@Contents@
 
@@ -83,6 +82,7 @@ $^#Site connection editor#
  This dialog allows you to create new connection site or modify existing connection site settings. You should select protocol you want use and the define connection settings, like #hostname and port# to connect to, #login mode# and #username and password# if needed.
 Also by clicking on #Extra options# button you can modify some ~extra site settings~@ExtraSiteSettings@.
 Also by clicking on #Protocol options# button you can modify some protocol-specific settings.
+Also by clicking on #Proxy options# button you can modify generic ~proxy settings~@ProxySettings@.
  ~SFTP:// and SCP:// protocols specific options~@ProtocolOptionsSFTPSCP@
  ~SHELL:// protocols specific options~@ProtocolOptionsSHELL@
  ~FTP:// and FTPS:// protocols specific options~@ProtocolOptionsFTP@
@@ -133,7 +133,10 @@ $^#SFTP:// SCP:// protocols specific options#
  #TCP_NODELAY socket option:# also can improve network performance by eliminating delay used by TCP stack to buffer outgoing data. However in some cases it may also increase network packets rate, so use it when you know that its better.
  #TCP_QUICKACK socket option:# if enabled, TCP ack packets are sent immediately, rather than delayed that may improve receive performance.
  #Custom subsystem request/exec# here you can replace default SFTP subsystem handler with specific command, usually its used to get superuser access from sudo'er account by using command line like [sudo /usr/lib/openssh/sftp-server]
- #Allowed host keys# if non-empty then forces using only specified key-exchange algorithms. Beside of restricting other algorithms this option can be used to allow using some deprecated algorithm e.g. ssh-rsa if server doesn't support modern ones.
+ #Allowed host keys# if non-empty then forces using only specified host key algorithms. Beside of restricting other algorithms this option can be used to allow using some deprecated algorithm e.g. ssh-rsa if server doesn't support modern ones.
+ #Allowed KEX algorithms# if non-empty then forces using only specified key-exchange algorithms. Beside of restricting other algorithms this option can be used to allow using some deprecated algorithm e.g. diffie-hellman-group1-sha1 if server doesn't support modern ones.
+ #Allowed HMAC client->server# if non-empty then forces using only specified HMAC client->server algorithms. Beside of restricting other algorithms this option can be used to allow using some deprecated algorithm e.g. hmac-sha1 if server doesn't support modern ones.
+ #Allowed HMAC server->client# if non-empty then forces using only specified HMAC server->client algorithms. Beside of restricting other algorithms this option can be used to allow using some deprecated algorithm e.g. hmac-sha1 if server doesn't support modern ones.
  #OpenSSH config files# allows to specify which OpenSSH config files to use for this connection. By default ~~/.ssh/config and /etc/ssh/ssh_config are used. Note that libssh version prior 0.9.0 always parses default config files regardless of this option (so you can only add extra configs), but since version 0.9.0 it's possible to disable/override default config files parsing. To specify more than one file - use colon to separate their paths.
 
  ~Contents~@Contents@
@@ -228,6 +231,20 @@ $^#DAV://  and DAVS:// protocol specific options#
  This dialog allows you to modify "dav://" and "davs://" protocol specific settings: enable connect via HTTP/HTTPS proxy with optional proxy authentication.
 
  ~Contents~@Contents@
+
+@ProxySettings
+$^#NetRocks plugin#
+$^#Version 1.0#
+$^#Copyright (C) 2019 elfmz#
+$^#Contents
+$^#Proxy settings dialog#
+
+ This dialog allows you to specify generic proxy settings for connection. Currently such generic support is implemented by using of external 'proxifier' tool. Two such tools are supported: #proxychains# and #tsocks#. So in order to use this option
+you have to install any of them (however proxychains is recommended) and edit its configuration in this dialog. This configuration will be used only with chosen connection and stored in site connection settings.
+
+ ~Contents~@Contents@
+
+
 
 @Contact
 $^#NetRocks plugin#

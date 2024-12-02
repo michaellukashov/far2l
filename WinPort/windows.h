@@ -38,6 +38,9 @@
 #define    FillConsoleOutputAttribute       WINPORT(FillConsoleOutputAttribute)
 #define    FillConsoleOutputCharacter       WINPORT(FillConsoleOutputCharacter)
 #define    SetConsoleActiveScreenBuffer     WINPORT(SetConsoleActiveScreenBuffer)
+#define    SetConsoleCursorBlinkTime        WINPORT(SetConsoleCursorBlinkTime)
+#define    GetConsoleBasePalette            WINPORT(GetConsoleBasePalette)
+#define    SetConsoleBasePalette            WINPORT(SetConsoleBasePalette)
 
 #define    FlushConsoleInputBuffer          WINPORT(FlushConsoleInputBuffer)
 #define    GetNumberOfConsoleInputEvents    WINPORT(GetNumberOfConsoleInputEvents)

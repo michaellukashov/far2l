@@ -79,13 +79,17 @@ static const char *DetectPlainKind(const char *Name, const unsigned char *Data, 
 		&& ext && (strcasecmp(ext, ".jpg") == 0 || strcasecmp(ext, ".jpeg") == 0)) {
 			return "JPG";
 
+	} else if (DataSize >= 8 && Data[0] == 0x89 && Data[1] == 0x50 && Data[2] == 0x4e && Data[3] == 0x47
+		&& ext && strcasecmp(ext, ".png") == 0) {
+		return "PNG";
+
 	} else if (DataSize >= 8 && Data[0] == 'A' && Data[1] == 'T' && Data[2] == '&' && Data[3] == 'T'
 		&& Data[4] == 'F' && Data[5] == 'O' && Data[6] == 'R' && Data[7] == 'M'
 		&& ext && strcasecmp(ext, ".djvu") == 0) { // Ensure
-
 		return "DJVU";
 
-	} else if (DataSize >= 8 && ext && strcasecmp(ext, ".mp3") == 0) {
+	} else if (DataSize >= 8 && Data[0] == 0x49 && Data[1] == 0x44 && Data[2] == 0x33
+		&& ext && strcasecmp(ext, ".mp3") == 0) {
 		return "MP3";
 
 	} else if (DataSize >= 8 && Data[0] == 'M' && Data[1] == 'A' && Data[2] == 'C'
@@ -99,6 +103,19 @@ static const char *DetectPlainKind(const char *Name, const unsigned char *Data, 
 	} else if (DataSize >= 8 && Data[0] == 'f' && Data[1] == 'L' && Data[2] == 'a' && Data[3] == 'C'
 		&& ext && strcasecmp(ext, ".flac") == 0) {
 		return "FLAC";
+
+	} else if (DataSize >= 8 && Data[0] == 'O' && Data[1] == 'g' && Data[2] == 'g' && Data[3] == 'S'
+		&& ext && (strcasecmp(ext, ".ogg") == 0 || strcasecmp(ext, ".oga") == 0 || strcasecmp(ext, ".opus") == 0)) {
+		return "OGG";
+
+	} else if (DataSize >= 12 && memcmp(Data + 4, "ftypM4A ", 8) == 0
+		&& ext && strcasecmp(ext, ".m4a") == 0) {
+		return "M4A";
+
+	} else if (DataSize >= 4 && Data[0] == 0x4d && Data[1] == 0x5a
+		&& ext && (strcasecmp(ext, ".exe") == 0 || strcasecmp(ext, ".dll") == 0 || strcasecmp(ext, ".sys") == 0
+			|| strcasecmp(ext, ".drv") == 0 || strcasecmp(ext, ".ocx") == 0 || strcasecmp(ext, ".efi") == 0)) {
+		return "PE";
 	}
 
 	return nullptr;
@@ -243,7 +260,7 @@ SHAREDSYMBOL void WINAPI _export GetPluginInfo(struct PluginInfo *Info)
 	Info->PluginConfigStringsNumber = ARRAYSIZE(PluginCfgStrings);
 
 	static char s_command_prefix[G.MAX_COMMAND_PREFIX + 1] = {}; // WHY?
-	strncpy(s_command_prefix, G.command_prefix.c_str(), sizeof(s_command_prefix));
+	strncpy(s_command_prefix, G.command_prefix.c_str(), sizeof(s_command_prefix) - 1);
 	Info->CommandPrefix = s_command_prefix;
 }
 
@@ -274,10 +291,10 @@ SHAREDSYMBOL int WINAPI _export Configure(int ItemNumber)
 		{DI_BUTTON,     0,  4,  0,  4,  0, {}, DIF_CENTERGROUP, 0, {}}
 	};
 
-	ArrayCpyZ(fdi[0].Data, G.GetMsg(MTitle));
-	ArrayCpyZ(fdi[1].Data, G.GetMsg(MDescription));
-	ArrayCpyZ(fdi[2].Data, G.GetMsg(MOK));
-	ArrayCpyZ(fdi[3].Data, G.GetMsg(MCleanup));
+	CharArrayCpyZ(fdi[0].Data, G.GetMsg(MTitle));
+	CharArrayCpyZ(fdi[1].Data, G.GetMsg(MDescription));
+	CharArrayCpyZ(fdi[2].Data, G.GetMsg(MOK));
+	CharArrayCpyZ(fdi[3].Data, G.GetMsg(MCleanup));
 
 	if (G.info.Dialog(G.info.ModuleNumber, -1, -1, 74, 7, NULL, fdi, ARRAYSIZE(fdi)) == 3) {
 		Storage::Clear();

@@ -20,6 +20,7 @@ src/UI/DialogUtils.cpp
 src/UI/Settings/ConfigurePlugin.cpp
 src/UI/Settings/SiteConnectionEditor.cpp
 src/UI/Settings/ExtraSiteSettings.cpp
+src/UI/Settings/ProxySettings.cpp
 src/UI/Settings/ConfigureProtocolSFTPSCP.cpp
 src/UI/Settings/ConfigureProtocolFTP.cpp
 src/UI/Settings/ConfigureProtocolSMB.cpp
@@ -118,13 +119,16 @@ if (LIBSSH_FOUND AND ((NOT DEFINED NR_SFTP) OR NR_SFTP))
     )
     #message("LIBSSH_LIBRARIES: ${LIBSSH_LIBRARIES}")
     #message("MBEDTLS_LIBRARIES: ${MBEDTLS_LIBRARIES}")
-    #message("OPENSSL_LIBRARY: ${OPENSSL_LIBRARY}")
-    #message("OPENSSL_SSL_LIBRARY: ${OPENSSL_SSL_LIBRARY}")
+    message(STATUS "OPENSSL_LIBRARY: ${OPENSSL_LIBRARY}")
+    message(STATUS "OPENSSL_SSL_LIBRARY: ${OPENSSL_SSL_LIBRARY}")
+    message(STATUS "OPENSSL_CRYPTO_LIBRARY: ${OPENSSL_CRYPTO_LIBRARY}")
     target_link_libraries(NetRocks-SFTP utils ${LIBSSH_LIBRARIES} ${OPENSSL_LIBRARY} ${OPENSSL_SSL_LIBRARY})
     target_include_directories(NetRocks-SFTP PRIVATE src ${LIBSSH_INCLUDE_DIRS})
     if(OPT_USE_STATIC_EXT_LIBS)
         target_link_libraries(NetRocks-SFTP
-            ${VCPKG_INSTALLED_PATH}/lib/libz.a dl)
+            ${VCPKG_INSTALLED_PATH}/lib/libz.a
+            ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
+            dl)
         target_include_directories(NetRocks-SFTP PRIVATE src ${LIBSSH_INCLUDE_DIRS})
         target_include_directories(NetRocks-SFTP PRIVATE ${LIBSSH_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS})
     endif(OPT_USE_STATIC_EXT_LIBS)

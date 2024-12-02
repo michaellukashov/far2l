@@ -229,7 +229,7 @@ void VMenu::UpdateItemFlags(int Pos, DWORD NewFlags)
 }
 
 // переместить курсор c учётом пунктов которые не могу получать фокус
-int VMenu::SetSelectPos(int Pos, int Direct)
+int VMenu::SetSelectPos(int Pos, int Direct, bool stop_on_edge)
 {
 	CriticalSectionLock Lock(CS);
 
@@ -238,7 +238,7 @@ int VMenu::SetSelectPos(int Pos, int Direct)
 
 	for (int Pass = 0, I = 0;; I++) {
 		if (Pos < 0) {
-			if (CheckFlags(VMENU_WRAPMODE)) {
+			if (CheckFlags(VMENU_WRAPMODE) && !stop_on_edge) {
 				Pos = ItemCount - 1;
 			} else {
 				Pos = 0;
@@ -247,7 +247,7 @@ int VMenu::SetSelectPos(int Pos, int Direct)
 		}
 
 		if (Pos >= ItemCount) {
-			if (CheckFlags(VMENU_WRAPMODE)) {
+			if (CheckFlags(VMENU_WRAPMODE) && !stop_on_edge) {
 				Pos = 0;
 			} else {
 				Pos = ItemCount - 1;
@@ -943,7 +943,7 @@ int VMenu::ProcessKey(FarKey Key)
 		case KEY_NUMENTER:
 		case KEY_ENTER: {
 			if (!ParentDialog || CheckFlags(VMENU_COMBOBOX)) {
-				if (ItemCanBeEntered(Item[SelectPos]->Flags)) {
+				if (SelectPos < 0 || ItemCanBeEntered(Item[SelectPos]->Flags)) {
 					EndLoop = TRUE;
 					Modal::ExitCode = SelectPos;
 				}
@@ -953,6 +953,7 @@ int VMenu::ProcessKey(FarKey Key)
 		}
 		case KEY_ESC:
 		case KEY_F10: {
+			EnableFilter(false);
 			if (!ParentDialog || CheckFlags(VMENU_COMBOBOX)) {
 				EndLoop = TRUE;
 				Modal::ExitCode = -1;
@@ -1061,32 +1062,35 @@ int VMenu::ProcessKey(FarKey Key)
 
 			break;
 		}
+
 		case KEY_MSWHEEL_UP:	// $ 27.04.2001 VVM - Обработка KEY_MSWHEEL_XXXX
+			SetSelectPos(SelectPos - 1, -1, true);
+			ShowMenu(true, false);
+			break;
+
+		case KEY_MSWHEEL_DOWN:	// $ 27.04.2001 VVM + Обработка KEY_MSWHEEL_XXXX
+			SetSelectPos(SelectPos + 1, 1, true);
+			ShowMenu(true, false);
+			break;
+
 		case KEY_LEFT:
 		case KEY_NUMPAD4:
 		case KEY_UP:
 		case KEY_NUMPAD8: {
-			SetSelectPos(SelectPos - 1, -1);
+			SetSelectPos(SelectPos - 1, -1, IsRepeatedKey() && !Opt.VMenu.MenuLoopScroll);
 			ShowMenu(true, false);
 			break;
 		}
-		case KEY_MSWHEEL_DOWN:	// $ 27.04.2001 VVM + Обработка KEY_MSWHEEL_XXXX
 		case KEY_RIGHT:
 		case KEY_NUMPAD6:
 		case KEY_DOWN:
 		case KEY_NUMPAD2: {
-			SetSelectPos(SelectPos + 1, 1);
+			SetSelectPos(SelectPos + 1, 1, IsRepeatedKey() && !Opt.VMenu.MenuLoopScroll);
 			ShowMenu(true, false);
 			break;
 		}
 		case KEY_CTRLALTF: {
-			bFilterEnabled = !bFilterEnabled;
-			bFilterLocked = false;
-			strFilter.Clear();
-
-			if (!bFilterEnabled)
-				RestoreFilteredItems();
-
+			EnableFilter(!bFilterEnabled);
 			DisplayObject();
 			break;
 		}
@@ -1580,11 +1584,12 @@ void VMenu::DrawEdges()
 {
 	if (!CheckFlags(VMENU_DISABLEDRAWBACKGROUND) && !CheckFlags(VMENU_LISTBOX)) {
 		if (BoxType == SHORT_DOUBLE_BOX || BoxType == SHORT_SINGLE_BOX) {
+			SetScreen(X1, Y1, X2, Y2, L' ', Colors[VMenuColorBody]);
 			Box(X1, Y1, X2, Y2, Colors[VMenuColorBox], BoxType);
 
 			if (!CheckFlags(VMENU_LISTBOX | VMENU_ALWAYSSCROLLBAR)) {
-				MakeShadow(X1 + 2, Y2 + 1, X2 + 1, Y2 + 1);
-				MakeShadow(X2 + 1, Y1 + 1, X2 + 2, Y2 + 1);
+				MakeShadow(X1 + 2, Y2 + 1, X2, Y2 + 1, SaveScr);
+				MakeShadow(X2 + 1, Y1 + 1, X2 + 2, Y2 + 1, SaveScr);
 			}
 		} else {
 			if (BoxType != NO_BOX)
@@ -1593,8 +1598,8 @@ void VMenu::DrawEdges()
 				SetScreen(X1, Y1, X2, Y2, L' ', Colors[VMenuColorBody]);
 
 			if (!CheckFlags(VMENU_LISTBOX | VMENU_ALWAYSSCROLLBAR)) {
-				MakeShadow(X1, Y2 + 2, X2 + 3, Y2 + 2);
-				MakeShadow(X2 + 3, Y1, X2 + 4, Y2 + 2);
+				MakeShadow(X1, Y2 + 2, X2 + 2, Y2 + 2, SaveScr);
+				MakeShadow(X2 + 3, Y1, X2 + 4, Y2 + 2, SaveScr);
 			}
 
 			if (BoxType != NO_BOX)
@@ -1909,7 +1914,7 @@ void VMenu::ShowMenu(bool IsParent, bool ForceFrameRedraw)
 					CheckMark[0] = wchar_t((Item[I]->Flags & 0xFFFF) ? Item[I]->Flags & 0xFFFF : 0x221A);
 				}
 
-				int Col;
+				uint64_t Col;
 				if ((Item[I]->Flags & LIF_SELECTED))
 					Col = Colors[Item[I]->Flags & LIF_GRAYED ? VMenuColorSelGrayed : VMenuColorSelected];
 				else
@@ -1985,6 +1990,7 @@ void VMenu::ShowMenu(bool IsParent, bool ForceFrameRedraw)
 			}
 
 			SetColor(Colors[VMenuColorText]);
+
 			// сделаем добавочку для NO_BOX
 			FS << fmt::Expand(((BoxType != NO_BOX) ? X2 - X1 - 1 : X2 - X1) + ((BoxType == NO_BOX) ? 1 : 0))
 				<< L"";
@@ -2175,7 +2181,8 @@ bool VMenu::CheckKeyHiOrAcc(DWORD Key, int Type, int Translate)
 
 		if (ItemCanHaveFocus(CurItem->Flags)
 				&& ((!Type && CurItem->AccelKey && Key == CurItem->AccelKey)
-						|| (Type && IsKeyHighlighted(CurItem->strName, Key, Translate, CurItem->AmpPos)))) {
+						|| (Type && !CheckFlags(VMENU_SHOWAMPERSAND)
+								&& IsKeyHighlighted(CurItem->strName, Key, Translate, CurItem->AmpPos)))) {
 			SetSelectPos(I, 1);
 			ShowMenu(true, false);
 
@@ -2456,12 +2463,14 @@ void VMenu::GetColors(FarListColors *ColorsOut)
 	memmove(ColorsOut->Colors, Colors, Min(sizeof(Colors), ColorsOut->ColorCount * sizeof(Colors[0])));
 }
 
-void VMenu::SetOneColor(int Index, short Color)
+void VMenu::SetOneColor(int Index, uint64_t Color)
 {
 	CriticalSectionLock Lock(CS);
 
 	if (Index < (int)ARRAYSIZE(Colors))
-		Colors[Index] = FarColorToReal(Color);
+		Colors[Index] = Color;
+
+//		Colors[Index] = FarColorToReal(Color);
 }
 
 BOOL VMenu::GetVMenuInfo(FarListInfo *Info)
@@ -2670,7 +2679,9 @@ int VMenu::FindItem(int StartIndex, const wchar_t *Pattern, DWORD Flags)
 		for (int I = StartIndex; I < ItemCount; I++) {
 			FARString strTmpBuf(Item[I]->strName);
 			int LenNamePtr = (int)strTmpBuf.GetLength();
-			RemoveChar(strTmpBuf, L'&');
+			if ( (Flags & LIFIND_KEEPAMPERSAND) == 0) {
+				RemoveChar(strTmpBuf, L'&');
+			}
 
 			if (Flags & LIFIND_EXACTMATCH) {
 				if (!StrCmpNI(strTmpBuf, Pattern, Max(LenPattern, LenNamePtr)))
@@ -2741,4 +2752,14 @@ void VMenu::SortItems(int Direction, int Offset, BOOL SortForDataDWORD)
 	UpdateSelectPos();
 
 	SetFlags(VMENU_UPDATEREQUIRED);
+}
+
+void VMenu::EnableFilter(bool Enable)
+{
+	bFilterEnabled = Enable;
+	bFilterLocked = false;
+	strFilter.Clear();
+
+	if (!Enable)
+		RestoreFilteredItems();
 }

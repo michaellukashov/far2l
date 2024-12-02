@@ -43,8 +43,8 @@
 #define BRACKETED_PASTE_SEQ_START "\x1b[200~"
 #define BRACKETED_PASTE_SEQ_STOP  "\x1b[201~"
 
-const char *VT_TranslateSpecialKey(const WORD key, bool ctrl, bool alt, bool shift, unsigned char keypad = 0,
-	WCHAR uc = 0);
+const char *VT_TranslateSpecialKey(const WORD key, bool ctrl, bool alt, bool shift, unsigned char keypad = 0, WCHAR uc = 0);
+std::string VT_TranslateKeyToKitty(const KEY_EVENT_RECORD &KeyEvent, int kitty_kb_flags);
 
 #if 0 //change to 1 to enable verbose I/O reports to stderr
 static void DbgPrintEscaped(const char *info, const char *s, size_t l)
@@ -83,6 +83,24 @@ std::string VTSanitizeHistcontrol()
 	return hc_override;
 }
 
+const char *GetSystemShell()
+{
+	const char *env_shell = getenv("SHELL");
+	if (!env_shell || !*env_shell) {
+		return "/bin/sh";
+	}
+
+	const char *slash = strrchr(env_shell, '/');
+	// avoid using fish and csh for a while, it requires changes in Opt.strQuotedSymbols and some others
+	if (strcmp(slash ? slash + 1 : env_shell, "fish") == 0
+	 || strcmp(slash ? slash + 1 : env_shell, "csh") == 0
+	 || strcmp(slash ? slash + 1 : env_shell, "tcsh") == 0 ) {
+		return "bash";
+	}
+
+	return env_shell;
+}
+
 class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 {
 	HANDLE _console_handle = NULL;
@@ -100,6 +118,7 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 	std::atomic<unsigned char> _keypad{0};
 	std::atomic<bool> _bracketed_paste_expected{false};
 	std::atomic<bool> _win32_input_mode_expected{false};
+	std::atomic<int> _kitty_kb_flags{0};
 	INPUT_RECORD _last_window_info_ir;
 	std::unique_ptr<VTFar2lExtensios> _far2l_exts;
 	std::unique_ptr<VTMouse> _mouse;
@@ -112,24 +131,6 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 	bool _may_notify{false};
 	std::atomic<bool> _allow_osc_clipset{false};
 	std::string _init_user_profile;
-
-	static const char *GetSystemShell()
-	{
-		const char *env_shell = getenv("SHELL");
-		if (!env_shell || !*env_shell) {
-			return "/bin/sh";
-		}
-
-		const char *slash = strrchr(env_shell, '/');
-		// avoid using fish and csh for a while, it requires changes in Opt.strQuotedSymbols and some others
-		if (strcmp(slash ? slash + 1 : env_shell, "fish") == 0
-		 || strcmp(slash ? slash + 1 : env_shell, "csh") == 0
-		 || strcmp(slash ? slash + 1 : env_shell, "tcsh") == 0 ) {
-			return "bash";
-		}
-
-		return env_shell;
-	}
 
 	int ExecLeaderProcess()
 	{
@@ -157,11 +158,11 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 		// to avoid shell history pollution by far2l's intermediate script execution commands
 		const std::string &hc_override = VTSanitizeHistcontrol();
 
-		const BYTE col = FarColorToReal(COL_COMMANDLINEUSERSCREEN);
+		const BYTE col = static_cast<BYTE>(FarColorToReal(COL_COMMANDLINEUSERSCREEN));
 		char colorfgbg[32];
-		sprintf(colorfgbg, "%u;%u",
-			AnsiEsc::ConsoleColorToAnsi(col & 0xf),
-			AnsiEsc::ConsoleColorToAnsi((col >> 4) & 0xf));
+		snprintf(colorfgbg, sizeof(colorfgbg), "%u;%u",
+			 AnsiEsc::ConsoleColorToAnsi(col & 0xf),
+			 AnsiEsc::ConsoleColorToAnsi((col >> 4) & 0xf));
 
 		const auto color_bpp = WINPORT(GetConsoleColorPalette)(ConsoleHandle());
 		std::string askpass_app;
@@ -437,7 +438,7 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 		DWORD dw;
 		const std::string &translated = TranslateKeyEvent(KeyEvent);
 
-		if (!KeyEvent.bKeyDown && !_win32_input_mode_expected)
+		if (!KeyEvent.bKeyDown && !_win32_input_mode_expected && !(_kitty_kb_flags & 2))
 			return;
 
 		if (!translated.empty()) {
@@ -558,6 +559,16 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 		_win32_input_mode_expected = enabled;
 	}
 
+	virtual void SetKittyFlags(int flags)
+	{
+		_kitty_kb_flags = flags;
+	}
+
+	virtual int GetKittyFlags()
+	{
+		return _kitty_kb_flags;
+	}
+
 	virtual void OnApplicationProtocolCommand(const char *str)//NB: called not from main thread!
 	{
 		if (strncmp(str, "far2l", 5) == 0) {
@@ -664,20 +675,30 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 				std::lock_guard<std::mutex> lock(_read_state_mutex); // stop input readout
 				SavedScreen saved_scr;
 				ScrBuf.FillBuf();
-				auto choice = Message(MSG_KEEPBACKGROUND, 3,
-					Msg::TerminalClipboardAccessTitle,
-					Msg::TerminalClipboardSetText,
-					Msg::TerminalClipboardAccessBlock,		// 0
-					Msg::TerminalClipboardSetAllowOnce,		// 1
-					Msg::TerminalClipboardSetAllowForCommand);	// 2
-				if (choice != 1 && choice != 2) {
+				int choice;
+				do { // prevent quick thoughtless tap Enter or Space or Esc in dialog
+					choice = Message(MSG_KEEPBACKGROUND, 4,
+						Msg::TerminalClipboardAccessTitle,
+						Msg::TerminalClipboardSetText,
+						L"...",	// 0 - stub select for thoughtless tap
+						Msg::TerminalClipboardAccessBlock,		// 1
+						Msg::TerminalClipboardSetAllowOnce,		// 2
+						Msg::TerminalClipboardSetAllowForCommand);	// 3
+				} while (choice <= 0 );
+				if (choice != 2 && choice != 3) {
 					return;
 				}
-				if (choice == 2) {
+				if (choice == 3) {
 					_allow_osc_clipset = true;
 				}
 			}
 			OnTerminalResized(); // window could resize during dialog box processing
+		}
+
+		// remove "c;" prefix if any
+		size_t pos = str.rfind(';');
+		if (pos != std::string::npos) {
+			str.erase(0, pos + 1);
 		}
 
 		std::vector<unsigned char> plain;
@@ -729,14 +750,13 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 	std::string TranslateKeyEvent(const KEY_EVENT_RECORD &KeyEvent)
 	{
 		if (KeyEvent.wVirtualKeyCode) {
-
 			const bool ctrl = (KeyEvent.dwControlKeyState & (LEFT_CTRL_PRESSED|RIGHT_CTRL_PRESSED)) != 0;
 			const bool alt = (KeyEvent.dwControlKeyState & (RIGHT_ALT_PRESSED|LEFT_ALT_PRESSED)) != 0;
 			const bool shift = (KeyEvent.dwControlKeyState & (SHIFT_PRESSED)) != 0;
 
 			if (KeyEvent.bKeyDown) {
 
-				if (!ctrl && !shift && !alt && KeyEvent.wVirtualKeyCode==VK_BACK) {
+				if (!ctrl && !shift && !alt && KeyEvent.wVirtualKeyCode==VK_BACK && !_kitty_kb_flags) {
 					//WCM has a setting for that, so probably in some cases backspace should be returned as is
 					char backspace[] = {127, 0};
 					return backspace;
@@ -768,20 +788,22 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 				}
 			}
 
-			if (_win32_input_mode_expected) {
-				char buffer[64];
-				sprintf(buffer, "\x1B[%i;%i;%i;%i;%i;%i_",
-						KeyEvent.wVirtualKeyCode,
-						KeyEvent.wVirtualScanCode,
-						KeyEvent.uChar.UnicodeChar,
-						KeyEvent.bKeyDown,
-						KeyEvent.dwControlKeyState,
-						KeyEvent.wRepeatCount
-					);
-				return buffer;
+			if (_kitty_kb_flags) {
+				return VT_TranslateKeyToKitty(KeyEvent, _kitty_kb_flags);
 			}
 
-			if (!KeyEvent.bKeyDown) { return ""; }
+			if (_win32_input_mode_expected) {
+				return StrPrintf("\x1B[%i;%i;%i;%i;%i;%i_",
+						 KeyEvent.wVirtualKeyCode,
+						 KeyEvent.wVirtualScanCode,
+						 KeyEvent.uChar.UnicodeChar,
+						 KeyEvent.bKeyDown,
+						 KeyEvent.dwControlKeyState,
+						 KeyEvent.wRepeatCount);
+			}
+
+			if (!KeyEvent.bKeyDown)
+				return std::string();
 
 			const char *spec = VT_TranslateSpecialKey(
 				KeyEvent.wVirtualKeyCode, ctrl, alt, shift, _keypad, KeyEvent.uChar.UnicodeChar);
@@ -1013,8 +1035,8 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 		FARString msg(m);
 		msg.Insert(0, L'\n');
 		msg.Append(L'\n');
-		const DWORD64 saved_color = GetColor();
-		SetColor(COL_HELPTOPIC, true);
+		const uint64_t saved_color = GetColor();
+		SetFarColor(COL_HELPTOPIC, true);
 		DWORD dw;
 		WINPORT(WriteConsole)(NULL, msg.CPtr(), msg.GetLength(), &dw, NULL );
 		SetColor(saved_color, true);
@@ -1054,10 +1076,16 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 		}
 
 		std::lock_guard<std::mutex> lock(_read_state_mutex);
-		_far2l_exts.reset();
-		_host_id.clear();
-		_mouse.reset();
+		// reset special terminal modes to avoid messing up of
+		// terminal if application that used them exited abnormally
+		_bracketed_paste_expected = false;
+		_win32_input_mode_expected = false;
+		_kitty_kb_flags = 0;
 		_mouse_expectations = 0;
+		_far2l_exts.reset();
+		_mouse.reset();
+		// cleanup also NetRocks per-session identifier
+		_host_id.clear();
 		return true;
 	}
 

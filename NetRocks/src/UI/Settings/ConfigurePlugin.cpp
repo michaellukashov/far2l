@@ -14,11 +14,9 @@
 | [x] Enable desktop notifications                           |
 | [x] <ENTER> to execute files remotely when possible        |
 | [x] Smart symlinks copying                                 |
-| [ ] Copy attributes that overrides umask                   |
+| Use of chmod:                    [COMBOBOX               ] |
 | [ ] Remember working directory in site settings            |
 | Connections pool expiration (seconds):               [   ] |
-| [ ] Connect using proxy (requires tsocks library)          |
-|     [ Edit tsocks configuration file ]                     |
 |------------------------------------------------------------|
 |             [  OK    ]        [        Cancel       ]      |
  ============================================================
@@ -59,44 +57,21 @@ class ConfigurePlugin : protected BaseDialog
 	int _i_enable_desktop_notifications = -1;
 	int _i_enter_exec_remotely = -1;
 	int _i_smart_symlinks_copy = -1;
-	int _i_umask_override = -1;
+	int _i_use_of_chmod = -1;
 	int _i_remember_directory = -1;
 	int _i_conn_pool_expiration = -1;
-	int _i_use_proxy = -1, _i_edit_tsocks_config = -1;
 
 	int _i_ok = -1, _i_cancel = -1;
 
-	virtual LONG_PTR DlgProc(int msg, int param1, LONG_PTR param2)
-	{
-		if (msg == DN_INITDIALOG) {
-			struct stat s{};
-			if (stat(DEFAULT_TSOCKS_CONFIG, &s) == -1) {
-				SetEnabledDialogControl(_i_use_proxy, false);
-				SetEnabledDialogControl(_i_edit_tsocks_config, false);
-			} else {
-				SetEnabledDialogControl(_i_edit_tsocks_config, IsCheckedDialogControl(_i_use_proxy));
-			}
-
-		} else if (msg == DN_BTNCLICK && param1 == _i_use_proxy) {
-			bool checked = IsCheckedDialogControl(_i_use_proxy);
-			SetEnabledDialogControl(_i_edit_tsocks_config, checked);
-			if (checked) {
-				EnsureTSocksConfigExists();
-			}
-			return TRUE;
-
-		} else if (msg == DN_BTNCLICK && param1 == _i_edit_tsocks_config) {
-			G.info.Editor(StrMB2Wide(G.tsocks_config).c_str(),
-				NULL, -1, -1, -1, -1, EF_DISABLEHISTORY, 1, 1, CP_UTF8);
-			return TRUE;
-		}
-
-		return BaseDialog::DlgProc(msg, param1, param2);
-	}
+	FarListWrapper _di_use_of_chmod;
 
 public:
 	ConfigurePlugin()
 	{
+		_di_use_of_chmod.Add(MUseOfChmod_Auto);
+		_di_use_of_chmod.Add(MUseOfChmod_Always);
+		_di_use_of_chmod.Add(MUseOfChmod_Never);
+
 		_di.SetBoxTitleItem(MPluginOptionsTitle);
 
 		_di.SetLine(2);
@@ -109,7 +84,9 @@ public:
 		_i_smart_symlinks_copy = _di.AddAtLine(DI_CHECKBOX, 5,62, 0, MSmartSymlinksCopy);
 
 		_di.NextLine();
-		_i_umask_override = _di.AddAtLine(DI_CHECKBOX, 5,62, 0, MUMaskOverride);
+		_di.AddAtLine(DI_TEXT, 5,35, 0, MUseOfChmod);
+		_i_use_of_chmod = _di.AddAtLine(DI_COMBOBOX, 36,62, DIF_DROPDOWNLIST | DIF_LISTAUTOHIGHLIGHT | DIF_LISTNOAMPERSAND, "");
+		_di[_i_use_of_chmod].ListItems = _di_use_of_chmod.Get();
 
 		_di.NextLine();
 		_i_remember_directory = _di.AddAtLine(DI_CHECKBOX, 5,62, 0, MRememberDirectory);
@@ -117,11 +94,6 @@ public:
 		_di.NextLine();
 		_di.AddAtLine(DI_TEXT, 5,58, 0, MConnPoolExpiration);
 		_i_conn_pool_expiration = _di.AddAtLine(DI_FIXEDIT, 59,62, DIF_MASKEDIT, "30", "9999");
-
-		_di.NextLine();
-		_i_use_proxy = _di.AddAtLine(DI_CHECKBOX, 5,62, 0, MConnectUsingProxy);
-		_di.NextLine();
-		_i_edit_tsocks_config = _di.AddAtLine(DI_BUTTON, 9,60, 0, MEditTSocksConfig);
 
 		_di.NextLine();
 		_di.AddAtLine(DI_TEXT, 4,61, DIF_BOXCOLOR | DIF_SEPARATOR);
@@ -141,20 +113,18 @@ public:
 		SetCheckedDialogControl( _i_enable_desktop_notifications, G.GetGlobalConfigBool("EnableDesktopNotifications", true) );
 		SetCheckedDialogControl( _i_enter_exec_remotely, G.GetGlobalConfigBool("EnterExecRemotely", true) );
 		SetCheckedDialogControl( _i_smart_symlinks_copy, G.GetGlobalConfigBool("SmartSymlinksCopy", true) );
-		SetCheckedDialogControl( _i_umask_override, G.GetGlobalConfigBool("UMaskOverride", false) );
+		SetDialogListPosition( _i_use_of_chmod, G.GetGlobalConfigInt("UseOfChmod", 0) );
 		SetCheckedDialogControl( _i_remember_directory, G.GetGlobalConfigBool("RememberDirectory", false) );
 		LongLongToDialogControl( _i_conn_pool_expiration, G.GetGlobalConfigInt("ConnectionsPoolExpiration", 30) );
-		SetCheckedDialogControl( _i_use_proxy, G.GetGlobalConfigBool("UseProxy", false) );
 
 		if (Show(L"PluginOptions", 6, 2) == _i_ok) {
 			auto gcw = G.GetGlobalConfigWriter();
 			gcw.SetBool("EnableDesktopNotifications", IsCheckedDialogControl(_i_enable_desktop_notifications) );
 			gcw.SetBool("EnterExecRemotely", IsCheckedDialogControl(_i_enter_exec_remotely) );
 			gcw.SetBool("SmartSymlinksCopy", IsCheckedDialogControl(_i_smart_symlinks_copy) );
-			gcw.SetBool("UMaskOverride", IsCheckedDialogControl(_i_umask_override) );
+			gcw.SetInt("UseOfChmod", GetDialogListPosition(_i_use_of_chmod));
 			gcw.SetBool("RememberDirectory", IsCheckedDialogControl(_i_remember_directory) );
 			gcw.SetInt("ConnectionsPoolExpiration", LongLongFromDialogControl( _i_conn_pool_expiration) );
-			gcw.SetBool("UseProxy", IsCheckedDialogControl(_i_use_proxy) );
 		}
 	}
 };

@@ -1,53 +1,53 @@
-#ifndef _COLORER_REGION_H_
-#define _COLORER_REGION_H_
+#ifndef COLORER_REGION_H
+#define COLORER_REGION_H
 
-#include <colorer/Common.h>
+#include <utility>
+#include "colorer/Common.h"
 
 /**
   HRC Region implementation.
-  Contains information about HRC Region and it attributes:
-  <ul>
-    <li>name
-    <li>description
-    <li>parent
-  </ul>
-  @ingroup colorer
+  Contains information about HRC Region and it attributes.
 */
 class Region
 {
-public:
+ public:
   /** Full Qualified region name (<code>def:Text</code> for example) */
-  virtual const String* getName() const
+  [[nodiscard]]
+  virtual const UnicodeString& getName() const
   {
     return name;
   }
+
   /** Region description */
-  virtual const String* getDescription() const
+  [[nodiscard]]
+  virtual const UnicodeString& getDescription() const
   {
-    return description;
+    return *description;
   }
+
   /** Direct region ancestor (parent) */
+  [[nodiscard]]
   virtual const Region* getParent() const
   {
     return parent;
   }
-  /** Quick access region id (incrementable) */
-  virtual int getID() const
+
+  /** Quick access region id (incremental) */
+  [[nodiscard]]
+  virtual size_t getID() const
   {
     return id;
   }
-  /** Checks if region has the specified parent in all of it's ancestors.
+
+  /** Checks if region has the specified parent in all of its ancestors.
       This method is useful to check if region has specified parent,
       and use this information, as region type specification.
       For example, <code>def:Comment</code> has <code>def:Syntax</code> parent,
-      so, some syntax checking can be made with it's content.
+      so, some syntax checking can be made with its content.
   */
-  __attribute__((noinline)) const Region* This() const {
-    return this;
-  }
   bool hasParent(const Region* region) const
   {
-    const Region* elem = This();
+    auto elem = this;
     while (elem != nullptr) {
       if (region == elem) {
         return true;
@@ -56,32 +56,33 @@ public:
     }
     return false;
   }
+
   /**
     Basic constructor.
-    Used only by HRCParser.
+    Used only by HrcLibrary.
   */
-  Region(const String* _name, const String* _description, const Region* _parent, int _id)
+  Region(UnicodeString _name, const UnicodeString* _description, const Region* _parent, const size_t _id)
+      : name(std::move(_name)),parent(_parent), id(_id)
   {
-    name = new SString(_name);
-    description = nullptr;
     if (_description != nullptr) {
-      description = new SString(_description);
+      description = std::make_unique<UnicodeString>(*_description);
     }
-    parent = _parent;
-    id = _id;
   }
 
-  virtual ~Region()
-  {
-    delete name;
-    delete description;
-  }
+  virtual ~Region() = default;
 
-protected:
-  /** Internal members */
-  String* name, *description;
+  Region(Region&&) = delete;
+  Region(const Region&) = delete;
+  Region& operator=(const Region&) = delete;
+  Region& operator=(Region&&) = delete;
+
+ protected:
+  UnicodeString name;
+  uUnicodeString description;
   const Region* parent;
-  int id;
+
+  /** unique id of Region */
+  size_t id;
 };
 
-#endif
+#endif  // COLORER_REGION_H

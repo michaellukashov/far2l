@@ -1,17 +1,319 @@
 #include <assert.h>
 #include "ConsoleInput.h"
 
+const char* VirtualKeyNames[] = {
+    "0x00",             // 0x00
+    "VK_LBUTTON",       // 0x01
+    "VK_RBUTTON",       // 0x02
+    "VK_CANCEL",        // 0x03
+    "VK_MBUTTON",       // 0x04
+    "VK_XBUTTON1",      // 0x05
+    "VK_XBUTTON2",      // 0x06
+    "0x07",             // 0x07
+    "VK_BACK",          // 0x08
+    "VK_TAB",           // 0x09
+    "0x0A",             // 0x0A
+    "0x0B",             // 0x0B
+    "VK_CLEAR",         // 0x0C
+    "VK_RETURN",        // 0x0D
+    "0x0E",             // 0x0E
+    "0x0F",             // 0x0F
+    "VK_SHIFT",         // 0x10
+    "VK_CONTROL",       // 0x11
+    "VK_MENU",          // 0x12
+    "VK_PAUSE",         // 0x13
+    "VK_CAPITAL",       // 0x14
+    "VK_HANGUEL",       // 0x15
+    "0x16",             // 0x16
+    "VK_JUNJA",         // 0x17
+    "VK_FINAL",         // 0x18
+    "VK_HANJA",         // 0x19
+    "0x1A",             // 0x1A
+    "VK_ESCAPE",        // 0x1B
+    "VK_CONVERT",       // 0x1C
+    "VK_NONCONVERT",    // 0x1D
+    "VK_ACCEPT",        // 0x1E
+    "VK_MODECHANGE",    // 0x1F
+    "VK_SPACE",         // 0x20
+    "VK_PRIOR",         // 0x21
+    "VK_NEXT",          // 0x22
+    "VK_END",           // 0x23
+    "VK_HOME",          // 0x24
+    "VK_LEFT",          // 0x25
+    "VK_UP",            // 0x26
+    "VK_RIGHT",         // 0x27
+    "VK_DOWN",          // 0x28
+    "VK_SELECT",        // 0x29
+    "VK_PRINT",         // 0x2A
+    "VK_EXECUTE",       // 0x2B
+    "VK_SNAPSHOT",      // 0x2C
+    "VK_INSERT",        // 0x2D
+    "VK_DELETE",        // 0x2E
+    "VK_HELP",          // 0x2F
+    "VK_0",             // 0x30
+    "VK_1",             // 0x31
+    "VK_2",             // 0x32
+    "VK_3",             // 0x33
+    "VK_4",             // 0x34
+    "VK_5",             // 0x35
+    "VK_6",             // 0x36
+    "VK_7",             // 0x37
+    "VK_8",             // 0x38
+    "VK_9",             // 0x39
+    "0x3A",             // 0x3A
+    "0x3B",             // 0x3B
+    "0x3C",             // 0x3C
+    "0x3D",             // 0x3D
+    "0x3E",             // 0x3E
+    "0x3F",             // 0x3F
+    "0x40",             // 0x40
+    "VK_A",             // 0x41
+    "VK_B",             // 0x42
+    "VK_C",             // 0x43
+    "VK_D",             // 0x44
+    "VK_E",             // 0x45
+    "VK_F",             // 0x46
+    "VK_G",             // 0x47
+    "VK_H",             // 0x48
+    "VK_I",             // 0x49
+    "VK_J",             // 0x4A
+    "VK_K",             // 0x4B
+    "VK_L",             // 0x4C
+    "VK_M",             // 0x4D
+    "VK_N",             // 0x4E
+    "VK_O",             // 0x4F
+    "VK_P",             // 0x50
+    "VK_Q",             // 0x51
+    "VK_R",             // 0x52
+    "VK_S",             // 0x53
+    "VK_T",             // 0x54
+    "VK_U",             // 0x55
+    "VK_V",             // 0x56
+    "VK_W",             // 0x57
+    "VK_X",             // 0x58
+    "VK_Y",             // 0x59
+    "VK_Z",             // 0x5A
+    "VK_LWIN",          // 0x5B
+    "VK_RWIN",          // 0x5C
+    "VK_APPS",          // 0x5D
+    "0x5E",             // 0x5E
+    "VK_SLEEP",         // 0x5F
+    "VK_NUMPAD0",       // 0x60
+    "VK_NUMPAD1",       // 0x61
+    "VK_NUMPAD2",       // 0x62
+    "VK_NUMPAD3",       // 0x63
+    "VK_NUMPAD4",       // 0x64
+    "VK_NUMPAD5",       // 0x65
+    "VK_NUMPAD6",       // 0x66
+    "VK_NUMPAD7",       // 0x67
+    "VK_NUMPAD8",       // 0x68
+    "VK_NUMPAD9",       // 0x69
+    "VK_MULTIPLY",      // 0x6A
+    "VK_ADD",           // 0x6B
+    "VK_SEPARATOR",     // 0x6C
+    "VK_SUBTRACT",      // 0x6D
+    "VK_DECIMAL",       // 0x6E
+    "VK_DIVIDE",        // 0x6F
+    "VK_F1",            // 0x70
+    "VK_F2",            // 0x71
+    "VK_F3",            // 0x72
+    "VK_F4",            // 0x73
+    "VK_F5",            // 0x74
+    "VK_F6",            // 0x75
+    "VK_F7",            // 0x76
+    "VK_F8",            // 0x77
+    "VK_F9",            // 0x78
+    "VK_F10",           // 0x79
+    "VK_F11",           // 0x7A
+    "VK_F12",           // 0x7B
+    "VK_F13",           // 0x7C
+    "VK_F14",           // 0x7D
+    "VK_F15",           // 0x7E
+    "VK_F16",           // 0x7F
+    "VK_F17",           // 0x80
+    "VK_F18",           // 0x81
+    "VK_F19",           // 0x82
+    "VK_F20",           // 0x83
+    "VK_F21",           // 0x84
+    "VK_F22",           // 0x85
+    "VK_F23",           // 0x86
+    "VK_F24",           // 0x87
+    "0x88",             // 0x88
+    "0x89",             // 0x89
+    "0x8A",             // 0x8A
+    "0x8B",             // 0x8B
+    "0x8C",             // 0x8C
+    "0x8D",             // 0x8D
+    "0x8E",             // 0x8E
+    "0x8F",             // 0x8F
+    "VK_NUMLOCK",       // 0x90
+    "VK_SCROLL",        // 0x91
+    "0x92",             // 0x92
+    "0x93",             // 0x93
+    "0x94",             // 0x94
+    "0x95",             // 0x95
+    "0x96",             // 0x96
+    "0x97",             // 0x97
+    "0x98",             // 0x98
+    "0x99",             // 0x99
+    "0x9A",             // 0x9A
+    "0x9B",             // 0x9B
+    "0x9C",             // 0x9C
+    "0x9D",             // 0x9D
+    "0x9E",             // 0x9E
+    "0x9F",             // 0x9F
+    "VK_LSHIFT",        // 0xA0
+    "VK_RSHIFT",        // 0xA1
+    "VK_LCONTROL",      // 0xA2
+    "VK_RCONTROL",      // 0xA3
+    "VK_LMENU",         // 0xA4
+    "VK_RMENU",         // 0xA5
+    "VK_BROWSER_BACK",         // 0xA6
+    "VK_BROWSER_FORWARD",      // 0xA7
+    "VK_BROWSER_REFRESH",      // 0xA8
+    "VK_BROWSER_STOP",         // 0xA9
+    "VK_BROWSER_SEARCH",       // 0xAA
+    "VK_BROWSER_FAVORITES",    // 0xAB
+    "VK_BROWSER_HOME",         // 0xAC
+    "VK_VOLUME_MUTE",          // 0xAD
+    "VK_VOLUME_DOWN",          // 0xAE
+    "VK_VOLUME_UP",            // 0xAF
+    "VK_MEDIA_NEXT_TRACK",     // 0xB0
+    "VK_MEDIA_PREV_TRACK",     // 0xB1
+    "VK_MEDIA_STOP",           // 0xB2
+    "VK_MEDIA_PLAY_PAUSE",     // 0xB3
+    "VK_LAUNCH_MAIL",          // 0xB4
+    "VK_LAUNCH_MEDIA_SELECT",  // 0xB5
+    "VK_LAUNCH_APP1",          // 0xB6
+    "VK_LAUNCH_APP2",          // 0xB7
+    "0xB8",             // 0xB8
+    "0xB9",             // 0xB9
+    "VK_OEM_1",         // 0xBA
+    "VK_OEM_PLUS",      // 0xBB
+    "VK_OEM_COMMA",     // 0xBC
+    "VK_OEM_MINUS",     // 0xBD
+    "VK_OEM_PERIOD",    // 0xBE
+    "VK_OEM_2",         // 0xBF
+    "VK_OEM_3",         // 0xC0
+    "0xC1",             // 0xC1
+    "0xC2",             // 0xC2
+    "0xC3",             // 0xC3
+    "0xC4",             // 0xC4
+    "0xC5",             // 0xC5
+    "0xC6",             // 0xC6
+    "0xC7",             // 0xC7
+    "0xC8",             // 0xC8
+    "0xC9",             // 0xC9
+    "0xCA",             // 0xCA
+    "0xCB",             // 0xCB
+    "0xCC",             // 0xCC
+    "0xCD",             // 0xCD
+    "0xCE",             // 0xCE
+    "0xCF",             // 0xCF
+    "0xD0",             // 0xD0
+    "0xD1",             // 0xD1
+    "0xD2",             // 0xD2
+    "0xD3",             // 0xD3
+    "0xD4",             // 0xD4
+    "0xD5",             // 0xD5
+    "0xD6",             // 0xD6
+    "0xD7",             // 0xD7
+    "0xD8",             // 0xD8
+    "0xD9",             // 0xD9
+    "0xDA",             // 0xDA
+    "VK_OEM_4",         // 0xDB
+    "VK_OEM_5",         // 0xDC
+    "VK_OEM_6",         // 0xDD
+    "VK_OEM_7",         // 0xDE
+    "VK_OEM_8",         // 0xDF
+    "0xE0",             // 0xE0
+    "0xE1",             // 0xE1
+    "VK_OEM_102",       // 0xE2
+    "0xE3",             // 0xE3
+    "0xE4",             // 0xE4
+    "VK_PROCESSKEY",    // 0xE5
+    "0xE6",             // 0xE6
+    "VK_PACKET",        // 0xE7
+    "0xE8",             // 0xE8
+    "0xE9",             // 0xE9
+    "0xEA",             // 0xEA
+    "0xEB",             // 0xEB
+    "0xEC",             // 0xEC
+    "0xED",             // 0xED
+    "0xEE",             // 0xEE
+    "0xEF",             // 0xEF
+    "0xF0",             // 0xF0
+    "0xF1",             // 0xF1
+    "0xF2",             // 0xF2
+    "0xF3",             // 0xF3
+    "0xF4",             // 0xF4
+    "0xF5",             // 0xF5
+    "VK_ATTN",          // 0xF6
+    "VK_CRSEL",         // 0xF7
+    "VK_EXSEL",         // 0xF8
+    "VK_EREOF",         // 0xF9
+    "VK_PLAY",          // 0xFA
+    "VK_ZOOM",          // 0xFB
+    "VK_NONAME",        // 0xFC
+    "VK_PA1",           // 0xFD
+    "VK_OEM_CLEAR"      // 0xFE
+};
+
+char* FormatKeyState(uint16_t state) {
+
+	static char buffer[21];
+
+	buffer[0]  = state & NUMLOCK_ON         ? 'N' : 'n';
+	buffer[1]  = state & CAPSLOCK_ON        ? 'C' : 'c';
+	buffer[2]  = state & SCROLLLOCK_ON      ? 'S' : 's';
+	buffer[3]  = ' ';
+
+	buffer[4]  = state & ENHANCED_KEY       ? 'E' : 'e';
+	buffer[5]  = ' ';
+
+	buffer[6]  = state & LEFT_ALT_PRESSED   ? 'L' : 'l';
+	buffer[7]  = state & LEFT_ALT_PRESSED   ? 'A' : 'a';
+	buffer[8]  = ' ';
+
+	buffer[9]  = state & LEFT_CTRL_PRESSED  ? 'L' : 'l';
+	buffer[10] = state & LEFT_CTRL_PRESSED  ? 'C' : 'c';
+	buffer[11] = ' ';
+
+	buffer[12] = state & SHIFT_PRESSED      ? 'S' : 's';
+	buffer[13] = state & SHIFT_PRESSED      ? 'H' : 'h';
+	buffer[14] = ' ';
+
+	buffer[15] = state & RIGHT_ALT_PRESSED  ? 'R' : 'r';
+	buffer[16] = state & RIGHT_ALT_PRESSED  ? 'A' : 'a';
+	buffer[17] = ' ';
+
+	buffer[18] = state & RIGHT_CTRL_PRESSED ? 'R' : 'r';
+	buffer[19] = state & RIGHT_CTRL_PRESSED ? 'C' : 'c';
+
+	buffer[20] = '\0';
+
+	return buffer;
+}
+
+
 void ConsoleInput::Enqueue(const INPUT_RECORD *data, DWORD size)
 {
 	if (size) {
 		for (DWORD i = 0; i < size; ++i) {
 			if (data[i].EventType == KEY_EVENT) {
-				fprintf(stderr, "ConsoleInput::Enqueue: %lc %x %x %x %s\n",
-					data[i].Event.KeyEvent.uChar.UnicodeChar ? data[i].Event.KeyEvent.uChar.UnicodeChar : '#',
-					data[i].Event.KeyEvent.uChar.UnicodeChar,
-					data[i].Event.KeyEvent.wVirtualKeyCode,
+				const auto uni = data[i].Event.KeyEvent.uChar.UnicodeChar;
+				fprintf(stderr, "ConsoleInput::Enqueue: %s %s \"%lc\" %s, %x %x %x %x\n",
+					FormatKeyState(data[i].Event.KeyEvent.dwControlKeyState),
+					VirtualKeyNames[data[i].Event.KeyEvent.wVirtualKeyCode],
+					(uni && (uni > 0x1f)) ? uni : L'?',
+					data[i].Event.KeyEvent.bKeyDown ? "DOWN" : "UP",
+
 					data[i].Event.KeyEvent.dwControlKeyState,
-					data[i].Event.KeyEvent.bKeyDown ? "DOWN" : "UP");
+					data[i].Event.KeyEvent.wVirtualKeyCode,
+					data[i].Event.KeyEvent.uChar.UnicodeChar,
+
+					data[i].Event.KeyEvent.wVirtualScanCode
+					);
 			}
 		}
 

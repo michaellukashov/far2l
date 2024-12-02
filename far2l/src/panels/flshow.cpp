@@ -37,6 +37,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "filelist.hpp"
 #include "colors.hpp"
+#include "palette.hpp"
 #include "lang.hpp"
 #include "filefilter.hpp"
 #include "cmdline.hpp"
@@ -53,7 +54,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern PanelViewSettings ViewSettingsArray[];
 extern int ColumnTypeWidth[];
 
-static wchar_t OutCharacter[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+static wchar_t OutCharacter[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static FarLangMsg __FormatEndSelectedPhrase(int Count)
 {
@@ -113,12 +114,12 @@ void FileList::ShowFileList(int Fast)
 		CtrlObject->Cp()->GetAnotherPanel(this)->Update(UPDATE_KEEP_SELECTION | UPDATE_SECONDARY);
 	}
 
-	SetScreen(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, L' ', COL_PANELTEXT);
-	Box(X1, Y1, X2, Y2, COL_PANELBOX, DOUBLE_BOX);
+	SetScreen(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, L' ', FarColorToReal(COL_PANELTEXT));
+	Box(X1, Y1, X2, Y2, FarColorToReal(COL_PANELBOX), DOUBLE_BOX);
 
 	if (Opt.ShowColumnTitles) {
 		//	SetScreen(X1+1,Y1+1,X2-1,Y1+1,' ',COL_PANELTEXT);
-		SetColor(COL_PANELTEXT);	//???
+		SetFarColor(COL_PANELTEXT);	//???
 									// GotoXY(X1+1,Y1+1);
 		// FS<<fmt::Expand(X2-X1-1)<<L"";
 	}
@@ -189,7 +190,7 @@ void FileList::ShowFileList(int Fast)
 
 			FARString strTitleMsg;
 			CenterStr(strTitle, strTitleMsg, ViewSettings.ColumnWidth[I]);
-			SetColor(COL_PANELCOLUMNTITLE);
+			SetFarColor(COL_PANELCOLUMNTITLE);
 			GotoXY(ColumnPos, Y1 + 1);
 			FS << fmt::Cells() << fmt::Truncate(ViewSettings.ColumnWidth[I]) << strTitleMsg;
 		}
@@ -200,7 +201,7 @@ void FileList::ShowFileList(int Fast)
 		if (ViewSettings.ColumnWidth[I + 1] < 0)
 			continue;
 
-		SetColor(COL_PANELBOX);
+		SetFarColor(COL_PANELBOX);
 		ColumnPos+= ViewSettings.ColumnWidth[I];
 		GotoXY(ColumnPos, Y1);
 		BoxText(BoxSymbols[BS_T_H2V1]);
@@ -239,7 +240,7 @@ void FileList::ShowFileList(int Fast)
 					else
 						GotoXY(NextX1, Y1);
 
-					SetColor(COL_PANELCOLUMNTITLE);
+					SetFarColor(COL_PANELCOLUMNTITLE);
 					OutCharacter[0] = SortOrder == 1 ? Lower(Ch[1]) : Upper(Ch[1]);
 					Text(OutCharacter);
 					NextX1++;
@@ -262,7 +263,7 @@ void FileList::ShowFileList(int Fast)
 		else
 			GotoXY(NextX1, Y1);
 
-		SetColor(COL_PANELCOLUMNTITLE);
+		SetFarColor(COL_PANELCOLUMNTITLE);
 		OutCharacter[0] = L'h';
 		Text(OutCharacter);
 		NextX1++;
@@ -275,7 +276,7 @@ void FileList::ShowFileList(int Fast)
 		else
 			GotoXY(NextX1, Y1);
 
-		SetColor(COL_PANELCOLUMNTITLE);
+		SetFarColor(COL_PANELCOLUMNTITLE);
 		wchar_t *PtrOutCharacter = OutCharacter;
 		*PtrOutCharacter = 0;
 
@@ -337,13 +338,13 @@ void FileList::ShowFileList(int Fast)
 	if (TitleX <= X1)
 		TitleX = X1 + 1;
 
-	SetColor(Focus ? COL_PANELSELECTEDTITLE : COL_PANELTITLE);
+	SetFarColor(Focus ? COL_PANELSELECTEDTITLE : COL_PANELTITLE);
 	GotoXY(TitleX, Y1);
 	Text(strTitle);
 
 	if (ListData.IsEmpty()) {
-		SetScreen(X1 + 1, Y2 - 1, X2 - 1, Y2 - 1, L' ', COL_PANELTEXT);
-		SetColor(COL_PANELTEXT);	//???
+		SetScreen(X1 + 1, Y2 - 1, X2 - 1, Y2 - 1, L' ', FarColorToReal(COL_PANELTEXT));
+		SetFarColor(COL_PANELTEXT);	//???
 									// GotoXY(X1+1,Y2-1);
 		// FS<<fmt::Expand(X2-X1-1)<<L"";
 	}
@@ -379,11 +380,11 @@ void FileList::ShowFileList(int Fast)
 		ShowTotalSize(Info);
 	}
 
-	ShowList(FALSE, 0);
+	ShowList(FALSE, 0, Info);
 	ShowSelectedSize();
 
 	if (Opt.ShowPanelScrollbar) {
-		SetColor(COL_PANELSCROLLBAR);
+		SetFarColor(COL_PANELSCROLLBAR);
 		ScrollBarEx(X2, Y1 + 1 + Opt.ShowColumnTitles, Height, Round(CurTopFile, Columns),
 				Round(ListData.Count(), Columns));
 	}
@@ -401,7 +402,7 @@ void FileList::ShowFileList(int Fast)
 
 DWORD64 FileList::GetShowColor(int Position, int ColorType)
 {
-	DWORD64 ColorAttr = COL_PANELTEXT;
+	DWORD64 ColorAttr = FarColorToReal(COL_PANELTEXT);
 	const DWORD FarColor[] = {COL_PANELTEXT, COL_PANELSELECTEDTEXT, COL_PANELCURSOR, COL_PANELSELECTEDCURSOR};
 
 	if (Position >= 0 && Position < ListData.Count()) {
@@ -417,9 +418,10 @@ DWORD64 FileList::GetShowColor(int Position, int ColorType)
 		ColorAttr = ListData[Position]->ColorsPtr->Color[ColorType][Pos];
 
 		if (!ColorAttr || !Opt.Highlight)
-			ColorAttr = FarColor[Pos];
+			ColorAttr = FarColorToReal(FarColor[Pos]);
 	}
 
+//	return (4 << 4) + 15;
 	return ColorAttr;
 }
 
@@ -434,7 +436,7 @@ void FileList::ShowSelectedSize()
 	FARString strSelStr, strFormStr;
 
 	if (Opt.ShowPanelStatus) {
-		SetColor(COL_PANELBOX);
+		SetFarColor(COL_PANELBOX);
 		DrawSeparator(Y2 - 2);
 
 		for (int I = 0, ColumnPos = X1 + 1; I < ViewSettings.ColumnCount - 1; I++) {
@@ -454,7 +456,7 @@ void FileList::ShowSelectedSize()
 		strSelStr.Format(__FormatEndSelectedPhrase(SelFileCount), strFormStr.CPtr(), SelFileCount);
 		TruncStr(strSelStr, X2 - X1 - 1);
 		Length = (int)strSelStr.GetLength();
-		SetColor(COL_PANELSELECTEDINFO);
+		SetFarColor(COL_PANELSELECTEDINFO);
 		GotoXY(X1 + (X2 - X1 + 1 - Length) / 2, Y2 - 2 * Opt.ShowPanelStatus);
 		Text(strSelStr);
 	}
@@ -490,7 +492,7 @@ void FileList::ShowTotalSize(OpenPluginInfo &Info)
 	} else
 		strTotalStr.Format(Msg::ListFreeSize, !strFreeSize.IsEmpty() ? strFreeSize.CPtr() : L"???");
 
-	SetColor(COL_PANELTOTALINFO);
+	SetFarColor(COL_PANELTOTALINFO);
 	/*
 		$ 01.08.2001 VVM
 		+ Обрезаем строчку справа, а не слева
@@ -510,9 +512,9 @@ void FileList::ShowTotalSize(OpenPluginInfo &Info)
 		Text(strTotalStr);
 	else {
 		FS << fmt::Cells() << fmt::Truncate(BoxPos) << strTotalStr;
-		SetColor(COL_PANELBOX);
+		SetFarColor(COL_PANELBOX);
 		FS << fmt::Cells() << fmt::Truncate(BoxLength) << strTotalStr.CPtr() + BoxPos;
-		SetColor(COL_PANELTOTALINFO);
+		SetFarColor(COL_PANELTOTALINFO);
 		Text(strTotalStr.CPtr() + BoxPos + BoxLength);
 	}
 }
@@ -593,6 +595,7 @@ int FileList::ConvertName(FARString &strDest, const wchar_t *SrcName, int MaxLen
 		strDest.Copy(SrcName, NameLength);
 		if (DotPos > 0 && NameLength > 0 && SrcName[NameLength - 1] == L' ') {
 			strDest.Append(L'.');
+			DotPos--;
 		}
 		if (DotPos > NameLength) {
 			strDest.Append(L' ', DotPos - NameLength);
@@ -690,16 +693,37 @@ void FileList::PrepareViewSettings(int ViewMode, OpenPluginInfo *PlugInfo)
 		Height+= 2;
 }
 
+void FileList::UpdateAutoColumnWidth( void )
+{
+	for (int c = 0; c < ViewSettings.ColumnCount; c++) {
+
+		int ColumnType = std::min( ViewSettings.ColumnType[c] & 0xff, 31u );
+		bool bPhysical = (ColumnType == PHYSICAL_COLUMN);
+
+		if (ColumnType == SIZE_COLUMN || bPhysical) {
+
+			FARString strOutStr;
+			size_t len = FileSizeToStr(strOutStr, bPhysical ? LargestFilPhysSize : Opt.ShowSymlinkSize ? LargestFilSizeL : LargestFilSize, -1, ViewSettings.ColumnType[c]).GetLength();
+
+			AutoColumnWidth[ColumnType] = std::max( len + 1, (size_t)ColumnTypeWidth[ColumnType] );
+		}
+		else {
+			AutoColumnWidth[ColumnType] = ColumnTypeWidth[ColumnType];
+		}
+	}
+}
+
 int FileList::PreparePanelView(PanelViewSettings *PanelView)
 {
 	PrepareColumnWidths(PanelView->StatusColumnType, PanelView->StatusColumnWidth,
-			PanelView->StatusColumnWidthType, PanelView->StatusColumnCount, PanelView->FullScreen);
+			PanelView->StatusColumnWidthType, PanelView->StatusColumnCount, PanelView->FullScreen, true);
+
 	return (PrepareColumnWidths(PanelView->ColumnType, PanelView->ColumnWidth, PanelView->ColumnWidthType,
-			PanelView->ColumnCount, PanelView->FullScreen));
+			PanelView->ColumnCount, PanelView->FullScreen, false));
 }
 
 int FileList::PrepareColumnWidths(unsigned int *ColumnTypes, int *ColumnWidths, int *ColumnWidthsTypes,
-		int &ColumnCount, int FullScreen)
+		int &ColumnCount, int FullScreen, bool bStatusBar)
 {
 	int TotalWidth, TotalPercentWidth, TotalPercentCount, ZeroLengthCount, EmptyColumns, I;
 	ZeroLengthCount = EmptyColumns = 0;
@@ -707,16 +731,18 @@ int FileList::PrepareColumnWidths(unsigned int *ColumnTypes, int *ColumnWidths, 
 	TotalPercentCount = TotalPercentWidth = 0;
 
 	for (I = 0; I < ColumnCount; I++) {
+
 		if (ColumnWidths[I] < 0) {
 			EmptyColumns++;
 			continue;
 		}
 
-		int ColumnType = ColumnTypes[I] & 0xff;
+//		int ColumnType = ColumnTypes[I] & 0xff;
+		int ColumnType = std::min( ColumnTypes[I] & 0xff, 31u );
 
 		if (!ColumnWidths[I]) {
 			ColumnWidthsTypes[I] = COUNT_WIDTH;		// manage all zero-width columns in same way
-			ColumnWidths[I] = ColumnTypeWidth[ColumnType];
+			ColumnWidths[I] = (ColumnTypes[I] & COLUMN_AUTO) ? AutoColumnWidth[ColumnType] : ColumnTypeWidth[ColumnType];
 
 			if (ColumnType == WDATE_COLUMN || ColumnType == CDATE_COLUMN || ColumnType == ADATE_COLUMN
 					|| ColumnType == CHDATE_COLUMN) {
@@ -725,6 +751,12 @@ int FileList::PrepareColumnWidths(unsigned int *ColumnTypes, int *ColumnWidths, 
 
 				if (ColumnTypes[I] & COLUMN_MONTH)
 					ColumnWidths[I]++;
+			}
+		}
+		else {
+			if (ColumnType == SIZE_COLUMN || ColumnType == PHYSICAL_COLUMN) {
+				if (ColumnWidths[I] < ColumnTypeWidth[SIZE_COLUMN])
+					ColumnWidths[I] = ColumnTypeWidth[SIZE_COLUMN];
 			}
 		}
 
@@ -848,15 +880,18 @@ static int MakeCurLeftPos(int ColumnWidth, const wchar_t *Str, int LeftPos, int 
 		LeftPos = Cells - ColumnWidth;
 
 	size_t ng = LeftPos;
-	int out = StrSizeOfCells(Str, wcslen(Str), ng, false);
+	int out = StrSizeOfCells(Str, wcslen(Str), ng, true);
 
-	if (MaxLeftPos < (int)ng)
-		MaxLeftPos = (int)ng;
+//	if (MaxLeftPos < (int)ng)
+//		MaxLeftPos = (int)ng;
+
+	if (MaxLeftPos < LeftPos)
+		MaxLeftPos = LeftPos;
 
 	return out;
 }
 
-void FileList::ShowList(int ShowStatus, int StartColumn)
+void FileList::ShowList(int ShowStatus, int StartColumn, OpenPluginInfo &Info)
 {
 	int StatusShown = FALSE;
 	int MaxLeftPos = 0, MinLeftPos = FALSE;
@@ -866,7 +901,7 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 		int CurColumn = StartColumn;
 
 		if (ShowStatus) {
-			SetColor(COL_PANELTEXT);
+			SetFarColor(COL_PANELTEXT);
 			GotoXY(X1 + 1, Y2 - 1);
 		} else {
 			SetShowColor(J);
@@ -897,17 +932,16 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 
 			if (ColumnWidth < 0) {
 				if (!ShowStatus && K == ColumnCount - 1) {
-					SetColor(COL_PANELBOX);
+					SetFarColor(COL_PANELBOX);
 					GotoXY(CurX - 1, CurY);
 					BoxText(CurX - 1 == X2 ? BoxSymbols[BS_V2] : L' ');
 				}
-
 				continue;
 			}
 
 			if (ListPos < ListData.Count()) {
 				if (!ShowStatus && !StatusShown && CurFile == ListPos && Opt.ShowPanelStatus) {
-					ShowList(TRUE, CurColumn);
+					ShowList(TRUE, CurColumn, Info);
 					GotoXY(CurX, CurY);
 					StatusShown = TRUE;
 					SetShowColor(ListPos);
@@ -942,23 +976,57 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 
 							if ((ViewFlags & COLUMN_MARK) && Width > 2) {
 								Text(ListData[ListPos]->Selected ? L"\x221A " : L"  ");
-								Width-= 2;
+								Width -= 2;
+							}
+#if 1
+							{ /// Draw mark str
+							size_t prews = std::min(Opt.MinFilenameIndentation, Opt.MaxFilenameIndentation);
+
+							if (Opt.ShowFilenameMarks && Opt.Highlight && (!ShowStatus || Opt.FilenameMarksInStatusBar)
+									&& (PanelMode != PLUGIN_PANEL
+										|| ( !(Info.Flags & OPIF_HL_MARKERS_NOSHOW) && (Info.Flags & OPIF_USEHIGHLIGHTING) ))
+									) {
+								const HighlightDataColor *const hl = ListData[ListPos]->ColorsPtr;
+
+								if (Opt.FilenameMarksAlign
+										&& (PanelMode != PLUGIN_PANEL || !(Info.Flags & OPIF_HL_MARKERS_NOALIGN))
+										&& MarkLM > prews)
+									prews = std::min(MarkLM, (size_t)Opt.MaxFilenameIndentation);
+
+								if (hl->MarkLen && Width > 2) {
+									const uint64_t OldColor = GetColor();
+									size_t	ng = Width, outlen;
+
+									outlen = StrSizeOfCells(hl->Mark, hl->MarkLen, ng, false);
+//									ng = StrCellsCount( hl->Mark, outlen );
+
+									Width -= ng;
+									if (ng < prews)
+										prews -= ng;
+									else
+										prews = 0;
+
+									if (!ShowStatus)
+										SetShowColor(ListPos, HIGHLIGHTCOLORTYPE_MARKSTR);
+
+									Text(hl->Mark, outlen);
+									SetColor(OldColor);
+								}
 							}
 
-							if (ListData[ListPos]->ColorsPtr->MarkChar && Opt.Highlight && Width > 1) {
-								Width--;
-								OutCharacter[0] = (wchar_t)(ListData[ListPos]->ColorsPtr->MarkChar & 0xffff);
-								const auto OldColor = GetColor();
+							if (!ShowStatus && prews && Width > 2) {
+								if (prews >= (size_t)Width) {
+									prews = Width;
+									Width = 0;
+								}
+								else
+									Width -= prews;
 
-								if (!ShowStatus)
-									SetShowColor(ListPos, HIGHLIGHTCOLORTYPE_MARKCHAR);
-
-								Text(OutCharacter);
-								SetColor(OldColor);
+								Text(L' ', prews);
 							}
-
+							} /// Draw mark str
+#endif
 							const wchar_t *NamePtr = ListData[ListPos]->strName;
-
 							const wchar_t *NameCopy = NamePtr;
 
 							if (ViewFlags & COLUMN_NAMEONLY) {
@@ -975,7 +1043,7 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 							if (!ShowStatus && LeftPos) {
 								if (LeftPos > 0 && !RightAlign) {
 									CurLeftPos = MakeCurLeftPos(Width, NamePtr, LeftPos, MaxLeftPos);
-									NamePtr+= CurLeftPos;
+									NamePtr += CurLeftPos;
 								} else if (RightAlign) {
 									int Cells = (int)StrZCellsCount(NamePtr);
 									if (Cells > Width) {
@@ -986,7 +1054,7 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 											RightBracket = TRUE;
 
 										size_t ng = Cells + CurRightPos - Width;
-										NamePtr+= StrSizeOfCells(NamePtr, wcslen(NamePtr), ng, false);
+										NamePtr += StrSizeOfCells(NamePtr, wcslen(NamePtr), ng, false);
 										RightAlign = FALSE;
 
 										if (MinLeftPos > CurRightPos)
@@ -1025,6 +1093,7 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 							}
 
 							Text(strName);
+//							Text(NamePtr);
 							int NameX = WhereX();
 
 							if (!ShowStatus) {
@@ -1032,7 +1101,7 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 									GotoXY(CurX - 1, CurY);
 
 									if (Level == 1)
-										SetColor(COL_PANELBOX);
+										SetFarColor(COL_PANELBOX);
 
 									Text(openBracket);
 									SetShowColor(J);
@@ -1040,14 +1109,14 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 
 								if (RightBracket) {
 									if (Level == ColumnsInGlobal)
-										SetColor(COL_PANELBOX);
+										SetFarColor(COL_PANELBOX);
 
 									GotoXY(NameX, CurY);
 									Text(closeBracket);
 									ShowDivider = FALSE;
 
 									if (Level == ColumnsInGlobal)
-										SetColor(COL_PANELTEXT);
+										SetFarColor(COL_PANELTEXT);
 									else
 										SetShowColor(J);
 								}
@@ -1058,8 +1127,7 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 							Text(FormatStr_Size(ListData[ListPos]->FileSize, ListData[ListPos]->PhysicalSize,
 									ListData[ListPos]->strName, ListData[ListPos]->FileAttr,
 									ListData[ListPos]->ShowFolderSize, ColumnType, ColumnTypes[K],
-									ColumnWidth)
-											.CPtr());
+									ColumnWidth).CPtr());
 							break;
 						}
 
@@ -1193,11 +1261,11 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 					SetShowColor(ListPos);
 
 					if (Level == ColumnsInGlobal)
-						SetColor(COL_PANELBOX);
+						SetFarColor(COL_PANELBOX);
 				}
 
 				if (K == ColumnCount - 1)
-					SetColor(COL_PANELBOX);
+					SetFarColor(COL_PANELBOX);
 
 				GotoXY(CurX + ColumnWidth, CurY);
 
@@ -1207,7 +1275,7 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 					BoxText(ShowStatus ? L' ' : BoxSymbols[BS_V1]);
 
 				if (!ShowStatus)
-					SetColor(COL_PANELTEXT);
+					SetFarColor(COL_PANELTEXT);
 			}
 
 			if (!ShowStatus) {
@@ -1221,14 +1289,14 @@ void FileList::ShowList(int ShowStatus, int StartColumn)
 		}
 
 		if ((!ShowStatus || StatusLine) && WhereX() < X2) {
-			SetColor(COL_PANELTEXT);
+			SetFarColor(COL_PANELTEXT);
 			FS << fmt::Cells() << fmt::Expand(X2 - WhereX()) << L"";
 		}
 	}
 
 	if (!ShowStatus && !StatusShown && Opt.ShowPanelStatus) {
-		SetScreen(X1 + 1, Y2 - 1, X2 - 1, Y2 - 1, L' ', COL_PANELTEXT);
-		SetColor(COL_PANELTEXT);	//???
+		SetScreen(X1 + 1, Y2 - 1, X2 - 1, Y2 - 1, L' ', FarColorToReal(COL_PANELTEXT));
+		SetFarColor(COL_PANELTEXT);	//???
 									// GotoXY(X1+1,Y2-1);
 		// FS<<fmt::Expand(X2-X1-1)<<L"";
 	}

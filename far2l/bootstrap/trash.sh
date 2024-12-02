@@ -1,10 +1,12 @@
 #!/bin/sh
-##########################################################
-#This script used by FAR to move files to Trash
-##########################################################
-#For per user customization - create:
+################################################################
+# This script used by FAR to move files to Trash
+################################################################
+# For per user customization - create:
 #~/.config/far2l/trash.sh
-##########################################################
+# note that per-user script must do 'exit 0' at the end if
+# no need to continue default implementation of main trash.sh
+################################################################
 
 set -e
 
@@ -12,7 +14,10 @@ if [ -x ~/.config/far2l/trash.sh ]; then
 . ~/.config/far2l/trash.sh
 fi
 
-if command -v gio >/dev/null 2>&1; then
+if command -v kioclient >/dev/null 2>&1; then
+	kioclient move "$1" trash:/ 2>"$2"
+
+elif command -v gio >/dev/null 2>&1; then
 	gio trash -f -- "$1" 2>"$2"
 
 elif command -v gvfs-trash >/dev/null 2>&1; then

@@ -959,7 +959,6 @@ int FileEditor::ReProcessKey(FarKey Key, int CalledFromControl)
 						m_AddSignature = AddSignature ? FB_YES : FB_NO;
 
 						apiExpandEnvironmentStrings(strSaveAsName, strSaveAsName);
-						Unquote(strSaveAsName);
 						NameChanged = StrCmpI(strSaveAsName,
 								(Flags.Check(FFILEEDIT_SAVETOSAVEAS) ? strFullFileName : strFileName));
 
@@ -1491,14 +1490,6 @@ int FileEditor::LoadFile(const wchar_t *Name, int &UserBreak)
 		if (CurTime - StartTime > RedrawTimeout) {
 			StartTime = CurTime;
 
-			if (CheckForEscSilent()) {
-				if (ConfirmAbortOp()) {
-					UserBreak = 1;
-					EditFile.Close();
-					return FALSE;
-				}
-			}
-
 			SetCursorType(FALSE, 0);
 			INT64 CurPos = 0;
 			EditFile.GetPointer(CurPos);
@@ -1513,6 +1504,14 @@ int FileEditor::LoadFile(const wchar_t *Name, int &UserBreak)
 				}
 			}
 			Editor::EditorShowMsg(Msg::EditTitle, Msg::EditReading, Name, Percent);
+
+			if (CheckForEscSilent()) {
+				if (ConfirmAbortOp()) {
+					UserBreak = 1;
+					EditFile.Close();
+					return FALSE;
+				}
+			}
 		}
 
 		const wchar_t *CurEOL;
@@ -2234,7 +2233,7 @@ void FileEditor::ShowStatus()
 	if (m_editor->Locked() || !TitleBarVisible)
 		return;
 
-	SetColor(COL_EDITORSTATUS);
+	SetFarColor(COL_EDITORSTATUS);
 	GotoXY(X1, Y1);		//??
 	FARString strLineStr;
 	FARString strLocalTitle;
@@ -2310,7 +2309,7 @@ void FileEditor::ShowStatus()
 
 	if (Opt.ViewerEditorClock && Flags.Check(FFILEEDIT_FULLSCREEN)) {
 		if (X2 > 5) {
-			Text(X2 - 5, Y1, COL_EDITORTEXT, L" ");
+			Text(X2 - 5, Y1, FarColorToReal(COL_EDITORTEXT), L" ");
 		}
 		ShowTime(FALSE);
 	}
@@ -2325,6 +2324,7 @@ DWORD FileEditor::EditorGetFileAttributes(const wchar_t *Name)
 {
 	SudoClientRegion sdc_rgn;
 	DWORD FileAttributes = apiGetFileAttributes(Name);
+	AttrStr.Clear();
 	if (FileAttributes != INVALID_FILE_ATTRIBUTES) {
 		if (FileAttributes & FILE_ATTRIBUTE_READONLY)
 			AttrStr+= L'R';
@@ -2524,7 +2524,7 @@ int FileEditor::EditorControl(int Command, void *Param)
 			if (Param) {
 				EditorSaveFile *esf = (EditorSaveFile *)Param;
 
-				if (*esf->FileName)
+				if (esf->FileName && *esf->FileName)
 					strName = esf->FileName;
 
 				if (esf->FileEOL) {

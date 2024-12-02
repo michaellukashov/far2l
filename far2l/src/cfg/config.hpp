@@ -276,6 +276,7 @@ struct VMenuOptions
 	int LBtnClick;
 	int RBtnClick;
 	int MBtnClick;
+	bool MenuLoopScroll;
 };
 
 struct CommandLineOptions
@@ -326,6 +327,7 @@ struct FindFileOptions
 	int FileSearchMode;
 	bool FindFolders;
 	bool FindSymLinks;
+	bool FindCaseSensitiveFileMask;
 	bool CollectFiles;
 	bool UseFilter;
 	bool FindAlternateStreams;
@@ -396,7 +398,16 @@ struct Options
 	int InactivityExit;
 	int InactivityExitTime;
 	int ShowHidden;
+
+	int ShowFilenameMarks;
+	int FilenameMarksAlign;
+	int FilenameMarksInStatusBar;
+	DWORD MinFilenameIndentation, MaxFilenameIndentation;
+	DWORD DirNameStyle;
+	DWORD ShowSymlinkSize;
+
 	int Highlight;
+	int CursorBlinkTime;
 
 	FARString strLeftFolder;
 	FARString strRightFolder;
@@ -407,6 +418,8 @@ struct Options
 	int RightSelectedFirst;
 	int LeftSelectedFirst;
 	int SelectFolders;
+	int AttrStrStyle;
+	int PanelCaseSensitiveCompareSelect;
 	int ReverseSort;
 	int SortFolderExt;
 	int DeleteToRecycleBin;				// удалять в корзину?
@@ -460,14 +473,18 @@ struct Options
 	int SavePluginFoldersHistory;
 	int FoldersHistoryCount;
 	int DialogsHistoryCount;
+	int HistoryRemoveDupsRule;
+	int AutoHighlightHistory;
 
 	BYTE HistoryShowTimes[8];
+	DWORD HistoryDirsPrefixLen;
 
 	FindFileOptions FindOpt;
 
 	int LeftHeightDecrement;
 	int RightHeightDecrement;
 	int WidthDecrement;
+	int PanelsDisposition;
 
 	int ShowColumnTitles;
 	int ShowPanelStatus;
@@ -615,6 +632,11 @@ struct Options
 	bool IsUserAdmin;
 	FARString strWindowTitle;
 
+	int DateFormat;
+	FARString strDateSeparator;
+	FARString strTimeSeparator;
+	FARString strDecimalSeparator;
+
 	bool IsFirstStart;
 
 	std::vector<std::wstring> CmdLineStrings;
@@ -641,3 +663,4 @@ void SetFolderInfoFiles();
 void InfoPanelSettings();
 void AutoCompleteSettings();
 void LanguageSettings();
+void DirectoryNameSettings();

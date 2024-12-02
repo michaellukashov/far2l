@@ -27,6 +27,8 @@
 #include "TTYNegotiateFar2l.h"
 #include "FarTTY.h"
 #include "../FSClipboardBackend.h"
+#include "../NotifySh.h"
+
 
 static uint16_t g_far2l_term_width = 80, g_far2l_term_height = 25;
 static volatile long s_terminal_size_change_id = 0;
@@ -80,7 +82,7 @@ static WORD WChar2WinVKeyCode(WCHAR wc)
 }
 
 
-TTYBackend::TTYBackend(const char *full_exe_path, int std_in, int std_out, bool ext_clipboard, bool norgb, const char *nodetect, bool far2l_tty, unsigned int esc_expiration, int notify_pipe, int *result) :
+TTYBackend::TTYBackend(const char *full_exe_path, int std_in, int std_out, bool ext_clipboard, bool norgb, DWORD nodetect, bool far2l_tty, unsigned int esc_expiration, int notify_pipe, int *result) :
 	_full_exe_path(full_exe_path),
 	_stdin(std_in),
 	_stdout(std_out),
@@ -128,6 +130,18 @@ TTYBackend::~TTYBackend()
 	DetachNotifyPipe();
 }
 
+static unsigned short GetWinSizeEnv(const char *env, unsigned short def)
+{
+	const char *psz = getenv(env);
+	if (psz && *psz) { // use it if it contains sane integer value
+		int v = atoi(psz);
+		if (v > 10 && v < 4096) {
+			return (unsigned short)v;
+		}
+	}
+	return def;
+}
+
 void TTYBackend::GetWinSize(struct winsize &w)
 {
 	int r = ioctl(_stdout, TIOCGWINSZ, &w);
@@ -135,9 +149,16 @@ void TTYBackend::GetWinSize(struct winsize &w)
 		r = ioctl(_stdin, TIOCGWINSZ, &w);
 		if (UNLIKELY(r != 0)) {
 			perror("TIOCGWINSZ");
-			w.ws_row = g_far2l_term_height;
-			w.ws_col = g_far2l_term_width;
 		}
+	}
+	if (UNLIKELY(r != 0) || (w.ws_row == 0 && w.ws_col == 0)) {
+		// when running over serial console 0:0 is returned always and far2l unusable
+		// try to use $LINES and $COLUMNS if they contain sane values,
+		// otherwise fallback to hardcoded 80:25
+		w.ws_row = GetWinSizeEnv("LINES", g_far2l_term_height);
+		w.ws_col = GetWinSizeEnv("COLUMNS", g_far2l_term_width);
+		fprintf(stderr, "%s: fallback size %u:%u\n",
+			__FUNCTION__, (unsigned int)w.ws_row, (unsigned int)w.ws_col);
 	}
 }
 
@@ -170,41 +191,20 @@ bool TTYBackend::Startup()
 	return true;
 }
 
-static wchar_t s_backend_identification[8] = L"TTY";
-
-static void AppendBackendIdentificationChar(char ch)
+void TTYBackend::BackendInfoChanged()
 {
-	const size_t l = wcslen(s_backend_identification);
-	if (l + 1 >= ARRAYSIZE(s_backend_identification)) {
-		abort();
-	}
-	s_backend_identification[l + 1] = 0;
-	s_backend_identification[l] = (unsigned char)ch;
+	std::lock_guard<std::mutex> lock(_backend_info);
+	_backend_info.flavor.clear();
 }
 
-void TTYBackend::UpdateBackendIdentification()
+static bool UnderWayland()
 {
-	s_backend_identification[3] = 0;
-
-	if (_far2l_tty || _ttyx || _using_extension) {
-		AppendBackendIdentificationChar('|');
-	}
-
-	if (_far2l_tty) {
-		AppendBackendIdentificationChar('F');
-
-	} else if (_ttyx || _using_extension) {
-		if (_ttyx) {
-			AppendBackendIdentificationChar('X');
-		}
-		if (_using_extension) {
-			AppendBackendIdentificationChar(_using_extension);
-		} else if (_ttyx && _ttyx->HasXi()) {
-			AppendBackendIdentificationChar('i');
-		}
-	}
-
-	g_winport_backend = s_backend_identification;
+	const char *xdg_st = getenv("XDG_SESSION_TYPE");
+	if (xdg_st && strcasecmp(xdg_st, "wayland") == 0)
+		return true;
+	if (getenv("WAYLAND_DISPLAY"))
+		return true;
+	return false;
 }
 
 void TTYBackend::ReaderThread()
@@ -221,8 +221,10 @@ void TTYBackend::ReaderThread()
 			}
 
 		} else {
-			if (!strchr(_nodetect, 'x') || strstr(_nodetect, "xi")) {
-				_ttyx = StartTTYX(_full_exe_path, !strstr(_nodetect, "xi"));
+			if ((_nodetect & NODETECT_X)==0) {
+
+				// disable xi on Wayland as it not work there anyway and also causes delays
+				_ttyx = StartTTYX(_full_exe_path, ((_nodetect & NODETECT_XI)==0) && !UnderWayland());
 			}
 			if (_ttyx) {
 				if (!_ext_clipboard) {
@@ -233,7 +235,7 @@ void TTYBackend::ReaderThread()
 				ChooseSimpleClipboardBackend();
 			}
 		}
-		UpdateBackendIdentification();
+		BackendInfoChanged();
 		prev_far2l_tty = _far2l_tty;
 
 		{
@@ -367,7 +369,7 @@ void TTYBackend::WriterThread()
 {
 	bool gone_background = false;
 	try {
-		TTYOutput tty_out(_stdout, _far2l_tty, _norgb);
+		TTYOutput tty_out(_stdout, _far2l_tty, _norgb, _nodetect);
 		DispatchPalette(tty_out);
 //		DispatchTermResized(tty_out);
 		while (!_exiting && !_deadio) {
@@ -758,22 +760,21 @@ void TTYBackend::OnConsoleAdhocQuickEdit()
 
 DWORD64 TTYBackend::OnConsoleSetTweaks(DWORD64 tweaks)
 {
-	const auto prev_osc52clip_set = _osc52clip_set;
-	_osc52clip_set = (tweaks & CONSOLE_OSC52CLIP_SET) != 0;
+	if (tweaks != TWEAKS_ONLY_QUERY_SUPPORTED) {
+		const auto prev_osc52clip_set = _osc52clip_set;
+		_osc52clip_set = (tweaks & CONSOLE_OSC52CLIP_SET) != 0;
 
-	if (_osc52clip_set != prev_osc52clip_set && !_far2l_tty && !_ttyx) {
-		ChooseSimpleClipboardBackend();
-	}
+		if (_osc52clip_set != prev_osc52clip_set && !_far2l_tty && !_ttyx) {
+			ChooseSimpleClipboardBackend();
+		}
 
-	bool override_default_palette = (tweaks & CONSOLE_TTY_PALETTE_OVERRIDE) != 0;
-
-	{
-		std::lock_guard<std::mutex> lock(_palette_mtx);
-		std::swap(override_default_palette, _override_default_palette);
-	}
-
-	if (override_default_palette != ((tweaks & CONSOLE_TTY_PALETTE_OVERRIDE) != 0)) {
+		bool override_default_palette = (tweaks & CONSOLE_TTY_PALETTE_OVERRIDE) != 0;
 		{
+			std::lock_guard<std::mutex> lock(_palette_mtx);
+			std::swap(override_default_palette, _override_default_palette);
+		}
+
+		if (override_default_palette != ((tweaks & CONSOLE_TTY_PALETTE_OVERRIDE) != 0)) {
 			std::unique_lock<std::mutex> lock(_async_mutex);
 			_ae.palette = true;
 			_async_cond.notify_all();
@@ -783,7 +784,6 @@ DWORD64 TTYBackend::OnConsoleSetTweaks(DWORD64 tweaks)
 		}
 	}
 
-//
 
 	DWORD64 out = TWEAK_STATUS_SUPPORT_TTY_PALETTE;
 
@@ -796,19 +796,70 @@ DWORD64 TTYBackend::OnConsoleSetTweaks(DWORD64 tweaks)
 
 void TTYBackend::OnConsoleOverrideColor(DWORD Index, DWORD *ColorFG, DWORD *ColorBK)
 {
+	if (Index == (DWORD)-1) {
+		const DWORD64 orig_attrs = g_winport_con_out->GetAttributes();
+		DWORD64 new_attrs = orig_attrs;
+		if ((*ColorFG & 0xff000000) == 0) {
+			SET_RGB_FORE(new_attrs, *ColorFG);
+		}
+		if ((*ColorBK & 0xff000000) == 0) {
+			SET_RGB_BACK(new_attrs, *ColorBK);
+		}
+		if (new_attrs != orig_attrs) {
+			g_winport_con_out->SetAttributes(new_attrs);
+		}
+
+		*ColorFG = ConsoleForeground2RGB(g_winport_palette, orig_attrs & ~(DWORD64)COMMON_LVB_REVERSE_VIDEO).AsRGB();
+		*ColorBK = ConsoleBackground2RGB(g_winport_palette, orig_attrs & ~(DWORD64)COMMON_LVB_REVERSE_VIDEO).AsRGB();
+		return;
+	}
+
 	if (Index >= BASE_PALETTE_SIZE) {
 		fprintf(stderr, "%s: too big index=%u\n", __FUNCTION__, Index);
 		return;
 	}
 
+	const DWORD fg = (*ColorFG == (DWORD)-1) ? g_winport_palette.foreground[Index].AsRGB() : *ColorFG;
+	const DWORD bk = (*ColorBK == (DWORD)-1) ? g_winport_palette.background[Index].AsRGB() : *ColorBK;
+	bool palette_changed = false;
 	{
 		std::unique_lock<std::mutex> lock(_palette_mtx);
-		if (_palette.foreground[Index] == *ColorFG && _palette.background[Index] == *ColorBK) {
-			return;
+		*ColorFG = _palette.foreground[Index];
+		*ColorBK = _palette.background[Index];
+		if (fg != (DWORD)-2 && _palette.foreground[Index] != fg) {
+			_palette.foreground[Index] = fg;
+			palette_changed = true;
 		}
+		if (bk != (DWORD)-2 && _palette.background[Index] != bk) {
+			_palette.background[Index] = bk;
+			palette_changed = true;
+		}
+	}
 
-		std::swap(_palette.foreground[Index], *ColorFG);
-		std::swap(_palette.background[Index], *ColorBK);
+	if (palette_changed) {
+		std::unique_lock<std::mutex> lock(_async_mutex);
+		_ae.palette = true;
+		_async_cond.notify_all();
+		while (_ae.palette) {
+			_async_cond.wait(lock);
+		}
+	}
+}
+
+void TTYBackend::OnConsoleGetBasePalette(void *pbuff)
+{
+	memcpy(pbuff, &g_winport_palette, BASE_PALETTE_SIZE * sizeof(DWORD) * 2);
+
+	return;
+}
+
+bool TTYBackend::OnConsoleSetBasePalette(void *pbuff)
+{
+	if (!pbuff) return false;
+
+	{
+		std::unique_lock<std::mutex> lock(_palette_mtx);
+		memcpy(&_palette, pbuff, BASE_PALETTE_SIZE * sizeof(DWORD) * 2);
 	}
 
 	std::unique_lock<std::mutex> lock(_async_mutex);
@@ -817,6 +868,8 @@ void TTYBackend::OnConsoleOverrideColor(DWORD Index, DWORD *ColorFG, DWORD *Colo
 	while (_ae.palette) {
 		_async_cond.wait(lock);
 	}
+
+	return true;
 }
 
 void TTYBackend::OnConsoleChangeFont()
@@ -825,6 +878,11 @@ void TTYBackend::OnConsoleChangeFont()
 
 void TTYBackend::OnConsoleSaveWindowState()
 {
+}
+
+void TTYBackend::OnConsoleSetCursorBlinkTime(DWORD interval)
+{
+
 }
 
 void TTYBackend::OnConsoleSetMaximized(bool maximized)
@@ -990,13 +1048,26 @@ void TTYBackend::OnUsingExtension(char extension)
 {
 	if (_using_extension != extension) {
 		_using_extension = extension;
-		UpdateBackendIdentification();
+		BackendInfoChanged();
 	}
 }
 
 void TTYBackend::OnInspectKeyEvent(KEY_EVENT_RECORD &event)
 {
-	if (_ttyx && !_using_extension) {
+	bool in_kernel = 0;
+	// In kernel console use kernel control keys info even if using TTY|X for clipboard
+	#if defined(__linux__) || defined(__FreeBSD__) || defined(__DragonFly__)
+		int kd_mode;
+		#if defined(__linux__)
+		if (ioctl(_stdin, KDGETMODE, &kd_mode) == 0) {
+		#else
+		if (ioctl(_stdin, KDGKBMODE, &kd_mode) == 0) {
+		#endif
+			in_kernel = 1;
+		}
+	#endif
+
+	if (_ttyx && !_using_extension && !in_kernel) {
 		_ttyx->InspectKeyEvent(event);
 
 	} else {
@@ -1004,11 +1075,7 @@ void TTYBackend::OnInspectKeyEvent(KEY_EVENT_RECORD &event)
 	}
 
 	if (!event.wVirtualKeyCode) {
-		if (event.dwControlKeyState & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED | LEFT_ALT_PRESSED | RIGHT_ALT_PRESSED)) {
-			event.wVirtualKeyCode = WChar2WinVKeyCode(event.uChar.UnicodeChar);
-		} else {
-			event.wVirtualKeyCode = VK_UNASSIGNED;
-		}
+		event.wVirtualKeyCode = WChar2WinVKeyCode(event.uChar.UnicodeChar);
 	}
 	if (!event.uChar.UnicodeChar && IsEnhancedKey(event.wVirtualKeyCode)) {
 		event.dwControlKeyState|= ENHANCED_KEY;
@@ -1139,13 +1206,23 @@ DWORD TTYBackend::QueryControlKeys()
 
 void TTYBackend::OnConsoleDisplayNotification(const wchar_t *title, const wchar_t *text)
 {
-	try {
-		StackSerializer stk_ser;
-		stk_ser.PushStr(Wide2MB(text));
-		stk_ser.PushStr(Wide2MB(title));
-		stk_ser.PushNum(FARTTY_INTERACT_DESKTOP_NOTIFICATION);
-		Far2lInteract(stk_ser, false);
-	} catch (std::exception &) {}
+	if (_far2l_tty) {
+		try {
+			StackSerializer stk_ser;
+			stk_ser.PushStr(Wide2MB(text));
+			stk_ser.PushStr(Wide2MB(title));
+			stk_ser.PushNum(FARTTY_INTERACT_DESKTOP_NOTIFICATION);
+			Far2lInteract(stk_ser, false);
+		} catch (std::exception &) {}
+
+	} else if (getenv("DISPLAY") != NULL || UnderWayland()) {
+		const std::string &str_title = Wide2MB(title);
+		const std::string &str_text = Wide2MB(text);
+		Far2l_NotifySh(_full_exe_path, str_title.c_str(), str_text.c_str());
+
+	} else {
+		fprintf(stderr, "OnConsoleDisplayNotification('%ls', '%ls') - unsupported\n", title, text);
+	}
 }
 
 bool TTYBackend::OnConsoleBackgroundMode(bool TryEnterBackgroundMode)
@@ -1161,6 +1238,37 @@ bool TTYBackend::OnConsoleBackgroundMode(bool TryEnterBackgroundMode)
 	}
 
 	return true;
+}
+
+const char *TTYBackend::OnConsoleBackendInfo(int entity)
+{
+	if (entity != -1)
+		return nullptr;
+
+	std::lock_guard<std::mutex> lock(_backend_info);
+	if (_backend_info.flavor.empty()) {
+		_backend_info.flavor.reserve(16); // avoid reallocation ever then
+		_backend_info.flavor = "TTY";
+
+		if (_far2l_tty || _ttyx || _using_extension) {
+			_backend_info.flavor+= '|';
+		}
+
+		if (_far2l_tty) {
+			_backend_info.flavor+= 'F';
+		} else if (_ttyx || _using_extension) {
+			if (_ttyx) {
+				_backend_info.flavor+= 'X';
+			}
+			if (_using_extension) {
+				_backend_info.flavor+= _using_extension;
+			} else if (_ttyx && _ttyx->HasXi()) {
+				_backend_info.flavor+= 'i';
+			}
+		}
+	}
+
+	return _backend_info.flavor.c_str();
 }
 
 
@@ -1220,7 +1328,7 @@ static void OnSigHup(int signo)
 }
 
 
-bool WinPortMainTTY(const char *full_exe_path, int std_in, int std_out, bool ext_clipboard, bool norgb, const char *nodetect, bool far2l_tty, unsigned int esc_expiration, int notify_pipe, int argc, char **argv, int(*AppMain)(int argc, char **argv), int *result)
+bool WinPortMainTTY(const char *full_exe_path, int std_in, int std_out, bool ext_clipboard, bool norgb, DWORD nodetect, bool far2l_tty, unsigned int esc_expiration, int notify_pipe, int argc, char **argv, int(*AppMain)(int argc, char **argv), int *result)
 {
 	TTYBackend vtb(full_exe_path, std_in, std_out, ext_clipboard, norgb, nodetect, far2l_tty, esc_expiration, notify_pipe, result);
 

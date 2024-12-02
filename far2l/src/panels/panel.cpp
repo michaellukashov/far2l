@@ -332,19 +332,28 @@ static void ConfigureChangeDriveMode()
 	}
 }
 
+/*
+
 LONG_PTR WINAPI ChDiskDlgProc(HANDLE hDlg, int Msg, int Param1, LONG_PTR Param2)
 {
 	switch (Msg) {
 		case DN_CTLCOLORDLGITEM: {
 			if (Param1 == 1)	// BUGBUG, magic number
 			{
-				int Color = FarColorToReal(COL_WARNDIALOGTEXT);
-				return ((Param2 & 0xFF00FF00) | (Color << 16) | Color);
+				uint64_t *ItemColor = reinterpret_cast<uint64_t *>(Param2);
+				uint64_t color = FarColorToReal(COL_WARNDIALOGTEXT);
+				ItemColor[0] = color;
+				ItemColor[2] = color;
+				return 1;
+//				int Color = FarColorToReal(COL_WARNDIALOGTEXT);
+//				return ((Param2 & 0xFF00FF00) | (Color << 16) | Color);
 			}
 		} break;
 	}
 	return DefDlgProc(hDlg, Msg, Param1, Param2);
 }
+
+*/
 
 static void AddBookmarkItems(VMenu &ChDisk, int Pos)
 {
@@ -690,10 +699,11 @@ int Panel::ChangeDiskMenu(int Pos, int FirstCall)
 
 	if (ProcessPluginEvent(FE_CLOSE, nullptr))
 		return -1;
-
 	ScrBuf.Flush();
-	INPUT_RECORD rec;
-	PeekInputRecord(&rec);
+	if (!WinPortTesting()) {
+		INPUT_RECORD rec;
+		PeekInputRecord(&rec);
+	}
 
 	if (!mitem)
 		return -1;	//???
@@ -961,7 +971,7 @@ void Panel::FastFind(int FirstKey)
 		Edit FindEdit;
 		FindEdit.SetPosition(FindX + 2, FindY + 1, FindX + 19, FindY + 1);
 		FindEdit.SetEditBeyondEnd(FALSE);
-		FindEdit.SetObjectColor(COL_DIALOGEDIT);
+		FindEdit.SetObjectColor(FarColorToReal(COL_DIALOGEDIT));
 		FindEdit.Show();
 
 		while (!KeyToProcess) {
@@ -1125,14 +1135,14 @@ void Panel::FastFind(int FirstKey)
 
 void Panel::FastFindShow(int FindX, int FindY)
 {
-	SetColor(COL_DIALOGTEXT);
+	SetFarColor(COL_DIALOGTEXT);
 	GotoXY(FindX + 1, FindY + 1);
 	Text(L" ");
 	GotoXY(FindX + 20, FindY + 1);
 	Text(L" ");
-	Box(FindX, FindY, FindX + 21, FindY + 2, COL_DIALOGBOX, DOUBLE_BOX);
+	Box(FindX, FindY, FindX + 21, FindY + 2, FarColorToReal(COL_DIALOGBOX), DOUBLE_BOX);
 	GotoXY(FindX + 7, FindY);
-	SetColor(COL_DIALOGBOXTITLE);
+	SetFarColor(COL_DIALOGBOXTITLE);
 	Text(Msg::SearchFileTitle);
 }
 
@@ -1300,7 +1310,7 @@ void Panel::DragMessage(int X, int Y, int Move)
 	delete DragSaveScr;
 	DragSaveScr = new SaveScreen(MsgX, Y, MsgX + Length - 1, Y);
 	GotoXY(MsgX, Y);
-	SetColor(COL_PANELDRAGTEXT);
+	SetFarColor(COL_PANELDRAGTEXT);
 	Text(strDragMsg);
 }
 
@@ -1483,7 +1493,7 @@ void Panel::Show()
 void Panel::DrawSeparator(int Y)
 {
 	if (Y < Y2) {
-		SetColor(COL_PANELBOX);
+		SetFarColor(COL_PANELBOX);
 		GotoXY(X1, Y);
 		ShowSeparator(X2 - X1 + 1, 1);
 	}
@@ -1533,7 +1543,7 @@ void Panel::ShowScreensCount()
 			if (Prefix != '[') {
 				strScreensText+= L"]";
 				GotoXY(Opt.ShowColumnTitles ? X1 : X1 + 2, Y1);
-				SetColor(COL_PANELSCREENSNUMBER);
+				SetFarColor(COL_PANELSCREENSNUMBER);
 				Text(strScreensText);
 			}
 		}
@@ -1591,6 +1601,7 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 	ProcessingPluginCommand++;
 	FilePanels *FPanels = CtrlObject->Cp();
 	PluginCommand = Command;
+	auto DestFilePanel = dynamic_cast<FileList*>(this);
 
 	switch (Command) {
 		case FCTL_SETVIEWMODE:
@@ -1693,6 +1704,8 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 				} PFLAGS[] = {
 						{&Opt.ShowHidden, PFLAGS_SHOWHIDDEN},
 						{&Opt.Highlight,  PFLAGS_HIGHLIGHT },
+						{&Opt.ShowFilenameMarks,   PFLAGS_HL_MARKERS_NOSHOW },
+						{&Opt.FilenameMarksAlign,  PFLAGS_HL_MARKERS_NOALIGN },
 				};
 				DWORD Flags = 0;
 
@@ -1714,7 +1727,6 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 			}
 
 			if (GetType() == FILE_PANEL) {
-				FileList *DestFilePanel = (FileList *)this;
 				static int Reenter = 0;
 
 				if (!Reenter && Info->Plugin) {
@@ -1730,6 +1742,12 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 
 					if (PInfo.Flags & OPIF_USECRC32)
 						Info->Flags|= PFLAGS_USECRC32;
+
+					if (PInfo.Flags & OPIF_HL_MARKERS_NOSHOW)		// (?) condition added by analogy:
+						Info->Flags|= PFLAGS_HL_MARKERS_NOSHOW;		//  may not be completely correct
+
+					if (PInfo.Flags & OPIF_HL_MARKERS_NOALIGN)		// (?) condition added by analogy:
+						Info->Flags|= PFLAGS_HL_MARKERS_NOALIGN;	//  may not be completely correct
 
 					Reenter--;
 				}
@@ -1753,7 +1771,6 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 				GetCurDir(strTemp);
 
 			if (GetType() == FILE_PANEL) {
-				FileList *DestFilePanel = (FileList *)this;
 				static int Reenter = 0;
 
 				if (!Reenter && GetMode() == PLUGIN_PANEL) {
@@ -1790,7 +1807,7 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 
 			if (GetType() == FILE_PANEL) {
 				FARString strColumnTypes, strColumnWidths;
-				((FileList *)this)->PluginGetColumnTypesAndWidths(strColumnTypes, strColumnWidths);
+				DestFilePanel->PluginGetColumnTypesAndWidths(strColumnTypes, strColumnWidths);
 
 				if (Command == FCTL_GETCOLUMNTYPES) {
 					if (Param1 && Param2)
@@ -1807,26 +1824,29 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 			break;
 
 		case FCTL_GETPANELITEM: {
-			Result = (int)((FileList *)this)->PluginGetPanelItem(Param1, (PluginPanelItem *)Param2);
+			if (DestFilePanel)
+				Result = (int)DestFilePanel->PluginGetPanelItem(Param1, (PluginPanelItem *)Param2);
 			break;
 		}
 
 		case FCTL_GETSELECTEDPANELITEM: {
-			Result = (int)((FileList *)this)->PluginGetSelectedPanelItem(Param1, (PluginPanelItem *)Param2);
+			if (DestFilePanel)
+				Result = (int)DestFilePanel->PluginGetSelectedPanelItem(Param1, (PluginPanelItem *)Param2);
 			break;
 		}
 
 		case FCTL_GETCURRENTPANELITEM: {
-			PanelInfo Info;
-			FileList *DestPanel = ((FileList *)this);
-			DestPanel->PluginGetPanelInfo(Info);
-			Result = (int)DestPanel->PluginGetPanelItem(Info.CurrentItem, (PluginPanelItem *)Param2);
+			if (DestFilePanel) {
+				PanelInfo Info;
+				DestFilePanel->PluginGetPanelInfo(Info);
+				Result = (int)DestFilePanel->PluginGetPanelItem(Info.CurrentItem, (PluginPanelItem *)Param2);
+			}
 			break;
 		}
 
 		case FCTL_BEGINSELECTION: {
 			if (GetType() == FILE_PANEL) {
-				((FileList *)this)->PluginBeginSelection();
+				DestFilePanel->PluginBeginSelection();
 				Result = TRUE;
 			}
 			break;
@@ -1834,7 +1854,7 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 
 		case FCTL_SETSELECTION: {
 			if (GetType() == FILE_PANEL) {
-				((FileList *)this)->PluginSetSelection(Param1, Param2 ? true : false);
+				DestFilePanel->PluginSetSelection(Param1, Param2 ? true : false);
 				Result = TRUE;
 			}
 			break;
@@ -1842,7 +1862,7 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 
 		case FCTL_CLEARSELECTION: {
 			if (GetType() == FILE_PANEL) {
-				reinterpret_cast<FileList *>(this)->PluginClearSelection(Param1);
+				DestFilePanel->PluginClearSelection(Param1);
 				Result = TRUE;
 			}
 			break;
@@ -1850,7 +1870,7 @@ int Panel::SetPluginCommand(int Command, int Param1, LONG_PTR Param2)
 
 		case FCTL_ENDSELECTION: {
 			if (GetType() == FILE_PANEL) {
-				((FileList *)this)->PluginEndSelection();
+				DestFilePanel->PluginEndSelection();
 				Result = TRUE;
 			}
 			break;

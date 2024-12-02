@@ -1,4 +1,4 @@
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake/modules)
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 cmake_minimum_required (VERSION 3.16.0)
 
@@ -96,19 +96,23 @@ if(GIT_FOUND)
     execute_process(COMMAND "${GIT_EXECUTABLE}" describe --tag
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         OUTPUT_VARIABLE GIT_TAG
-        OUTPUT_STRIP_TRAILING_WHITESPACE)
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET)
 endif()
 
 if(NOT "${GIT_TAG}" STREQUAL "v_${VERSION}")
     if(GIT_FOUND)
-        execute_process(COMMAND "${GIT_EXECUTABLE}" show --no-patch --format=%cs HEAD
-            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            OUTPUT_VARIABLE GIT_DATE
-            OUTPUT_STRIP_TRAILING_WHITESPACE)
-        execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD
-            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            OUTPUT_VARIABLE GIT_HASH
-            OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(IS_DIRECTORY ${CMAKE_SOURCE_DIR}/.git)
+            execute_process(COMMAND "${GIT_EXECUTABLE}" show --no-patch --format=%ci HEAD
+                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                OUTPUT_VARIABLE GIT_DATE
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+            string(SUBSTRING ${GIT_DATE} 0 10 GIT_DATE)
+            execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short HEAD
+                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                OUTPUT_VARIABLE GIT_HASH
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+        endif()
     endif()
     if(NOT "${GIT_DATE}" STREQUAL "")
         message(STATUS "git date: ${GIT_DATE}")
@@ -148,16 +152,16 @@ endif()
 
 ##############################
 
+if (NOT DEFINED TESTING)
+    set(TESTING "NO")
+endif()
+
 if (NOT DEFINED USEWX)
     set(USEWX "YES")
 endif()
 
 if (NOT DEFINED UNRAR)
     set(UNRAR "bundled")
-endif()
-
-if (NOT DEFINED USESPDLOG)
-    set(USESPDLOG "NO")
 endif()
 
 # EACP disabled by default for now as FAR's GetCodePageInfo rejects all multibyte charsets due to BUGBUG.
@@ -198,8 +202,8 @@ endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC -Wno-unused-function -D_FILE_OFFSET_BITS=64 -D_GLIBCXX_ASSERTIONS") #  -fsanitize=address
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -std=c99 -fPIC -Wno-unused-function -D_FILE_OFFSET_BITS=64") # -fsanitize=address -fsanitize=bounds
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -O2")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS} -O2")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_C_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -D_FILE_OFFSET_BITS=64") #-Wno-c++11-narrowing -fsanitize=address -fsanitize=bounds
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_FILE_OFFSET_BITS=64") # -fsanitize=address -fsanitize=bounds
 set(CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_FLAGS "${CMAKE_SHARED_LIBRARY_LINK_DYNAMIC_FLAGS} -fpie -Os") # -static-libgcc -static-libstdc++")
@@ -472,15 +476,21 @@ endif(OPT_USE_STATIC_EXT_LIBS)
 #message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
 if (NOT DEFINED MULTIARC OR MULTIARC)
     message(STATUS "MULTIARC plugin enabled")
+
     find_package(PkgConfig REQUIRED)
     pkg_search_module(LibArchive QUIET libarchive)
     if(NOT LibArchive_FOUND)
-        message(WARNING "${ColorRed}libarchive not found, multiarc will have weaker archives support. Its recommended to install libarchive-dev and reconfigure far2l.${ColorNormal}")
-    endif()
-
-    pkg_search_module(PCRE QUIET libpcre)
-    if(NOT PCRE_FOUND)
-        message(WARNING "${ColorRed}libpcre not found, multiarc will have no regexp support in custom archive format descriptions. Install libpcre and reconfigure far2l if you need that functionality.${ColorNormal}")
+        # workaround for MacOS brew's/macports' libarchive
+        if(IS_DIRECTORY "/usr/local/opt/libarchive/include")
+            set(LibArchive_INCLUDE_DIR "/usr/local/opt/libarchive/include")
+            set(LibArchive_LIBRARY "/usr/local/opt/libarchive/lib/libarchive.dylib")
+        elseif(EXISTS "/opt/local/lib/libarchive.dylib")
+            set(LibArchive_LIBRARY "/opt/local/lib/libarchive.dylib")
+        endif()
+        find_package(LibArchive)
+        if(NOT LibArchive_FOUND)
+            message(WARNING "${ColorRed}libarchive not found, multiarc will have weaker archives support. Its recommended to install libarchive-dev and reconfigure far2l.${ColorNormal}")
+        endif()
     endif()
 
     add_subdirectory (multiarc)
@@ -594,7 +604,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
     endif (OPT_USE_STATIC_EXT_LIBS)
     endif (FALSE)
 
-    if(OPT_USE_STATIC_EXT_LIBS)
+    if(OPT_USE_STATIC_EXT_LIBS AND EXISTS LIBNEON_ROOT_DIR)
       find_library(LIBNEON_LIBRARY
         NAMES
           neon
@@ -603,11 +613,11 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
           ${LIBNEON_ROOT_DIR}/lib
         NO_CMAKE_SYSTEM_PATH
       )
-      #message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
-      #message("LIBNEON_ROOT_DIR: ${LIBNEON_ROOT_DIR}")
-      #message("LIBNEON_FOUND: ${LIBNEON_FOUND}")
-      if(EXISTS ${LIBNEON_LIBRARY})
-        set(LIBNEON_FOUND TRUE)
+      message(STATUS "LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
+      message(STATUS "LIBNEON_ROOT_DIR: ${LIBNEON_ROOT_DIR}")
+      message(STATUS "LIBNEON_FOUND: '${LIBNEON_FOUND}'")
+      if(LIBNEON_FOUND STREQUAL TRUE AND EXISTS ${LIBNEON_LIBRARY})
+        # set(LIBNEON_FOUND TRUE)
         set(LIBNEON_LIBRARIES ${LIBNEON_LIBRARY})
         set(LIBNEON_INCLUDE_DIR ${LIBNEON_ROOT_DIR}/include)
         set(LIBNEON_INCLUDE_DIRS ${LIBNEON_INCLUDE_DIR})
@@ -617,7 +627,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
     else()
       include(cmake/modules/FindLibNEON.cmake)
       find_package(LibNEON CONFIG)
-    endif(OPT_USE_STATIC_EXT_LIBS)
+    endif()
 
     find_package(LibNfs)
     if(LIBNFS_FOUND)
@@ -646,19 +656,18 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
   # message("LibNEON_FOUND: ${LibNEON_FOUND}")
 	# message("LIBNEON_LIBRARY: ${LIBNEON_LIBRARY}")
 	# message("LIBNEON_LIBRARIES: ${LIBNEON_LIBRARIES}")
-    if(LIBNEON_FOUND)
         message(STATUS "libneon found -> enjoy WebDav support in NetRocks")
     else()
         message(WARNING "${ColorRed}libneon not found, NetRocks will not have WebDav protocol support. Install libneon*-dev if you want WebDav protocol available in NetRocks.${ColorNormal}")
-    endif(LIBNEON_FOUND)
+    endif()
 
     add_subdirectory (NetRocks)
 
     #message("OPENSSL_LIBRARIES: ${OPENSSL_LIBRARIES}")
     if(OPT_USE_STATIC_EXT_LIBS)
         #add_dependencies(NetRocks-NFS LibNfs)
-        if(LIBNEON_FOUND)
-        add_dependencies(NetRocks-WebDAV LibNEON)
+        if(LIBNEON_FOUND STREQUAL TRUE AND EXISTS ${LIBNEON_LIBRARY})
+        # add_dependencies(NetRocks-WebDAV LibNEON)
         target_link_libraries(NetRocks-WebDAV ${LIBNEON_LIBRARY})
         target_link_libraries(NetRocks-WebDAV ${OPENSSL_LIBRARIES} #${OPENSSL_SSL_LIBRARY} #LibXml2::LibXml2 LibLZMA::LibLZMA
             ${VCPKG_INSTALLED_PATH}/lib/libz.a
@@ -666,7 +675,7 @@ if (NOT DEFINED NETROCKS OR NETROCKS)
             ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
             #${VCPKG_INSTALLED_PATH}/lib/liproxy.a
             dl)
-        endif(LIBNEON_FOUND)
+        endif()
     endif(OPT_USE_STATIC_EXT_LIBS)
 
 else()
@@ -676,7 +685,7 @@ else()
         " COMPONENT system)
 endif()
 
-if (DEFINED VIRTUAL_PYTHON)
+if (DEFINED PYTHON AND PYTHON)
     message(STATUS "PYTHON plugin with interpreter from virtualenv enabled")
     add_subdirectory (python)
     # Copy this explicitly cuz generic copier command excludes 'far2l'
@@ -684,41 +693,15 @@ if (DEFINED VIRTUAL_PYTHON)
         DESTINATION "lib/far2l/Plugins/python/plug/" USE_SOURCE_PERMISSIONS
         COMPONENT base FILES_MATCHING
         PATTERN "*")
+    install(DIRECTORY "${INSTALL_DIR}/Plugins/python/plug/plugins"
+        DESTINATION "lib/far2l/Plugins/python/plug/" USE_SOURCE_PERMISSIONS
+        COMPONENT base FILES_MATCHING
+        PATTERN "*")
 else()
-    if (DEFINED PYTHON AND PYTHON)
-        find_package(Python3 COMPONENTS Interpreter Development)
-
-        if(Python3_FOUND AND Python3_Development_FOUND)
-            message(STATUS "PYTHON plugin enabled")
-            add_subdirectory (python)
-            install(CODE "
-                execute_process(COMMAND echo Python: preparing virtual environment)
-                " COMPONENT system)
-            install(CODE "
-                execute_process(COMMAND ${Python3_EXECUTABLE} -m venv --system-site-packages ${CMAKE_INSTALL_PREFIX}/lib/far2l/Plugins/python/plug/python)
-                " COMPONENT system)
-            install(CODE "
-                execute_process(COMMAND echo Python: installing packages)
-                " COMPONENT system)
-            install(CODE "
-                execute_process(COMMAND ${CMAKE_INSTALL_PREFIX}/lib/far2l/Plugins/python/plug/python/bin/python -m pip install cffi debugpy)
-                " COMPONENT system)
-
-            # Copy this explicitly cuz generic copier command excludes 'far2l'
-            install(DIRECTORY "${INSTALL_DIR}/Plugins/python/plug/far2l"
-                DESTINATION "lib/far2l/Plugins/python/plug/" USE_SOURCE_PERMISSIONS
-                COMPONENT base FILES_MATCHING
-                PATTERN "*")
-        else()
-            message(WARNING "${ColorRed}PYTHON plugin disabled due to missing python3 environment${ColorNormal}")
-        endif ()
-
-    else()
-        message(STATUS "${ColorRed}PYTHON plugin disabled, use -DPYTHON=yes if you need it${ColorNormal}")
-        install(CODE "
-            execute_process(COMMAND rm -f ${CMAKE_INSTALL_PREFIX}/lib/far2l/Plugins/python/plug/python.far-plug-wide)
-            " COMPONENT system)
-    endif()
+    message(STATUS "${ColorRed}PYTHON plugin disabled, use -DPYTHON=yes if you need it${ColorNormal}")
+    install(CODE "
+        execute_process(COMMAND rm -f ${CMAKE_INSTALL_PREFIX}/lib/far2l/Plugins/python/plug/python.far-plug-wide)
+        " COMPONENT system)
 endif()
 
 if (NOT DEFINED SIMPLEINDENT OR SIMPLEINDENT)
@@ -747,6 +730,7 @@ endif()
 add_subdirectory (packaging)
 
 add_subdirectory(man)
+add_subdirectory(bash-completion)
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(FIXUP_SCRIPT packaging/osx/FixupBundle.cmake)

@@ -82,6 +82,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "constitle.hpp"
 #include "plugapi.hpp"
 #include "CachedCreds.hpp"
+#include "MountInfo.h"
 
 extern PanelViewSettings ViewSettingsArray[];
 extern size_t SizeViewSettingsArray;
@@ -123,6 +124,11 @@ FileList::FileList()
 	SelFileSize(0),
 	TotalFileSize(0),
 	FreeDiskSize(0),
+	TotalFilePhysSize(0),
+	LargestFilSize(0),
+	LargestFilSizeL(0),
+	LargestFilPhysSize(0),
+	MarkLM(0),
 	LastUpdateTime(0),
 	Height(0),
 	LeftPos(0),
@@ -164,6 +170,9 @@ FileList::FileList()
 	DirectoriesFirst = 1;
 	Columns = PreparePanelView(&ViewSettings);
 	PluginCommand = -1;
+
+	extern int ColumnTypeWidth[32];
+	memcpy(AutoColumnWidth, ColumnTypeWidth, sizeof(int) * 32);
 }
 
 FileList::~FileList()
@@ -1222,6 +1231,56 @@ int FileList::ProcessKey(FarKey Key)
 			RestoreSelection();
 			return TRUE;
 		}
+		case KEY_CTRLM | KEY_ALT: {
+			if (!Opt.ShowFilenameMarks)
+				Opt.ShowFilenameMarks ^= 1;
+			else {
+				if (!Opt.FilenameMarksAlign)
+					Opt.FilenameMarksAlign ^= 1;
+				else {
+					Opt.ShowFilenameMarks ^= 1;
+					Opt.FilenameMarksAlign ^= 1;
+				}
+			}
+			Redraw();
+			Panel *AnotherPanel = CtrlObject->Cp()->GetAnotherPanel(this);
+			AnotherPanel->Update(UPDATE_KEEP_SELECTION);
+			AnotherPanel->Redraw();
+			return TRUE;
+		}
+
+		case KEY_CTRLD | KEY_ALT: {
+			DirectoryNameSettings( );
+
+//			++Opt.DirNameStyle &= 63;
+//			UpdateDefaultColumnTypeWidths( );
+//			UpdateAutoColumnWidth();
+//			Redraw();
+//			Panel *AnotherPanel = CtrlObject->Cp()->GetAnotherPanel(this);
+//			AnotherPanel->Update(UPDATE_KEEP_SELECTION);
+//			AnotherPanel->Redraw();
+			return TRUE;
+		}
+
+		case KEY_CTRLL | KEY_ALT: {
+			Opt.ShowSymlinkSize ^= 1;
+			UpdateAutoColumnWidth();
+			Redraw();
+			Panel *AnotherPanel = CtrlObject->Cp()->GetAnotherPanel(this);
+			AnotherPanel->Update(UPDATE_KEEP_SELECTION);
+			AnotherPanel->Redraw();
+			return TRUE;
+		}
+
+		case KEY_CTRLN | KEY_ALT: {
+			Opt.FilenameMarksInStatusBar ^= 1;
+			Redraw();
+			Panel *AnotherPanel = CtrlObject->Cp()->GetAnotherPanel(this);
+			AnotherPanel->Update(UPDATE_KEEP_SELECTION);
+			AnotherPanel->Redraw();
+			return TRUE;
+		}
+
 		case KEY_CTRLR: {
 			Update(UPDATE_KEEP_SELECTION | UPDATE_CAN_BE_ANNOYING);
 			Redraw();
@@ -1268,6 +1327,7 @@ int FileList::ProcessKey(FarKey Key)
 			return TRUE;
 		}
 
+		case KEY_CTRLBACKSLASH | KEY_ALT:
 		case KEY_CTRLBACKSLASH: {
 			_ALGO(CleverSysLog clv(L"Ctrl-/"));
 			_ALGO(SysLog(L"%ls, FileCount=%d", (PanelMode == PLUGIN_PANEL ? "PluginPanel" : "FilePanel"),
@@ -1291,8 +1351,14 @@ int FileList::ProcessKey(FarKey Key)
 				}
 			}
 
-			if (NeedChangeDir)
-				ChangeDir(WGOOD_SLASH);
+			if (NeedChangeDir) {
+				if ( (Key & KEY_ALT) && (PanelMode != PLUGIN_PANEL) ) { // to mount point only in local FS
+					FARString strFileSystemMountPoint = MountInfo().GetFileSystemMountPoint(strCurDir);
+					ChangeDir(strFileSystemMountPoint.IsEmpty() ? WGOOD_SLASH : strFileSystemMountPoint);
+				}
+				else // to root dir
+					ChangeDir(WGOOD_SLASH);
+			}
 
 			CtrlObject->Cp()->ActivePanel->Show();
 			return TRUE;
@@ -1405,7 +1471,6 @@ int FileList::ProcessKey(FarKey Key)
 
 						if (!strLastFileName.IsEmpty()) {
 							strFileName = strLastFileName;
-							Unquote(strFileName);
 
 							if (IsAbsolutePath(strFileName)) {
 								PluginMode = FALSE;
@@ -2071,8 +2136,28 @@ int FileList::ProcessKey(FarKey Key)
 			return TRUE;
 
 		default:
+
+			if ((Key == L'*') || (Key == L'+') || (Key == L'-')) {
+				FARString TmpStr;
+				CtrlObject->CmdLine->GetString(TmpStr);
+				if (TmpStr.IsEmpty()) {
+					if (Key == L'*') {
+						SelectFiles(SELECT_INVERT);
+						return TRUE;
+					} else if (Key == L'+') {
+						SelectFiles(SELECT_ADD);
+						return TRUE;
+					} else if (Key == L'-') {
+						SelectFiles(SELECT_REMOVE);
+						return TRUE;
+					}
+				}
+			}
+
 			if (((Key >= KEY_ALT_BASE + 0x01 && Key <= KEY_ALT_BASE + 65535)
-						|| (Key >= KEY_ALTSHIFT_BASE + 0x01 && Key <= KEY_ALTSHIFT_BASE + 65535))
+				|| (Key >= KEY_ALTSHIFT_BASE + 0x01 && Key <= KEY_ALTSHIFT_BASE + 65535)
+				|| (Key >= 0x01 && Key <= 65535 && !CtrlObject->CmdLine->IsVisible())
+				)
 					&& (Key & ~KEY_ALTSHIFT_BASE) != KEY_BS && (Key & ~KEY_ALTSHIFT_BASE) != KEY_TAB
 					&& (Key & ~KEY_ALTSHIFT_BASE) != KEY_ENTER && (Key & ~KEY_ALTSHIFT_BASE) != KEY_ESC
 					&& !IS_KEY_EXTENDED(Key)) {
@@ -2229,6 +2314,7 @@ void FileList::ProcessEnter(bool EnableExec, bool SeparateWindow, bool EnableAss
 	if (CurFile >= ListData.Count())
 		return;
 
+	CmdLineVisibleScope CLVS;
 	SudoClientRegion sdc_rgn;
 
 	CurPtr = ListData[CurFile];
@@ -2387,10 +2473,6 @@ BOOL FileList::ChangeDir(const wchar_t *NewDir, BOOL IsUpdated)
 	FARString strFindDir, strSetDir = NewDir;
 	bool dot2Present = !StrCmp(strSetDir, L"..");
 	fprintf(stderr, "NewDir=%ls strCurDir=%ls dot2Present=%u\n", NewDir, strCurDir.CPtr(), dot2Present);
-
-	if (PanelMode != PLUGIN_PANEL) {
-		PrepareDiskPath(strSetDir);
-	}
 
 	if (!dot2Present && StrCmp(strSetDir, L"."))
 		UpperFolderTopFile = CurTopFile;
@@ -2576,8 +2658,14 @@ BOOL FileList::ChangeDir(const wchar_t *NewDir, BOOL IsUpdated)
 						break;
 				}
 			} else {
-				r = Message(MSG_WARNING | MSG_ERRORTYPE, 2, Msg::Error, (dot2Present ? L".." : strSetDir),
-						Msg::Ignore, Msg::HRetry);
+				FARString msg_dir;
+				if (PanelMode != PLUGIN_PANEL) {
+					MixToFullPath(strSetDir,msg_dir,strOrigCurDir);
+				} else {
+					msg_dir=strSetDir;
+				}
+				r = Message(MSG_WARNING | MSG_ERRORTYPE, 2, Msg::Error, (dot2Present ? L".." : msg_dir),
+							Msg::Ignore, Msg::HRetry);
 			}
 
 			if (r == 1)
@@ -2707,7 +2795,8 @@ int FileList::ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent)
 		if ((MouseEvent->dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED)
 				&& MouseEvent->dwEventFlags == DOUBLE_CLICK) {
 			if (PanelMode == PLUGIN_PANEL) {
-				FlushInputBuffer();		// !!!
+				if (!WinPortTesting())
+					FlushInputBuffer();		// !!!
 				int ProcessCode =
 						CtrlObject->Plugins.ProcessKey(hPlugin, VK_RETURN, ShiftPressed ? PKF_SHIFT : 0);
 				ProcessPluginCommand();
@@ -2727,7 +2816,8 @@ int FileList::ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent)
 				Вроде всё должно быть ок.
 			*/
 			ShowFileList(TRUE);
-			FlushInputBuffer();
+			if (!WinPortTesting())
+				FlushInputBuffer();
 			ProcessEnter(true, ShiftPressed != 0);
 			return TRUE;
 		} else {
@@ -2911,6 +3001,8 @@ void FileList::SetViewMode(int ViewMode)
 		if (AnotherPanel->GetType() == TREE_PANEL)
 			AnotherPanel->Redraw();
 	}
+
+	UpdateAutoColumnWidth();
 }
 
 void FileList::SetSortMode(int SortMode)
@@ -3206,13 +3298,15 @@ long FileList::SelectFiles(int Mode, const wchar_t *Mask)
 	CFileMask FileMask;		// Класс для работы с масками
 	const wchar_t *HistoryName = L"Masks";
 	DialogDataEx SelectDlgData[] = {
-		{DI_DOUBLEBOX, 3, 1, 51, 6, {}, 0, L""},
+		{DI_DOUBLEBOX, 3, 1, 51, 8, {}, 0, L""},
 		{DI_EDIT,      5, 2, 49, 2, {(DWORD_PTR)HistoryName}, DIF_FOCUS | DIF_HISTORY, L""},
 		{DI_CHECKBOX,  5, 3, 49, 3, {(DWORD_PTR)Opt.SelectFolders}, 0, Msg::SelectFolders},
-		{DI_TEXT,      0, 4, 0,  4, {}, DIF_SEPARATOR, L""},
-		{DI_BUTTON,    0, 5, 0,  5, {}, DIF_DEFAULT | DIF_CENTERGROUP, Msg::Ok},
-		{DI_BUTTON,    0, 5, 0,  5, {}, DIF_CENTERGROUP, Msg::SelectFilter},
-		{DI_BUTTON,    0, 5, 0,  5, {}, DIF_CENTERGROUP, Msg::Cancel}
+		{DI_CHECKBOX,  5, 4, 49, 4, {(DWORD_PTR)Opt.PanelCaseSensitiveCompareSelect}, 0, Msg::SelectCase},
+		{DI_TEXT,      4, 5, 50,  5, {}, DIF_DISABLE | DIF_CENTERTEXT, Msg::SelectNote},
+		{DI_TEXT,      0, 6, 0,  6, {}, DIF_SEPARATOR, L""},
+		{DI_BUTTON,    0, 7, 0,  7, {}, DIF_DEFAULT | DIF_CENTERGROUP, Msg::Ok},
+		{DI_BUTTON,    0, 7, 0,  7, {}, DIF_CENTERGROUP, Msg::SelectFilter},
+		{DI_BUTTON,    0, 7, 0,  7, {}, DIF_CENTERGROUP, Msg::Cancel}
 	};
 	MakeDialogItemsEx(SelectDlgData, SelectDlg);
 	FileFilter Filter(this, FFT_SELECT);
@@ -3244,30 +3338,46 @@ long FileList::SelectFiles(int Mode, const wchar_t *Mask)
 	CurPtr = ListData[CurFile];
 	FARString strCurName = CurPtr->strName;
 
+	bool SkipPath = false;
+
 	if (Mode == SELECT_ADDEXT || Mode == SELECT_REMOVEEXT) {
+		if (strCurName == L"..")
+			return 0;
+		strCurName = PointToName(strCurName);
 		size_t pos;
 
-		if (strCurName.RPos(pos, L'.')) {
+		if (strCurName.RPos(pos, L'.') && pos != strCurName.GetLength() - 1 &&  pos != 0) {
 			// Учтем тот момент, что расширение может содержать символы-разделители
-			strRawMask.Format(L"\"*.%ls\"", strCurName.CPtr() + pos + 1);
+			strRawMask.Format(L"\"?*.%ls\"", strCurName.CPtr() + pos + 1);
 			WrapBrackets = true;
-		} else {
-			strMask = L"*.";
-		}
 
+		} else {
+			// file without extension, e.g.: "readme", ".readme" & "readme."
+			strMask = L"/^(?:[^.]+|\\.[^.]+|.+\\.)$/";
+		}
+		SkipPath = true;
 		Mode = (Mode == SELECT_ADDEXT) ? SELECT_ADD : SELECT_REMOVE;
 	} else {
 		if (Mode == SELECT_ADDNAME || Mode == SELECT_REMOVENAME) {
-			// Учтем тот момент, что имя может содержать символы-разделители
-			strRawMask = L"\"";
-			strRawMask+= strCurName;
+			if (strCurName == L"..")
+				return 0;
+			strCurName = PointToName(strCurName);
+
 			size_t pos;
 
-			if (strRawMask.RPos(pos, L'.') && pos != strRawMask.GetLength() - 1)
-				strRawMask.Truncate(pos);
+			if (strCurName.RPos(pos, L'.') && pos != strCurName.GetLength() - 1 &&  pos != 0) {
+				strCurName.Truncate(pos);
+			}
 
-			strRawMask+= L".*\"";
-			WrapBrackets = true;
+			auto fName = EscapeCmdStr(strCurName.CPtr(), L".^$*+-?()[]{}\\|");    // special PCRE characters
+
+			bool allowEmptyExtension = (!strCurName.RPos(pos, '.') || (pos == 0 || pos == strCurName.GetLength() - 1));
+			bool caseSensitive = Opt.PanelCaseSensitiveCompareSelect;
+
+			strMask.Format(L"/^%ls(?:\\.[^.]+)%ls$/", fName.c_str(), allowEmptyExtension ? L"?" : L"");
+			if (!caseSensitive) strMask+=L"i";
+
+			SkipPath = true;
 			Mode = (Mode == SELECT_ADDNAME) ? SELECT_ADD : SELECT_REMOVE;
 		} else {
 			if (Mode == SELECT_ADD || Mode == SELECT_REMOVE) {
@@ -3277,26 +3387,26 @@ long FileList::SelectFiles(int Mode, const wchar_t *Mask)
 					SelectDlg[0].strData = Msg::SelectTitle;
 				else {
 					SelectDlg[0].strData = Msg::UnselectTitle;
-					SelectDlg[2].Flags |= DIF_DISABLE; // Not need for Unselect, because it process all secelted items
+					SelectDlg[2].Flags |= DIF_DISABLE; // Not need for Unselect, because it process all selected items
 				}
 
 				{
 					Dialog Dlg(SelectDlg, ARRAYSIZE(SelectDlg));
 					Dlg.SetHelp(L"SelectFiles");
-					Dlg.SetPosition(-1, -1, 55, 8);
+					Dlg.SetPosition(-1, -1, 55, 10);
 
 					for (;;) {
 						Dlg.ClearDone();
 						Dlg.Process();
 
-						if (Dlg.GetExitCode() == 5 && Filter.FilterEdit()) {
+						if (Dlg.GetExitCode() == 7 && Filter.FilterEdit()) {
 							// Рефреш текущему времени для фильтра сразу после выхода из диалога
 							Filter.UpdateCurrentTime();
 							bUseFilter = true;
 							break;
 						}
 
-						if (Dlg.GetExitCode() != 4)
+						if (Dlg.GetExitCode() != 6)
 							return 0;
 
 						strMask = SelectDlg[1].strData;
@@ -3307,6 +3417,8 @@ long FileList::SelectFiles(int Mode, const wchar_t *Mask)
 							break;
 						}
 					}
+					Opt.SelectFolders = SelectDlg[2].Selected == BSTATE_CHECKED;
+					Opt.PanelCaseSensitiveCompareSelect = SelectDlg[3].Selected == BSTATE_CHECKED;
 				}
 			} else if (Mode == SELECT_ADDMASK || Mode == SELECT_REMOVEMASK || Mode == SELECT_INVERTMASK) {
 				strMask = Mask;
@@ -3349,8 +3461,9 @@ long FileList::SelectFiles(int Mode, const wchar_t *Mask)
 			else {
 				if (bUseFilter)
 					Match = Filter.FileInFilter(*CurPtr);
-				else
-					Match = FileMask.Compare(CurPtr->strName);
+				else {
+					Match = FileMask.Compare(CurPtr->strName, !Opt.PanelCaseSensitiveCompareSelect, SkipPath);
+				}
 			}
 
 			if (Match) {
@@ -3370,7 +3483,7 @@ long FileList::SelectFiles(int Mode, const wchar_t *Mask)
 						break;
 				}
 
-				if (bUseFilter || !(CurPtr->FileAttr & FILE_ATTRIBUTE_DIRECTORY) || SelectDlg[2].Selected == BSTATE_CHECKED //Opt.SelectFolders
+				if (bUseFilter || !(CurPtr->FileAttr & FILE_ATTRIBUTE_DIRECTORY) || Opt.SelectFolders
 						|| !Selection || RawSelection || Mode == SELECT_INVERTALL
 						|| Mode == SELECT_INVERTMASK) {
 					Select(CurPtr, Selection);
@@ -3494,7 +3607,8 @@ void FileList::CompareDir()
 			PtrTempName1 = PointToName(Item->strName);
 			PtrTempName2 = PointToName(AnotherItem->strName);
 
-			if (!StrCmpI(PtrTempName1, PtrTempName2)) {
+			if ((Opt.PanelCaseSensitiveCompareSelect && !StrCmp(PtrTempName1, PtrTempName2))
+					|| (!Opt.PanelCaseSensitiveCompareSelect && !StrCmpI(PtrTempName1, PtrTempName2))) {
 				if (CompareFatTime) {
 					WORD DosDate, DosTime, AnotherDosDate, AnotherDosTime;
 					WINPORT(FileTimeToDosDateTime)(&Item->WriteTime, &DosDate, &DosTime);
@@ -3530,6 +3644,9 @@ void FileList::CompareDir()
 
 	if (SelectedFirst)
 		SortFileList(TRUE);
+
+	if (Another->SelectedFirst)
+		Another->SortFileList(TRUE);
 
 	Redraw();
 	Another->Redraw();
@@ -4111,7 +4228,9 @@ bool FileList::ApplyCommand()
 			if (!strConvertedCommand.IsEmpty()) {
 				// ProcessOSAliases(strConvertedCommand);
 
-				if (!isSilent)																			// TODO: Здесь не isSilent!
+				if (CtrlObject->CmdLine->ProcessFarCommands(strConvertedCommand))	// far commands always not silent
+					;
+				else if (!isSilent)																		// TODO: Здесь не isSilent!
 				{
 					CtrlObject->CmdLine->ExecString(strConvertedCommand, FALSE, 0, 0, ListFileUsed);	// Param2 == TRUE?
 																										// if (!(Opt.ExcludeCmdHistory&EXCLUDECMDHISTORY_NOTAPPLYCMD))
@@ -4203,6 +4322,9 @@ void FileList::CountDirSize(DWORD PluginFlags)
 				Item->FileSize = FileSize;
 				Item->PhysicalSize = PhysicalSize;
 				Item->ShowFolderSize = 1;
+				LargestFilSize = std::max(FileSize, LargestFilSize);
+				LargestFilSizeL = std::max(FileSize, LargestFilSizeL);
+				LargestFilPhysSize = std::max(PhysicalSize, LargestFilPhysSize);
 			} else
 				break;
 		}
@@ -4224,9 +4346,13 @@ void FileList::CountDirSize(DWORD PluginFlags)
 			ListData[CurFile]->FileSize = FileSize;
 			ListData[CurFile]->PhysicalSize = PhysicalSize;
 			ListData[CurFile]->ShowFolderSize = 1;
+			LargestFilSize = std::max(FileSize, LargestFilSize);
+			LargestFilSizeL = std::max(FileSize, LargestFilSizeL);
+			LargestFilPhysSize = std::max(PhysicalSize, LargestFilPhysSize);
 		}
 	}
 
+	UpdateAutoColumnWidth( );
 	SortFileList(TRUE);
 	ShowFileList(TRUE);
 	CtrlObject->Cp()->Redraw();
@@ -4504,6 +4630,14 @@ const void *FileList::GetItem(int Index)
 
 void FileList::ClearAllItem()
 {
+	if (!PrevDataList.Empty())		//???
+	{
+		for (PrevDataItem **i = PrevDataList.Last(); i; i = PrevDataList.Prev(i)) {
+			if (*i) (*i)->PrevListData.Clear();	//???
+		}
+	}
+
+#if 0
 	// удалим пред.значение.
 	if (!PrevDataList.Empty())		//???
 	{
@@ -4511,5 +4645,7 @@ void FileList::ClearAllItem()
 			i->PrevListData.Clear();	//???
 		}
 	}
+#endif
+
 	SymlinksCache.clear();
 }

@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-FAR2L_VERSION = master
+FAR2L_VERSION = v_2.6.4
 FAR2L_SITE = $(call github,elfmz,far2l,$(FAR2L_VERSION))
 FAR2L_LICENSE = GPL-2
 FAR2L_LICENSE_FILES = LICENSE.txt
@@ -13,11 +13,11 @@ FAR2L_INSTALL_STAGING = YES
 FAR2L_DEPENDENCIES =
 
 ifeq ($(BR2_PACKAGE_FAR2L_COLORER),y)
-FAR2L_DEPENDENCIES += xerces
+FAR2L_DEPENDENCIES += libxml2
 endif
 
 ifeq ($(BR2_PACKAGE_FAR2L_MULTIARC),y)
-FAR2L_DEPENDENCIES += pcre2 libarchive
+FAR2L_DEPENDENCIES += libarchive
 endif
 
 ifeq ($(BR2_PACKAGE_FAR2L_NETROCKS),y)

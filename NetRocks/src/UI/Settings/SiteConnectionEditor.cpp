@@ -21,7 +21,8 @@
 | Password:              [PSWDEDIT                         ] |
 | Directory:             [TEXTEDIT                         ] |
 |------------------------------------------------------------|
-|     [ Extra settings ]  [  Protocol settings ]             |
+|   [Extra settings]  [Protocol settings] [Proxy settings]   |
+|------------------------------------------------------------|
 |  [     Save     ]  [    Connect   ]     [  Cancel      ]   |
  =============================================================
    6              21 24             39    45             60
@@ -40,6 +41,7 @@ static int DefaultPortForProtocol(const char *protocol)
 }
 
 void ConfigureExtraSiteSettings(std::string &options);
+void ConfigureProxySettings(std::string &options);
 
 SiteConnectionEditor::SiteConnectionEditor(const SitesConfigLocation &sites_cfg_location, const std::string &display_name)
 	: _sites_cfg_location(sites_cfg_location), _initial_display_name(display_name), _display_name(display_name)
@@ -119,6 +121,10 @@ SiteConnectionEditor::SiteConnectionEditor(const SitesConfigLocation &sites_cfg_
 	_di.NextLine();
 	_i_extra_options = _di.AddAtLine(DI_BUTTON, 10,50, DIF_CENTERGROUP, MExtraOptions);
 	_i_protocol_options = _di.AddAtLine(DI_BUTTON, 10,50, DIF_CENTERGROUP, MProtocolOptions);
+	_i_proxy_options = _di.AddAtLine(DI_BUTTON, 10,50, DIF_CENTERGROUP, MProxyOptions);
+
+	_di.NextLine();
+	_di.AddAtLine(DI_TEXT, 4,63, DIF_BOXCOLOR | DIF_SEPARATOR);
 
 	_di.NextLine();
 	_i_save = _di.AddAtLine(DI_BUTTON, 61,21, DIF_CENTERGROUP, MSave);
@@ -129,17 +135,48 @@ SiteConnectionEditor::SiteConnectionEditor(const SitesConfigLocation &sites_cfg_
 	SetDefaultDialogControl(_i_connect);
 }
 
+class ProtocolOptionsScope
+{
+	SiteConnectionEditor &_sce;
+	std::string _original_options, _options;
+
+public:
+	ProtocolOptionsScope(SiteConnectionEditor &sce)
+		: _sce(sce)
+	{
+		auto it = _sce._protocols_options.find(_sce._protocol);
+		if (it == _sce._protocols_options.end()) {
+			SitesConfig sc(_sce._sites_cfg_location);
+			_options = sc.GetProtocolOptions(_sce._display_name, _sce._protocol);
+		} else {
+			_options = it->second;
+		}
+		_original_options = _options;
+	}
+
+	~ProtocolOptionsScope()
+	{
+		if (_original_options != _options) {
+			_sce._protocols_options[_sce._protocol] = _options;
+		}
+	}
+
+	operator std::string &()
+	{
+		return _options;
+	}
+};
+
 void SiteConnectionEditor::Load()
 {
 	SitesConfig sc(_sites_cfg_location);
-	_initial_protocol = _protocol = sc.GetProtocol(_display_name);
+	_protocol = sc.GetProtocol(_display_name);
 	_host = sc.GetHost(_display_name);
 	_initial_port = _port = sc.GetPort(_display_name);
 	_login_mode = sc.GetLoginMode(_display_name);
 	_username = sc.GetUsername(_display_name);
 	_password = sc.GetPassword(_display_name);
 	_directory = sc.GetDirectory(_display_name);
-	_protocol_options = sc.GetProtocolOptions(_display_name, _protocol);
 }
 
 bool SiteConnectionEditor::Save()
@@ -150,7 +187,10 @@ bool SiteConnectionEditor::Save()
 			return false;
 	}
 
-	EnsureTimeStamp();
+	{
+		ProtocolOptionsScope pos(*this);
+		EnsureTimeStamp(pos);
+	}
 
 	SitesConfig sc(_sites_cfg_location);
 	sc.SetProtocol(_display_name, _protocol);
@@ -160,7 +200,10 @@ bool SiteConnectionEditor::Save()
 	sc.SetUsername(_display_name, _username);
 	sc.SetPassword(_display_name, _password);
 	sc.SetDirectory(_display_name, _directory);
-	sc.SetProtocolOptions(_display_name, _protocol, _protocol_options);
+
+	for (const auto &it : _protocols_options) {
+		sc.SetProtocolOptions(_display_name, it.first, it.second);
+	}
 
 	if (_display_name != _initial_display_name && !_initial_display_name.empty()) {
 		sc.RemoveSite(_initial_display_name);
@@ -168,14 +211,14 @@ bool SiteConnectionEditor::Save()
 	return true;
 }
 
-void SiteConnectionEditor::EnsureTimeStamp()
+void SiteConnectionEditor::EnsureTimeStamp(std::string &protocol_options)
 {
-	StringConfig sc(_protocol_options);
+	StringConfig sc(protocol_options);
 	unsigned long long ts = sc.GetHexULL("TS");
 	if (!ts) {
 		ts = time(NULL);
 		sc.SetHexULL("TS", ts);
-		_protocol_options = sc.Serialize();
+		protocol_options = sc.Serialize();
 	}
 }
 
@@ -213,6 +256,7 @@ void SiteConnectionEditor::UpdatePerProtocolState(bool reset_port)
 	TextFromDialogControl(_i_protocol, protocol);
 	auto pi = ProtocolInfoLookup(protocol.c_str());
 	if (pi) {
+		_protocol = pi->name;
 		if (reset_port && pi->default_port != -1) {
 			LongLongToDialogControl(_i_port, pi->default_port);
 		}
@@ -244,7 +288,13 @@ LONG_PTR SiteConnectionEditor::DlgProc(int msg, int param1, LONG_PTR param2)
 
 		case DN_BTNCLICK:
 			if (param1 == _i_extra_options) {
-				ConfigureExtraSiteSettings(_protocol_options);
+				ProtocolOptionsScope pos(*this);
+				ConfigureExtraSiteSettings(pos);
+				return TRUE;
+			}
+			if (param1 == _i_proxy_options) {
+				ProtocolOptionsScope pos(*this);
+				ConfigureProxySettings(pos);
 				return TRUE;
 			}
 
@@ -412,6 +462,7 @@ void SiteConnectionEditor::ProtocolOptions()
 {
 	auto pi = ProtocolInfoLookup(_protocol.c_str());
 	if (pi && pi->Configure) {
-		pi->Configure(_protocol_options);
+		ProtocolOptionsScope pos(*this);
+		pi->Configure(pos);
 	}
 }

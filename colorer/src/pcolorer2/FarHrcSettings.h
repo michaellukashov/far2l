@@ -1,45 +1,42 @@
 #ifndef _FARHRCSETTINGS_H_
 #define _FARHRCSETTINGS_H_
 
-#include <colorer/parsers/FileTypeImpl.h>
-#include <colorer/HRCParser.h>
-#include <colorer/parsers/ParserFactory.h>
-#include <colorer/unicode/SString.h>
-
-#include "pcolorer.h"
+#include <colorer/ParserFactory.h>
 #include <string>
+#include "FarEditorSet.h"
+#include "colorer/xml/XMLNode.h"
 
-#define MAX_KEY_LENGTH 255
-#define MAX_VALUE_NAME 50 // in msdn 16383 , but we have enough 50
+const char FarCatalogXml[] = "/base/catalog.xml";
+const char FarProfileXml[] = "/plug/hrcsettings.xml";
 
-extern const char* FarCatalogXml;
-extern const char* FarProfileXml;
-
-class FarHrcSettingsException : public Exception{
-public:
-  FarHrcSettingsException(){};
-  FarHrcSettingsException(const String& msg){
-    what_str.append(SString("FarHrcSettingsException: ")).append(msg);
-  };
+class FarHrcSettingsException : public Exception
+{
+ public:
+  explicit FarHrcSettingsException(const UnicodeString& msg) noexcept
+      : Exception("[FarHrcSettingsException] " + msg)
+  {
+  }
 };
 
 class FarHrcSettings
 {
   friend class FileTypeImpl;
-public:
-  FarHrcSettings(ParserFactory *_parserFactory);
-  void readXML(String *file, bool userValue);
+
+ public:
+  FarHrcSettings(FarEditorSet* _farEditorSet, ParserFactory* _parserFactory);
+  void readXML(UnicodeString* file);
   void readProfile();
-  void readUserProfile();
+  void readUserProfile(const FileType* def_filetype = nullptr);
   void writeUserProfile();
+  void loadUserHrc(const UnicodeString* filename);
+  void loadUserHrd(const UnicodeString* filename);
 
-private:
-  void UpdatePrototype(xercesc::DOMElement* elem, bool userValue);
+ private:
+  void UpdatePrototype(const XMLNode& elem);
 
-  ParserFactory *parserFactory;
+  FarEditorSet* farEditorSet;
+  ParserFactory* parserFactory;
   std::string profileIni;
-
 };
-
 
 #endif

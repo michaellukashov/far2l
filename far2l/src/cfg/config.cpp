@@ -34,6 +34,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "headers.hpp"
 
 #include <algorithm>
+#include <langinfo.h> // for nl_langinfo
 #include "config.hpp"
 #include "lang.hpp"
 #include "language.hpp"
@@ -131,6 +132,14 @@ void SanitizeHistoryCounts()
 	Opt.DialogsHistoryCount = std::max(Opt.DialogsHistoryCount, 16);
 }
 
+void SanitizeIndentationCounts()
+{
+	if (Opt.MaxFilenameIndentation > HIGHLIGHT_MAX_MARK_LENGTH)
+		Opt.MaxFilenameIndentation = HIGHLIGHT_MAX_MARK_LENGTH;
+	if (Opt.MinFilenameIndentation > HIGHLIGHT_MAX_MARK_LENGTH)
+		Opt.MinFilenameIndentation = HIGHLIGHT_MAX_MARK_LENGTH;
+}
+
 void SystemSettings()
 {
 	DialogBuilder Builder(Msg::ConfigSystemTitle, L"SystemSettings");
@@ -177,10 +186,23 @@ void SystemSettings()
 				DIF_DROPDOWNLIST | DIF_LISTAUTOHIGHLIGHT | DIF_LISTWRAPMODE);
 	MakeLinkSuggest->Indent(4);
 
+	Builder.AddSeparator();
 	AddHistorySettings(Builder, Msg::ConfigSaveHistory, &Opt.SaveHistory, &Opt.HistoryCount);
 	AddHistorySettings(Builder, Msg::ConfigSaveFoldersHistory, &Opt.SaveFoldersHistory,
 			&Opt.FoldersHistoryCount);
 	AddHistorySettings(Builder, Msg::ConfigSaveViewHistory, &Opt.SaveViewHistory, &Opt.ViewHistoryCount);
+	DialogBuilderListItem CAHistRemoveListItems[] = {
+			{Msg::ConfigHistoryRemoveDupsRuleNever, 0},
+			{Msg::ConfigHistoryRemoveDupsRuleByName, 1},
+			{Msg::ConfigHistoryRemoveDupsRuleByNameExtra, 2},
+	};
+	DialogItemEx *HistRemove =
+		Builder.AddComboBox((int *)&Opt.HistoryRemoveDupsRule, 20, CAHistRemoveListItems, ARRAYSIZE(CAHistRemoveListItems),
+				DIF_DROPDOWNLIST | DIF_LISTAUTOHIGHLIGHT | DIF_LISTWRAPMODE);
+	Builder.AddTextBefore(HistRemove, Msg::ConfigHistoryRemoveDupsRule);
+
+	Builder.AddCheckbox(Msg::ConfigAutoHighlightHistory, &Opt.AutoHighlightHistory);
+	Builder.AddSeparator();
 
 	Builder.AddCheckbox(Msg::ConfigAutoSave, &Opt.AutoSaveSetup);
 	Builder.AddOKCancel();
@@ -191,46 +213,275 @@ void SystemSettings()
 	}
 }
 
-void PanelSettings()
+void PanelSettings_HighlightMarks()
 {
-	DialogBuilder Builder(Msg::ConfigPanelTitle, L"PanelSettings");
-	BOOL AutoUpdate = (Opt.AutoUpdateLimit);
+	DialogBuilder Builder(Msg::ConfigPanelHighlightMarksTitle, L"PanelSettings");
 
-	Builder.AddCheckbox(Msg::ConfigHidden, &Opt.ShowHidden);
-	Builder.AddCheckbox(Msg::ConfigHighlight, &Opt.Highlight);
-	Builder.AddCheckbox(Msg::ConfigAutoChange, &Opt.Tree.AutoChangeFolder);
-	Builder.AddCheckbox(Msg::ConfigSelectFolders, &Opt.SelectFolders);
-	Builder.AddCheckbox(Msg::ConfigSortFolderExt, &Opt.SortFolderExt);
-	Builder.AddCheckbox(Msg::ConfigReverseSort, &Opt.ReverseSort);
-
-	DialogItemEx *AutoUpdateEnabled = Builder.AddCheckbox(Msg::ConfigAutoUpdateLimit, &AutoUpdate);
-	DialogItemEx *AutoUpdateLimit = Builder.AddIntEditField((int *)&Opt.AutoUpdateLimit, 6);
-	Builder.LinkFlags(AutoUpdateEnabled, AutoUpdateLimit, DIF_DISABLE, false);
-	DialogItemEx *AutoUpdateText = Builder.AddTextBefore(AutoUpdateLimit, Msg::ConfigAutoUpdateLimit2);
-	AutoUpdateLimit->Indent(4);
-	AutoUpdateText->Indent(4);
-	Builder.AddCheckbox(Msg::ConfigAutoUpdateRemoteDrive, &Opt.AutoUpdateRemoteDrive);
+	Builder.AddCheckbox(Msg::ConfigFilenameMarksStatusLine, &Opt.FilenameMarksInStatusBar);
+	DialogItemEx *tShowFilenameMarksInStatusLineHint = Builder.AddText(Msg::ConfigFilenameMarksStatusLineHint);
+	tShowFilenameMarksInStatusLineHint->Flags = DIF_CENTERGROUP | DIF_DISABLE;
 
 	Builder.AddSeparator();
-	Builder.AddCheckbox(Msg::ConfigShowColumns, &Opt.ShowColumnTitles);
-	Builder.AddCheckbox(Msg::ConfigShowStatus, &Opt.ShowPanelStatus);
-	Builder.AddCheckbox(Msg::ConfigShowTotal, &Opt.ShowPanelTotals);
-	Builder.AddCheckbox(Msg::ConfigShowFree, &Opt.ShowPanelFree);
-	Builder.AddCheckbox(Msg::ConfigShowScrollbar, &Opt.ShowPanelScrollbar);
-	Builder.AddCheckbox(Msg::ConfigShowScreensNumber, &Opt.ShowScreensNumber);
-	Builder.AddCheckbox(Msg::ConfigShowSortMode, &Opt.ShowSortMode);
+
+	DialogItemEx *CbShowFilenameMarks = Builder.AddCheckbox(Msg::ConfigFilenameMarks, &Opt.ShowFilenameMarks);
+	DialogItemEx *CbFilenameMarksAlign = Builder.AddCheckbox(Msg::ConfigFilenameMarksAlign, &Opt.FilenameMarksAlign);
+	CbFilenameMarksAlign->Indent(1);
+	Builder.LinkFlags(CbShowFilenameMarks, CbFilenameMarksAlign, DIF_DISABLE);
+	DialogItemEx *tShowFilenameMarksHint = Builder.AddText(Msg::ConfigFilenameMarksHint);
+	tShowFilenameMarksHint->Flags = DIF_CENTERGROUP | DIF_DISABLE;
+
+	DialogItemEx *IndentationMinEdit = Builder.AddIntEditField((int *)&Opt.MinFilenameIndentation, 2);
+	Builder.AddTextAfter(IndentationMinEdit, Msg::ConfigFilenameMinIndentation);
+	IndentationMinEdit->Indent(1);
+	DialogItemEx *IndentationMaxEdit = Builder.AddIntEditField((int *)&Opt.MaxFilenameIndentation, 2);
+	Builder.AddTextAfter(IndentationMaxEdit, Msg::ConfigFilenameMaxIndentation);
+	IndentationMaxEdit->Indent(1);
+
 	Builder.AddOKCancel();
 
 	if (Builder.ShowDialog()) {
-		if (!AutoUpdate)
-			Opt.AutoUpdateLimit = 0;
+		SanitizeHistoryCounts();
+		ApplySudoConfiguration();
+	}
+}
 
-		// FrameManager->RefreshFrame();
+void PanelSettings()
+{
+	for (;;) {
+		DialogBuilder Builder(Msg::ConfigPanelTitle, L"PanelSettings");
+		BOOL AutoUpdate = (Opt.AutoUpdateLimit);
+
+		Builder.AddCheckbox(Msg::ConfigHidden, &Opt.ShowHidden);
+
+		DialogItemEx *CbHighlight = Builder.AddCheckbox(Msg::ConfigHighlight, &Opt.Highlight);
+		int HighlightMarksID = -1;
+		DialogItemEx *HighlightMarksItem = Builder.AddButton(Msg::ConfigPanelHighlightMarksButton, HighlightMarksID);
+		HighlightMarksItem->Indent(2);
+		Builder.LinkFlags(CbHighlight, HighlightMarksItem, DIF_DISABLE);
+
+		int ChangeSizeColumnStyleID = -1;
+		DialogItemEx *ChangeSizeColumnStyleItem = Builder.AddButton(Msg::DirSettingsTitle, ChangeSizeColumnStyleID);
+		//ChangeSizeColumnStyleItem->Flags = DIF_CENTERGROUP;
+		ChangeSizeColumnStyleItem->Indent(1);
+
+		Builder.AddCheckbox(Msg::ConfigAutoChange, &Opt.Tree.AutoChangeFolder);
+		Builder.AddCheckbox(Msg::ConfigSelectFolders, &Opt.SelectFolders);
+		Builder.AddCheckbox(Msg::ConfigCaseSensitiveCompareSelect, &Opt.PanelCaseSensitiveCompareSelect);
+		Builder.AddCheckbox(Msg::ConfigSortFolderExt, &Opt.SortFolderExt);
+		Builder.AddCheckbox(Msg::ConfigReverseSort, &Opt.ReverseSort);
+
+		DialogItemEx *AutoUpdateEnabled = Builder.AddCheckbox(Msg::ConfigAutoUpdateLimit, &AutoUpdate);
+		DialogItemEx *AutoUpdateLimit = Builder.AddIntEditField((int *)&Opt.AutoUpdateLimit, 6);
+		Builder.LinkFlags(AutoUpdateEnabled, AutoUpdateLimit, DIF_DISABLE, false);
+		DialogItemEx *AutoUpdateText = Builder.AddTextBefore(AutoUpdateLimit, Msg::ConfigAutoUpdateLimit2);
+		AutoUpdateLimit->Indent(4);
+		AutoUpdateText->Indent(4);
+		Builder.AddCheckbox(Msg::ConfigAutoUpdateRemoteDrive, &Opt.AutoUpdateRemoteDrive);
+
+		Builder.AddSeparator();
+		Builder.AddCheckbox(Msg::ConfigShowColumns, &Opt.ShowColumnTitles);
+		Builder.AddCheckbox(Msg::ConfigShowStatus, &Opt.ShowPanelStatus);
+		Builder.AddCheckbox(Msg::ConfigShowTotal, &Opt.ShowPanelTotals);
+		Builder.AddCheckbox(Msg::ConfigShowFree, &Opt.ShowPanelFree);
+		Builder.AddCheckbox(Msg::ConfigShowScrollbar, &Opt.ShowPanelScrollbar);
+		Builder.AddCheckbox(Msg::ConfigShowScreensNumber, &Opt.ShowScreensNumber);
+		Builder.AddCheckbox(Msg::ConfigShowSortMode, &Opt.ShowSortMode);
+		Builder.AddOKCancel();
+
+		int clicked_id = -1;
+		if (Builder.ShowDialog(&clicked_id)) {
+			if (!AutoUpdate)
+				Opt.AutoUpdateLimit = 0;
+
+			SanitizeIndentationCounts();
+
+			// FrameManager->RefreshFrame();
+			CtrlObject->Cp()->LeftPanel->Update(UPDATE_KEEP_SELECTION);
+			CtrlObject->Cp()->RightPanel->Update(UPDATE_KEEP_SELECTION);
+			CtrlObject->Cp()->Redraw();
+			break;
+		}
+		if (clicked_id == HighlightMarksID)
+			PanelSettings_HighlightMarks();
+		else if (clicked_id == ChangeSizeColumnStyleID)
+			DirectoryNameSettings();
+		else
+			break;		
+	}
+}
+
+enum enumDirCfgDialog
+{
+	ID_DIRCFG_TITLE = 0,
+
+	ID_DIRCFG_STYLE_TEXT,
+	ID_DIRCFG_STYLE_COMBO,
+	ID_DIRCFG_SEPARATOR,
+
+	ID_DIRCFG_CHECKBOX_CENTER,
+	ID_DIRCFG_CHECKBOX_SURR,
+	ID_DIRCFG_SURR_COMBO,
+
+	ID_DIRCFG_SEPARATOR2,
+	ID_DIRCFG_BUTTON_OK,
+	ID_DIRCFG_BUTTON_CANCEL,
+	ID_DIRCFG_BUTTON_APPLY,
+};
+
+typedef struct dircfg_data_s {
+
+	int DirNameStyle;
+	int SurrIndex;
+	bool bCentered;
+	bool bSurr;
+
+} dircfg_data_t;
+
+static LONG_PTR WINAPI DirCfgDlgProc(HANDLE hDlg, int Msg, int Param1, LONG_PTR Param2)
+{
+	//	DialogBuilder *Builder = (DialogBuilder *)((Dialog *)hDlg)->GetDialogData();
+	dircfg_data_t *dircfg_data = (dircfg_data_t *)SendDlgMessage(hDlg, DM_GETDLGDATA, 0, 0);
+	wchar_t tmp[48 * 4];
+
+	auto update_surrcombo = [&]() {
+
+		FarListItem listitems[4];
+		FarList farlist = { 4, listitems };
+//		FarListPos flpos = {dircfg_data->SurrIndex, 0};
+
+		for (size_t i = 0; i < 4; i++) {
+			swprintf(tmp + i * 16, 16, L"%C%S%C", surdircharleft[i], DirNames[dircfg_data->DirNameStyle].CPtr(), surdircharright[i]);
+//			listitems[i] = {0, tmp + i * 16, {(DWORD)i,0,0} };
+			listitems[i].Flags = (i == (size_t)dircfg_data->SurrIndex) ? LIF_SELECTED : 0;
+			listitems[i].Text = tmp + i * 16;
+			listitems[i].Reserved[0] = (DWORD)i;
+		}
+
+		SendDlgMessage(hDlg, DM_LISTSET, ID_DIRCFG_SURR_COMBO, (LONG_PTR)&farlist);
+//		SendDlgMessage(hDlg, DM_LISTSETCURPOS, dircfg_data->DirNameStyleComboID, (LONG_PTR)&flpos);
+	};
+
+	switch (Msg) {
+
+	case DN_INITDIALOG: {
+
+		FarListItem listitems[4];
+		FarList farlist = { 4, listitems };
+//		FarListPos flpos = {dircfg_data->DirNameStyle, 0};
+
+		for (size_t i = 0; i < 4; i++) {
+			swprintf(tmp + i * 48, 48, L"%-10.10S | %-10.10S | %-10.10S", DirNames[i].CPtr(), DirUpNames[i].CPtr(), SymLinkNames[i].CPtr());
+//			listitems[i] = {0, tmp + i * 48, {(DWORD)i,(DWORD)i,(DWORD)i} };
+			listitems[i].Flags = (i == (size_t)dircfg_data->DirNameStyle) ? LIF_SELECTED : 0;
+			listitems[i].Text = tmp + i * 48;
+			listitems[i].Reserved[0] = (DWORD)i;
+		}
+
+		SendDlgMessage(hDlg, DM_LISTSET, ID_DIRCFG_STYLE_COMBO, (LONG_PTR)&farlist);
+//		SendDlgMessage(hDlg, DM_LISTSETCURPOS, dircfg_data->DirNameStyleComboID, (LONG_PTR)&flpos);
+		update_surrcombo( );
+	}
+	break;
+
+	case DN_LISTCHANGE: {
+		if (Param1 == ID_DIRCFG_STYLE_COMBO) {
+
+			dircfg_data->DirNameStyle = SendDlgMessage(hDlg, DM_LISTGETCURPOS, ID_DIRCFG_STYLE_COMBO, (LONG_PTR)0);
+			update_surrcombo( );
+			SendDlgMessage(hDlg, DM_REDRAW, 0, 0);
+		}
+		else if (Param1 == ID_DIRCFG_SURR_COMBO) {
+			dircfg_data->SurrIndex = SendDlgMessage(hDlg, DM_LISTGETCURPOS, ID_DIRCFG_SURR_COMBO, (LONG_PTR)0);
+		}
+	}
+
+	case DN_BTNCLICK: {
+		if (Param1 == ID_DIRCFG_CHECKBOX_CENTER) {
+			dircfg_data->bCentered = (bool)(SendDlgMessage(hDlg, DM_GETCHECK, ID_DIRCFG_CHECKBOX_CENTER, 0));
+		}
+		else if (Param1 == ID_DIRCFG_CHECKBOX_SURR) {
+			dircfg_data->bSurr = (bool)(SendDlgMessage(hDlg, DM_GETCHECK, ID_DIRCFG_CHECKBOX_SURR, 0));
+		}
+		else if (Param1 == ID_DIRCFG_BUTTON_APPLY) {
+
+			Opt.DirNameStyle = dircfg_data->DirNameStyle;
+			Opt.DirNameStyle |= (dircfg_data->SurrIndex << 2);
+			Opt.DirNameStyle |= DIRNAME_STYLE_CENTERED * dircfg_data->bCentered;
+			Opt.DirNameStyle |= DIRNAME_STYLE_SURR_CH * dircfg_data->bSurr;
+
+			SendDlgMessage(hDlg, DM_SHOWDIALOG, 0, 0);
+			UpdateDefaultColumnTypeWidths( );
+			CtrlObject->Cp()->LeftPanel->Update(UPDATE_KEEP_SELECTION);
+			CtrlObject->Cp()->RightPanel->Update(UPDATE_KEEP_SELECTION);
+			CtrlObject->Cp()->Redraw();
+
+			SendDlgMessage(hDlg, DM_SHOWDIALOG, 1, 0);
+			SendDlgMessage(hDlg, DM_REDRAW, 0, 0);
+		}
+	}
+
+	} // switch
+
+	return DefDlgProc(hDlg, Msg, Param1, Param2);
+}
+
+void DirectoryNameSettings()
+{
+	dircfg_data_t dircfg_data;
+	DialogDataEx DirCfgDlgData[] = {
+
+		{DI_DOUBLEBOX, 3,  1,  47,  10, {}, 0, Msg::DirSettingsTitle},
+		{DI_TEXT,      5,  2,  35,   2, {}, 0, Msg::DirSettingsShowAs},
+		{DI_COMBOBOX,  5,  3,  5+40, 3, {}, DIF_DROPDOWNLIST | DIF_LISTNOAMPERSAND | DIF_LISTWRAPMODE, L""},
+		{DI_TEXT,      0,  4,  0,    4, {}, DIF_SEPARATOR, L""},
+
+		{DI_CHECKBOX,  5,  5,  20,   5, {}, DIF_AUTOMATION, Msg::DirSettingsCenter},
+		{DI_CHECKBOX,  5,  6,  20,   6, {}, DIF_AUTOMATION, Msg::DirSettingsSurround},
+		{DI_COMBOBOX,  9, 7,  26,   7, {}, DIF_DROPDOWNLIST | DIF_LISTNOAMPERSAND | DIF_LISTWRAPMODE, L""},
+
+		{DI_TEXT,      0,  8,  0,    8, {}, DIF_SEPARATOR, L""},
+		{DI_BUTTON,    0, 9,  0,   9, {}, DIF_DEFAULT | DIF_CENTERGROUP, Msg::Ok},
+		{DI_BUTTON,    0, 9,  0,   9, {}, DIF_CENTERGROUP, Msg::Cancel},
+		{DI_BUTTON,    0, 9,  0,   9, {}, DIF_CENTERGROUP | DIF_BTNNOCLOSE, Msg::DirSettingsApply},
+
+	};
+
+	MakeDialogItemsEx(DirCfgDlgData, DirCfgDlg);
+
+	dircfg_data.DirNameStyle = Opt.DirNameStyle & 3;
+	dircfg_data.SurrIndex = (Opt.DirNameStyle >> 2) & 3;
+	dircfg_data.bCentered = (Opt.DirNameStyle & DIRNAME_STYLE_CENTERED);
+	dircfg_data.bSurr = (Opt.DirNameStyle & DIRNAME_STYLE_SURR_CH);
+
+	DirCfgDlg[ID_DIRCFG_CHECKBOX_CENTER].Selected = dircfg_data.bCentered;
+	DirCfgDlg[ID_DIRCFG_CHECKBOX_SURR].Selected = dircfg_data.bSurr;
+
+	if (!dircfg_data.bSurr)
+		DirCfgDlg[ID_DIRCFG_SURR_COMBO].Flags |= DIF_DISABLE;
+
+	Dialog Dlg(DirCfgDlg, ARRAYSIZE(DirCfgDlg), DirCfgDlgProc, (LONG_PTR)&dircfg_data);
+
+	int dialogsizex = 51;
+	int dialogsizey = 12;
+	Dlg.SetPosition(-1, -1, dialogsizex, dialogsizey);
+	Dlg.SetAutomation(ID_DIRCFG_CHECKBOX_SURR, ID_DIRCFG_SURR_COMBO, DIF_DISABLE, DIF_NONE, DIF_NONE, DIF_DISABLE);
+
+	Dlg.Process();
+	int ExitCode = Dlg.GetExitCode();
+
+	if (ExitCode == ID_DIRCFG_BUTTON_OK) {
+		Opt.DirNameStyle = dircfg_data.DirNameStyle;
+		Opt.DirNameStyle |= (dircfg_data.SurrIndex << 2);
+		Opt.DirNameStyle |= DIRNAME_STYLE_CENTERED * dircfg_data.bCentered;
+		Opt.DirNameStyle |= DIRNAME_STYLE_SURR_CH * dircfg_data.bSurr;
+
+		UpdateDefaultColumnTypeWidths( );
 		CtrlObject->Cp()->LeftPanel->Update(UPDATE_KEEP_SELECTION);
 		CtrlObject->Cp()->RightPanel->Update(UPDATE_KEEP_SELECTION);
 		CtrlObject->Cp()->Redraw();
 	}
 }
+
 
 void InputSettings()
 {
@@ -290,6 +541,14 @@ void InputSettings()
 */
 void InterfaceSettings()
 {
+	int DateFormatIndex = GetDateFormat(); //Opt.DateFormat
+	FARString strDateSeparator; //Opt.strDateSeparator
+	FARString strTimeSeparator; //Opt.strTimeSeparator
+	FARString strDecimalSeparator; //Opt.strDecimalSeparator
+	strDateSeparator = GetDateSeparator();
+	strTimeSeparator = GetTimeSeparator();
+	strDecimalSeparator = GetDecimalSeparator();
+
 	for (;;) {
 		DialogBuilder Builder(Msg::ConfigInterfaceTitle, L"InterfSettings");
 
@@ -309,7 +568,60 @@ void InterfaceSettings()
 		Builder.AddCheckbox(Msg::ConfigDeleteTotal, &Opt.DelOpt.DelShowTotal);
 		Builder.AddCheckbox(Msg::ConfigPgUpChangeDisk, &Opt.PgUpChangeDisk);
 
+		Builder.AddSeparator(Msg::ConfigDateFormat);
+
+		/*DialogBuilderListItem CAListItems[] = {
+				{Msg::ConfigDateFormatMDY, 0},
+				{Msg::ConfigDateFormatDMY, 1},
+				{Msg::ConfigDateFormatYMD, 2},
+		};
+		DialogItemEx *DateFormatComboBox = Builder.AddComboBox((int *)&DateFormatIndex, 10,
+				CAListItems, ARRAYSIZE(CAListItems),
+				DIF_DROPDOWNLIST | DIF_LISTAUTOHIGHLIGHT | DIF_LISTWRAPMODE);
+		DialogItemEx *DateFormatText = Builder.AddTextAfter(DateFormatComboBox, Msg::ConfigDateFormat);
+		DateFormatText->Indent(1);
+		*/
+		static FarLangMsg DateFormatOptions[] = {Msg::ConfigDateFormatMDY, Msg::ConfigDateFormatDMY,
+				Msg::ConfigDateFormatYMD};
+		Builder.AddRadioButtonsHorz(&DateFormatIndex, ARRAYSIZE(DateFormatOptions), DateFormatOptions);
+
+		Builder.StartColumns();
+		DialogItemEx *DateSeparatorEdit = Builder.AddEditField(&strDateSeparator, 0);
+		DateSeparatorEdit->Type = DI_FIXEDIT;
+		DateSeparatorEdit->Flags |= DIF_MASKEDIT;
+		DateSeparatorEdit->strMask = L"X";
+		Builder.AddTextAfter(DateSeparatorEdit, Msg::ConfigDateSeparator);
+
+		DialogItemEx *TimeSeparatorEdit = Builder.AddEditField(&strTimeSeparator, 0);
+		TimeSeparatorEdit->Type = DI_FIXEDIT;
+		TimeSeparatorEdit->Flags |= DIF_MASKEDIT;
+		TimeSeparatorEdit->strMask = L"X";
+		Builder.AddTextAfter(TimeSeparatorEdit, Msg::ConfigTimeSeparator);
+
+		DialogItemEx *DecimalSeparatorEdit = Builder.AddEditField(&strDecimalSeparator, 0);
+		DecimalSeparatorEdit->Type = DI_FIXEDIT;
+		DecimalSeparatorEdit->Flags |= DIF_MASKEDIT;
+		DecimalSeparatorEdit->strMask = L"X";
+		Builder.AddTextAfter(DecimalSeparatorEdit, Msg::ConfigDecimalSeparator);
+        
+		Builder.ColumnBreak();
+		int DateTimeDefaultID = -1;
+		Builder.AddButton(Msg::ConfigDateTimeDefault, DateTimeDefaultID);
+		int DateTimeCurrentID = -1;
+		Builder.AddButton(Msg::ConfigDateTimeCurrent, DateTimeCurrentID);
+		int DateTimeFromSystemID = -1;
+		Builder.AddButton(Msg::ConfigDateTimeFromSystem, DateTimeFromSystemID);
+		Builder.EndColumns();
+
+		Builder.AddSeparator();
+
 		const DWORD supported_tweaks = ApplyConsoleTweaks();
+		if (supported_tweaks & TWEAK_STATUS_SUPPORT_BLINK_RATE) {
+
+			DialogItemEx *CursorEdit = Builder.AddIntEditField(&Opt.CursorBlinkTime, 3);
+			Builder.AddTextAfter(CursorEdit, Msg::ConfigCursorBlinkInt);
+		}
+
 		int ChangeFontID = -1;
 		DialogItemEx *ChangeFontItem = nullptr;
 		if (supported_tweaks & TWEAK_STATUS_SUPPORT_PAINT_SHARP) {
@@ -347,20 +659,140 @@ void InterfaceSettings()
 			if (Opt.CMOpt.CopyTimeRule)
 				Opt.CMOpt.CopyTimeRule = 3;
 
+			Opt.DateFormat = DateFormatIndex;
+			Opt.strDateSeparator = strDateSeparator;
+			Opt.strTimeSeparator = strTimeSeparator;
+			Opt.strDecimalSeparator = strDecimalSeparator;
+			ConvertDate_ResetInit();
+
 			SetFarConsoleMode();
 			CtrlObject->Cp()->LeftPanel->Update(UPDATE_KEEP_SELECTION);
 			CtrlObject->Cp()->RightPanel->Update(UPDATE_KEEP_SELECTION);
 			CtrlObject->Cp()->SetScreenPosition();
 			// $ 10.07.2001 SKV ! надо это делать, иначе если кейбар спрятали, будет полный рамс.
 			CtrlObject->Cp()->Redraw();
+
 			ApplyConsoleTweaks();
+			WINPORT(SetConsoleCursorBlinkTime)(NULL, Opt.CursorBlinkTime);
 			break;
 		}
 
-		if (ChangeFontID == -1 || clicked_id != ChangeFontID)
-			break;
+		if (ChangeFontID != -1 && clicked_id == ChangeFontID)
+			WINPORT(ConsoleChangeFont)();
 
-		WINPORT(ConsoleChangeFont)();
+		else if (clicked_id == DateTimeDefaultID) {
+			DateFormatIndex = GetDateFormatDefault();
+			strDateSeparator = GetDateSeparatorDefault();
+			strTimeSeparator = GetTimeSeparatorDefault();
+			strDecimalSeparator = GetDecimalSeparatorDefault();
+		}
+
+		else if (clicked_id == DateTimeCurrentID) {
+			DateFormatIndex = GetDateFormat();
+			strDateSeparator = GetDateSeparator();
+			strTimeSeparator = GetTimeSeparator();
+			strDecimalSeparator = GetDecimalSeparator();
+		}
+
+		else if (clicked_id == DateTimeFromSystemID) {
+			// parcing part of possible https://help.gnome.org/users/gthumb/stable/gthumb-date-formats.html
+			std::string::size_type
+					pos_date_2 = std::string::npos,
+					pos_day = std::string::npos,
+					pos_month = std::string::npos,
+					pos_year = std::string::npos,
+					pos_time_2 = std::string::npos;
+			size_t length_decimal;
+			std::string format_date = nl_langinfo(D_FMT);
+			std::string format_time = nl_langinfo(T_FMT);
+			std::string format_decimal = nl_langinfo(RADIXCHAR/*DECIMAL_POINT*/);
+			if (format_date=="%D") { // %D Equivalent to %m/%d/%y
+				DateFormatIndex = 0;
+				strTimeSeparator = "/";
+				pos_date_2 = 0; // for not error in message
+			}
+			if (format_date=="%F") { // %F Equivalent to %Y-%m-%d
+				DateFormatIndex = 2;
+				strTimeSeparator = "-";
+				pos_date_2 = 0; // for not error in message
+			}
+			else if (format_date.length() >= 8) {
+				std::vector<const char*> codes_day = { "%d", "%e", "%Ed", "%Ee", "%Od", "%Oe" };
+				for (const auto &code : codes_day) {
+					pos_day = format_date.find(code);
+					if (pos_day != std::string::npos)
+						break;
+				}
+				std::vector<const char*> codes_month = {
+					"%m", "%B", "%b", "%h", "%Em", "%EB", "%Eb", "%Eh", "%Om", "%OB", "%Ob", "%Oh" };
+				for (const auto &code : codes_month) {
+					pos_month = format_date.find(code);
+					if (pos_month != std::string::npos)
+						break;
+				}
+				std::vector<const char*> codes_year = {
+					"%Y", "%y", "%G", "%g", "%EY", "%Ey", "%EG", "%Eg", "%OY", "%Oy", "%OG", "%Og" };
+				for (const auto &code : codes_year) {
+					pos_year = format_date.find(code);
+					if (pos_year != std::string::npos)
+						break;
+				}
+				if (pos_day != std::string::npos && pos_month != std::string::npos && pos_year != std::string::npos) {
+					if (pos_day < pos_month && pos_month < pos_year) // day-month-year
+					{ DateFormatIndex = 1; pos_date_2 = pos_month; }
+					else if (pos_year < pos_month && pos_month < pos_day) // year-month-day
+					{ DateFormatIndex = 2; pos_date_2 = pos_month; }
+					else if (pos_month < pos_day  && pos_month < pos_year) // month-day-year
+					{ DateFormatIndex = 0; pos_date_2 = pos_day; }
+				}
+			}
+			if (pos_date_2 != std::string::npos)
+				strDateSeparator = format_date[pos_date_2-1];
+
+			if (format_time=="%T") { // %T The time in 24-hour notation (%H:%M:%S).
+				strTimeSeparator = ":";
+				pos_time_2 = 0; // for not error in message
+			}
+			else {
+				pos_day = format_time.find("%");
+				if (pos_day != std::string::npos) {
+					pos_time_2 = format_time.find("%", pos_day+2);
+					if (pos_time_2 != std::string::npos)
+						strTimeSeparator = format_time[pos_time_2-1];
+				}
+			}
+
+			length_decimal = format_decimal.length();
+			if (length_decimal > 0)
+				strDecimalSeparator = format_decimal[0];
+
+			ExMessager em;
+			em.Add(L"From system locale");
+			em.AddFormat(L"Date format from locale:      \"%s\"", format_date.c_str());
+			em.AddFormat(L"  Date order:        %s (order %d)",
+				(pos_date_2 != std::string::npos) ? "imported" : "did not changed",
+				DateFormatIndex);
+			em.AddFormat(L"  Date separator:    %s (\'%ls\')",
+				(pos_date_2 != std::string::npos) ? "imported" : "did not changed",
+				strDateSeparator.CPtr());
+			em.AddFormat(L"Time format from locale:      \"%s\"", format_time.c_str());
+			em.AddFormat(L"  Time separator:    %s (\'%ls\')",
+				(pos_time_2 != std::string::npos) ? "imported" : "did not changed",
+				 strTimeSeparator.CPtr());
+			em.AddFormat(L"DecimalSeparator from locale: \"%s\"", format_decimal.c_str());
+			em.AddFormat(L"  Decimal separator: %s (\'%ls\')",
+				length_decimal>0 ? "imported" : "did not changed",
+				strDecimalSeparator.CPtr());
+			em.Add(Msg::Ok);
+			em.Show(MSG_LEFTALIGN |
+					( (pos_date_2 == std::string::npos
+						|| pos_time_2 == std::string::npos
+						|| length_decimal<=0 )
+					? MSG_WARNING : 0),
+				1);
+		}
+		else
+			break;
 	}
 }
 
@@ -429,6 +861,9 @@ void VMenuSettings()
 	Builder.AddText(Msg::ConfigVMenuMBtnClick);
 	Builder.AddComboBox((int *)&Opt.VMenu.MBtnClick, 40, CAListItems, ARRAYSIZE(CAListItems),
 			DIF_DROPDOWNLIST | DIF_LISTAUTOHIGHLIGHT | DIF_LISTWRAPMODE);
+
+	Builder.AddCheckbox(Msg::ConfigVMenuStopEdge, (BOOL *)&Opt.VMenu.MenuLoopScroll);
+
 	Builder.AddOKCancel();
 	Builder.ShowDialog();
 }
@@ -708,6 +1143,7 @@ void LanguageSettings()
 		CtrlObject->Cp()->RedrawKeyBar();
 		CtrlObject->Cp()->SetScreenPosition();
 		ApplySudoConfiguration();
+		UpdateDefaultColumnTypeWidths();
 	}
 	delete LangMenu;	//???? BUGBUG
 }

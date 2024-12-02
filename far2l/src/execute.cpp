@@ -76,7 +76,7 @@ static WCHAR eol[2] = {'\r', '\n'};
 
 class ExecClassifier
 {
-	bool _dir, _file, _executable, _prefixed;
+    bool _dir, _file, _executable, _prefixed, _brokensymlink;
 
 	bool IsExecutableByExtension(const char *s)
 	{
@@ -90,7 +90,7 @@ class ExecClassifier
 public:
 	ExecClassifier(const char *cmd, bool direct)
 		:
-		_dir(false), _file(false), _executable(false), _prefixed(false)
+        _dir(false), _file(false), _executable(false), _prefixed(false), _brokensymlink(false)
 	{
 		Environment::ExplodeCommandLine ecl(cmd);
 		if (!ecl.empty() && ecl.back() == "&") {
@@ -114,6 +114,11 @@ public:
 		struct stat s = {0};
 		if (stat(arg0.c_str(), &s) == -1) {
 			fprintf(stderr, "ExecClassifier('%s', %d) - stat error %u\n", cmd, direct, errno);
+            if ((errno==ENOENT || errno==EACCES) && lstat(arg0.c_str(), &s) != -1)
+            {
+                _brokensymlink=true;
+                fprintf(stderr, "ExecClassifier: broken or inaccessible symbolic link\n");
+            }
 			return;
 		}
 
@@ -161,6 +166,7 @@ public:
 	bool IsFile() const { return _file; }
 	bool IsDir() const { return _dir; }
 	bool IsExecutable() const { return _executable; }
+	bool IsBrokenSymlink() const { return _brokensymlink; }
 };
 
 static std::string GetOpenShVerb(const char *verb)
@@ -247,14 +253,14 @@ public:
 	{
 		ProcessShowClock++;
 		if (CtrlObject && CtrlObject->CmdLine) {
-			CtrlObject->CmdLine->ShowBackground();
+			CtrlObject->CmdLine->ShowBackground(true);
 			CtrlObject->CmdLine->RedrawWithoutComboBoxMark();
 		}
 		//		CtrlObject->CmdLine->SetString(L"", TRUE);
 		ScrBuf.Flush();
 		WINPORT(GetConsoleMode)(NULL, &_saved_mode);
 		WINPORT(SetConsoleMode) (NULL, _saved_mode | ENABLE_PROCESSED_OUTPUT | ENABLE_WRAP_AT_EOL_OUTPUT
-			| ENABLE_EXTENDED_FLAGS | ENABLE_MOUSE_INPUT | ENABLE_INSERT_MODE | WINDOW_BUFFER_SIZE_EVENT);	// ENABLE_QUICK_EDIT_MODE
+			| ENABLE_EXTENDED_FLAGS | ENABLE_MOUSE_INPUT | ENABLE_INSERT_MODE | ENABLE_ECHO_INPUT);	// ENABLE_QUICK_EDIT_MODE
 		if (cmd_str) {
 			const std::wstring &ws = MB2Wide(cmd_str);
 			WINPORT(WriteConsole)(NULL, ws.c_str(), ws.size(), &_dw, NULL);
@@ -303,6 +309,7 @@ static int farExecuteASynched(const char *CmdStr, unsigned int ExecFlags)
 		}
 
 	} else {
+		UnlockScreen Unlock;
 		FarExecuteScope fes((ExecFlags & EF_NOCMDPRINT) ? "" : CmdStr);
 		r = VTShell_Execute(CmdStr, (ExecFlags & EF_SUDO) != 0, (ExecFlags & EF_MAYBGND) != 0, may_notify);
 	}
@@ -395,9 +402,13 @@ ExecuteA(const char *CmdStr, bool SeparateWindow, bool DirectRun, bool WaitForId
 			tmp = GetOpenShVerb("other");
 		}
 	} else if (SeparateWindow) {
+        if(ec.IsBrokenSymlink()) {
+            return -1;
+        }
 		tmp = GetOpenShVerb("exec");
-	} else
-		return farExecuteA(CmdStr, flags);
+    } else {
+        return farExecuteA(CmdStr, flags);
+    }
 
 	if (!tmp.empty()) {
 		flags|= EF_NOWAIT | EF_HIDEOUT;		// open.sh doesnt print anything
@@ -528,4 +539,32 @@ int CommandLine::CmdExecute(const wchar_t *CmdLine, bool SeparateWindow, bool Di
 const wchar_t *PrepareOSIfExist(const wchar_t *CmdLine)
 {
 	return L"";
+}
+
+FARString ExecuteCommandAndGrabItsOutput(FARString cmd, const char *cmd_stub)
+{
+	if (cmd.GetLength() == 0 && (cmd_stub == nullptr || strlen(cmd_stub)<=0) )
+		return FARString();
+
+	FARString strTempName;
+
+	if (!FarMkTempEx(strTempName))
+		return FARString();
+
+	std::string exec_cmd =
+			"echo Waiting command to complete...; "
+			"echo You can use Ctrl+C to stop it, or Ctrl+Alt+C - to hardly terminate.; ";
+	if (cmd.GetLength() != 0) {
+		exec_cmd+= cmd.GetMB();
+	} else {
+		exec_cmd+= cmd_stub;
+	}
+
+	exec_cmd+= " >";
+	exec_cmd+= strTempName.GetMB();
+	exec_cmd+= " 2>&1";
+
+	farExecuteA(exec_cmd.c_str(), EF_NOCMDPRINT);
+
+	return strTempName;
 }

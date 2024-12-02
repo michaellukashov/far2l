@@ -43,6 +43,7 @@
 //#define GDK_KEY_Control_R 0xffe4
 //#define GDK_KEY_Shift_L 0xffe1
 //#define GDK_KEY_Shift_R 0xffe2
+#  define RAW_CONTEXT  0xfe03
 #  define RAW_ALTGR    0xffea
 #  define RAW_RCTRL    0xffe4
 #  define RAW_RSHIFT   0xffe2
@@ -55,50 +56,26 @@ extern bool g_remote;
 WinPortPalette g_wx_palette;
 bool g_wx_norgb = false;
 
-static const WinPortRGB &InternalConsoleForeground2RGB(USHORT attributes)
-{
-	return g_wx_palette.foreground[(attributes & 0x0f)];
-}
 
-static const WinPortRGB &InternalConsoleBackground2RGB(USHORT attributes)
+WinPortRGB WxConsoleForeground2RGB(DWORD64 attributes)
 {
-	return g_wx_palette.background[(attributes & 0xf0) >> 4];
-}
-
-WinPortRGB ConsoleForeground2RGB(DWORD64 attributes)
-{
-	if (!g_wx_norgb) {
-		if ( (attributes & (FOREGROUND_TRUECOLOR | COMMON_LVB_REVERSE_VIDEO)) == FOREGROUND_TRUECOLOR) {
-			return GET_RGB_FORE(attributes);
-		}
-
-		if ( (attributes & (BACKGROUND_TRUECOLOR | COMMON_LVB_REVERSE_VIDEO)) == (BACKGROUND_TRUECOLOR | COMMON_LVB_REVERSE_VIDEO)) {
-			return GET_RGB_BACK(attributes);
-		}
+	if (g_wx_norgb) {
+		attributes&= ~(DWORD64)(BACKGROUND_TRUECOLOR | FOREGROUND_TRUECOLOR);
 	}
-
 	return (attributes & COMMON_LVB_REVERSE_VIDEO)
-		? InternalConsoleBackground2RGB((USHORT)attributes)
-		: InternalConsoleForeground2RGB((USHORT)attributes);
+		? ConsoleBackground2RGB(g_wx_palette, attributes)
+		: ConsoleForeground2RGB(g_wx_palette, attributes);
 }
 
-WinPortRGB ConsoleBackground2RGB(DWORD64 attributes)
+WinPortRGB WxConsoleBackground2RGB(DWORD64 attributes)
 {
-	if (!g_wx_norgb) {
-		if ( (attributes & (BACKGROUND_TRUECOLOR | COMMON_LVB_REVERSE_VIDEO)) == BACKGROUND_TRUECOLOR) {
-			return GET_RGB_BACK(attributes);
-		}
-
-		if ( (attributes & (FOREGROUND_TRUECOLOR | COMMON_LVB_REVERSE_VIDEO)) == (FOREGROUND_TRUECOLOR | COMMON_LVB_REVERSE_VIDEO)) {
-			return GET_RGB_FORE(attributes);
-		}
+	if (g_wx_norgb) {
+		attributes&= ~(DWORD64)(BACKGROUND_TRUECOLOR | FOREGROUND_TRUECOLOR);
 	}
-
 	return (attributes & COMMON_LVB_REVERSE_VIDEO)
-		? InternalConsoleForeground2RGB((USHORT)attributes)
-		: InternalConsoleBackground2RGB((USHORT)attributes);
+		? ConsoleForeground2RGB(g_wx_palette, attributes)
+		: ConsoleBackground2RGB(g_wx_palette, attributes);
 }
-
 
 ////////////////////
 
@@ -260,6 +237,7 @@ static int wxKeyCode2WinScanCode(int code, int code_raw)
 
 static int IsEnhancedKey(int code, int code_raw)
 {
+	
 	// As defined in MS docs https://learn.microsoft.com/en-us/windows/console/key-event-record-str
 	// Enhanced keys for the IBM® 101- and 102-key keyboards are the
 	// INS, DEL, HOME, END, PAGE UP, PAGE DOWN,
@@ -272,11 +250,14 @@ static int IsEnhancedKey(int code, int code_raw)
 		|| code==WXK_HOME || code==WXK_END || code==WXK_PAGEDOWN || code==WXK_PAGEUP
 		|| code==WXK_NUMPAD_ENTER || code==WXK_SNAPSHOT || code==WXK_INSERT || code==WXK_DELETE
 		|| code==WXK_WINDOWS_LEFT || code==WXK_WINDOWS_RIGHT || code==WXK_WINDOWS_MENU || code==WXK_NUMPAD_DIVIDE
-		|| code==WXK_NUMLOCK || code==WXK_RAW_CONTROL )
-			return true;
+		|| code==WXK_NUMLOCK
+#if !defined (__WXGTK__)
+		|| code==WXK_RAW_CONTROL
+#endif
+		) return true;
 	
 #if defined (__WXGTK__)
-	if (code_raw == RAW_ALTGR || code_raw == RAW_RCTRL) return true;
+	if (code_raw == RAW_ALTGR || code_raw == RAW_CONTEXT || code_raw == RAW_RCTRL) return true;
 #endif
 
 	// FixMe: detect AltGr (right Option) on MacOS
@@ -468,6 +449,9 @@ bool KeyTracker::RightControl() const
 //////////////////////
 
 static DWORD s_cached_led_state = 0;
+#ifdef __WXOSX__
+static bool s_toggle_numlock = false;
+#endif
 
 #if defined (__WXGTK__) && defined (__HASX11__)
 static int X11KeyCodeLookupUncached(wxUint32 keyflags)
@@ -593,6 +577,16 @@ wx2INPUT_RECORD::wx2INPUT_RECORD(BOOL KeyDown, const wxKeyEvent& event, const Ke
 	}
 #endif
 
+#if defined(wxHAS_RAW_KEY_CODES) && !defined(__WXMAC__)
+	if (!event.GetKeyCode() && event.GetRawKeyCode() == RAW_CONTEXT) {
+		if (KeyDown) {
+			Event.KeyEvent.dwControlKeyState|= RIGHT_ALT_PRESSED;
+		}
+		Event.KeyEvent.dwControlKeyState|= ENHANCED_KEY;
+		Event.KeyEvent.wVirtualKeyCode = VK_MENU;
+	}
+#endif
+
 	if (IsEnhancedKey(event.GetKeyCode(), event.GetRawKeyCode())) {
 		Event.KeyEvent.dwControlKeyState|= ENHANCED_KEY;
 	}
@@ -602,6 +596,11 @@ wx2INPUT_RECORD::wx2INPUT_RECORD(BOOL KeyDown, const wxKeyEvent& event, const Ke
 		Event.KeyEvent.wVirtualKeyCode = VK_CONTROL;
 		Event.KeyEvent.dwControlKeyState|= ENHANCED_KEY;
 	}
+
+#ifdef __WXOSX__
+	if (Event.KeyEvent.wVirtualKeyCode == VK_CLEAR && KeyDown)
+		s_toggle_numlock = !s_toggle_numlock;
+#endif
 
 	if (KeyDown || WINPORT(GetTickCount)() - key_tracker.LastKeydownTicks() > 500) {
 		s_cached_led_state = WxKeyboardLedsState();
@@ -658,8 +657,13 @@ DWORD WxKeyboardLedsState()
 	// to use wxGetKeyState with unsupported key causes assert callback
 	// to be invoked several times on each key event thats not good.
 	// Avoid asserts all the time by 'caching' unsupported state.
+#ifdef __WXOSX__
+	// NumLock emulation with Clear button
+	if (s_toggle_numlock) {
+#else
 	s_wx_assert_cache_bit = 1;
 	if ((s_wx_assert_cached_bits & 1) == 0 && wxGetKeyState(WXK_NUMLOCK)) {
+#endif
 		out|= NUMLOCK_ON;
 	}
 

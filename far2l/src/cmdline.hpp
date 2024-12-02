@@ -73,20 +73,28 @@ private:
 	BOOL IntChDir(const wchar_t *CmdLine, int ClosePlugin, bool Silent = false);
 	bool ProcessOSCommands(const wchar_t *CmdLine, bool SeparateWindow, bool &PrintCommand);
 	void ProcessTabCompletion();
-	bool ProcessFarCommands(const wchar_t *CmdLine);
 	void DrawComboBoxMark(wchar_t MarkChar);
 	void ChangeDirFromHistory(bool PluginPath, int SelectType, FARString strDir, FARString strFile=L"");
 	void CheckForKeyPressAfterCmd(int r);
 
+	void ProcessKey_ClearTerminalHistory();
+	void ProcessKey_ShowFolderTree();
+	void ProcessKey_ShowFolderHistory();
+	void ProcessKey_ShowCommandsHistory();
+	int ProcessKey_Enter(FarKey Key);
+	int ProcessKeyIfVisible(FarKey Key);
+
 public:
 	CommandLine();
 	virtual ~CommandLine();
+	void SetVisible(bool Visible);
 
 public:
 	virtual int ProcessKey(FarKey Key);
 	virtual int ProcessMouse(MOUSE_EVENT_RECORD *MouseEvent);
 	virtual int64_t VMProcess(MacroOpcode OpCode, void *vParam = nullptr, int64_t iParam = 0);
 
+	virtual void Show();
 	virtual void ResizeConsole();
 
 	std::string GetConsoleLog(HANDLE con_hnd, bool colored);
@@ -100,6 +108,8 @@ public:
 
 	void ExecString(const wchar_t *Str, bool SeparateWindow = false, bool DirectRun = false,
 			bool WaitForIdle = false, bool Silent = false, bool RunAs = false);
+
+	bool ProcessFarCommands(const wchar_t *CmdLine);
 
 	void SwitchToBackgroundTerminal(size_t vt_index);
 
@@ -120,7 +130,7 @@ public:
 
 	void SaveBackground(int X1, int Y1, int X2, int Y2);
 	void SaveBackground();
-	void ShowBackground();
+	void ShowBackground(bool showanyway = false);
 	void CorrectRealScreenCoord();
 	void LockUpdatePanel(int Mode) { Flags.Change(FCMDOBJ_LOCKUPDATEPANEL, Mode); }
 
@@ -129,4 +139,12 @@ public:
 	void RevertAC() { return CmdStr.RevertAC(); }
 
 	void RedrawWithoutComboBoxMark();
+
+	const CHAR_INFO *GetBackgroundScreen(int &W, int &H);
+};
+
+struct CmdLineVisibleScope
+{
+	CmdLineVisibleScope();
+	~CmdLineVisibleScope();
 };

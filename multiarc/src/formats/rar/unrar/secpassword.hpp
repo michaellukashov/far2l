@@ -19,6 +19,7 @@ class SecPassword
     ~SecPassword();
     void Clean();
     void Get(wchar *Psw,size_t MaxSize);
+    void Get(std::wstring &Psw);
     void Set(const wchar *Psw);
     bool IsSet() {return PasswordSet;}
     size_t Length();
@@ -27,6 +28,7 @@ class SecPassword
 
 
 void cleandata(void *data,size_t size);
+inline void cleandata(std::wstring &s) {cleandata(&s[0],s.size()*sizeof(s[0]));}
 void SecHideData(void *Data,size_t DataSize,bool Encode,bool CrossProcess);
 
 #endif

@@ -81,6 +81,7 @@ public:
 	void RestoreMacroChar();
 	void RestoreElevationChar();
 
+	void ApplyShadow(int X1, int Y1, int X2, int Y2, SaveScreen *sbuf);
 	void ApplyColorMask(int X1, int Y1, int X2, int Y2, DWORD64 ColorMask);
 	void ApplyColor(int X1, int Y1, int X2, int Y2, DWORD64 Color);
 	void ApplyColor(int X1, int Y1, int X2, int Y2, DWORD64 Color, DWORD64 ExceptColor);
@@ -91,3 +92,12 @@ public:
 };
 
 extern ScreenBuf ScrBuf;
+
+class UnlockScreen
+{
+private:
+	int Count;
+public:
+	UnlockScreen() : Count(ScrBuf.GetLockCount()) { ScrBuf.Unlock(); }
+	~UnlockScreen() { ScrBuf.SetLockCount(Count); }
+};

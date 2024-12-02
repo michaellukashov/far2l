@@ -3,6 +3,7 @@
 #include "../UI/Activities/ConfirmChangeMode.h"
 #include "../UI/Activities/SimpleOperationProgress.h"
 #include "OpGetLinkTarget.h"
+#include "../Globals.h"
 
 OpChangeMode::OpChangeMode(std::shared_ptr<IHost> &base_host, const std::string &base_dir,
 		struct PluginPanelItem *items, int items_count)
@@ -17,14 +18,31 @@ OpChangeMode::OpChangeMode(std::shared_ptr<IHost> &base_host, const std::string 
 	for (int i = 0; i < items_count; ++i) {
 		if (items[i].FindData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			has_dirs = true;
-			mode_all = 0;
+			/*mode_all = 0;
 			mode_any = 07777;
-			break;
+			break;*/
 		}
 		mode_all&= items[i].FindData.dwUnixMode;
 		mode_any|= (items[i].FindData.dwUnixMode & 07777);
 	}
+	std::wstring owner = items[0].Owner ? items[0].Owner : G.GetMsgWide(MOwnerUnknown);
+	std::wstring group = items[0].Group ? items[0].Group : G.GetMsgWide(MGroupUnknown);
+	for (int i = 1; i < items_count; ++i) {
+		if ((items[i].Owner && owner != items[i].Owner) || (!items[i].Owner && owner != G.GetMsgWide(MOwnerUnknown))) {
+			owner = G.GetMsgWide(MOwnerMultiple);
+			break;
+		}
+	}
+	for (int i = 1; i < items_count; ++i) {
+		if ((items[i].Group && group != items[i].Group) || (!items[i].Group && group != G.GetMsgWide(MGroupUnknown))) {
+			group = G.GetMsgWide(MOwnerMultiple);
+			break;
+		}
+	}
 	std::string display_path = base_dir, link_target;
+	FILETIME ftCreationTime = {0};
+	FILETIME ftLastAccessTime = {0};
+	FILETIME ftLastWriteTime = {0};
 	if (items_count == 1) {
 		if (!display_path.empty() && display_path.back() != '/') {
 			display_path+= '/';
@@ -35,9 +53,14 @@ OpChangeMode::OpChangeMode(std::shared_ptr<IHost> &base_host, const std::string 
 				link_target.clear();
 			}
 		}
+		ftCreationTime = items->FindData.ftCreationTime;
+		ftLastAccessTime = items->FindData.ftLastAccessTime;
+		ftLastWriteTime = items->FindData.ftLastWriteTime;
 	}
 
-	if (!ConfirmChangeMode(items_count, display_path, link_target, has_dirs, mode_all, mode_any).Ask(_recurse, _mode_set, _mode_clear)) {
+	if (!ConfirmChangeMode(items_count, display_path, link_target, owner, group,
+			ftCreationTime, ftLastAccessTime, ftLastWriteTime,
+			has_dirs, mode_all, mode_any).Ask(_recurse, _mode_set, _mode_clear)) {
 		throw AbortError();
 	}
 

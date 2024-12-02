@@ -2321,6 +2321,8 @@ static bool panelselectFunc(const TMacroFunction *)
 		if (Mode == 2 || Mode == 3) {
 			FARString strStr = ValItems.s();
 			ReplaceStrings(strStr, L"\r\n", L";");
+			ReplaceStrings(strStr, L"\r", L";");
+			ReplaceStrings(strStr, L"\n", L";");
 			ValItems = strStr.CPtr();
 		}
 
@@ -3279,9 +3281,7 @@ static bool replaceFunc(const TMacroFunction *)
 	int64_t Ret = 1;
 	// TODO: Здесь нужно проверить в соответствии с УНИХОДОМ!
 	FARString strStr;
-	int lenS = StrLength(Src.s());
 	int lenF = StrLength(Find.s());
-	int lenR = StrLength(Repl.s());
 	int cnt = 0;
 
 	if (lenF) {
@@ -3300,9 +3300,6 @@ static bool replaceFunc(const TMacroFunction *)
 	}
 
 	if (cnt) {
-		if (lenR > lenF)
-			lenS+= cnt * (lenR - lenF + 1);		//???
-
 		strStr = Src.s();
 		cnt = (int)Count.i();
 
@@ -4085,7 +4082,6 @@ begin:
 	// Mantis#0000581: Добавить возможность прервать выполнение макроса
 	{
 		INPUT_RECORD rec;
-
 		if (PeekInputRecord(&rec) && rec.EventType == KEY_EVENT
 				&& rec.Event.KeyEvent.wVirtualKeyCode == VK_CANCEL) {
 			GetInputRecord(&rec, true);		// удаляем из очереди эту "клавишу"...
@@ -6444,7 +6440,9 @@ BOOL KeyMacro::CheckEditSelected(DWORD CurFlags)
 
 BOOL KeyMacro::CheckInsidePlugin(DWORD CurFlags)
 {
-	if (CtrlObject && CtrlObject->Plugins.CurPluginItem && (CurFlags & MFLAGS_NOSENDKEYSTOPLUGINS))		// ?????
+	if (CtrlObject && (CtrlObject->Plugins.CurPluginItem ||
+	                   CtrlObject->Plugins.CheckFlags(PSIF_ENTERTOOPENPLUGIN)) &&
+		(CurFlags & MFLAGS_NOSENDKEYSTOPLUGINS))		// ?????
 		// if(CtrlObject && CtrlObject->Plugins.CurEditor && (CurFlags&MFLAGS_NOSENDKEYSTOPLUGINS))
 		return FALSE;
 

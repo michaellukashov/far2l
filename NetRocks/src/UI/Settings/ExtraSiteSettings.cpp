@@ -18,7 +18,7 @@ static struct Codepages : std::vector<CodePage>, std::mutex
 		emplace_back();
 		auto &cp = back();
 		cp.id = id;
-		cp.name = StrPrintf("%u", id);
+		cp.name = ToDec((unsigned int)id);
 		if (cp.name.size() < 6) {
 			cp.name.append(6 - cp.name.size(), ' ');
 		}
@@ -100,7 +100,7 @@ public:
 
 		_di.SetLine(2);
 		_di.AddAtLine(DI_TEXT, 5,56, 0, MKeepAlive);
-		itoa(std::min(0, sc.GetInt("KeepAlive", 0)), sz, 10);
+		itoa(sc.GetInt("KeepAlive", 0), sz, 10);
 		_i_keepalive = _di.AddAtLine(DI_FIXEDIT, 57,62, DIF_MASKEDIT, sz, "999999");
 
 		_di.NextLine();

@@ -75,6 +75,10 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ConfigRW.hpp"
 #include "ConfigOptSaveLoad.hpp"
 #include "help.hpp"
+#include "farversion.h"
+#include "mix/panelmix.hpp"
+
+#include "message.hpp"
 
 #ifdef DIRECT_RT
 int DirectRT = 0;
@@ -82,8 +86,11 @@ int DirectRT = 0;
 
 static void print_help(const char *self)
 {
-	printf("FAR2L - oldschool file manager, with built-in terminal and other usefulness'es\n"
-			"Usage: %s [switches] [-cd apath [-cd ppath]]\n\n"
+	bool is_far2ledit = strstr(self, "far2ledit") != NULL;
+	printf("FAR2L Version: %s\n"
+			"FAR2L - two-panel file manager, with built-in terminal and other usefulness'es\n"
+			"Usage: %s [switches] [-cd apath [-cd ppath]]\n"
+			"   or: far2ledit [switches] [filename]\n\n"
 			"where\n"
 			"  apath - path to a folder (or a file or an archive or command with prefix)\n"
 			"          for the active panel\n"
@@ -101,7 +108,8 @@ static void print_help(const char *self)
 			//		" -p[<path>]\n"
 			//		"      Search for \"common\" plugins in the directory, specified by <path>.\n"
 			" -u <identity> OR </path/name>\n"
-			"      Allows to specify separate settings identity or FS location.\n"
+			"      Allows to specify separate settings identity or FS location\n"
+			"      (it override FARSETTINGS environment variable value).\n"
 			" -v <filename>\n"
 			"      View the specified file.\n"
 			" -v - <command line>\n"
@@ -113,8 +121,9 @@ static void print_help(const char *self)
 			" -set:<parameter>=<value>\n"
 			"      Override the configuration parameter, see far:config for details.\n"
 			"      Example: far2l -set:Language.Main=English -set:Screen.Clock=0 -set:XLat.Flags=0xff -set:System.FindFolders=false\n"
+			"Switches -cd, -v and -e are not applicable if far2ledit.\n"
 			"\n",
-			self);
+			FAR_BUILD, is_far2ledit ? "far2l" : self);
 	WinPortHelp();
 	// Console.Write(HelpMsg, ARRAYSIZE(HelpMsg)-1);
 }
@@ -135,30 +144,38 @@ static FARString ReconstructCommandLine(int argc, char **argv)
 	return cmd;
 }
 
-static FARString ExecuteCommandAndGrabItsOutput(FARString cmd)
+static void UpdatePathOptions(const FARString &strDestName, bool IsActivePanel)
 {
+	FARString *outFolder, *outCurFile;
 
-	FARString strTempName;
-
-	if (!FarMkTempEx(strTempName))
-		return FARString();
-
-	std::string exec_cmd =
-			"echo Waiting command to complete...; "
-			"echo You can use Ctrl+C to stop it, or Ctrl+Alt+C - to hardly terminate.; ";
-	if (cmd.GetLength() != 0) {
-		exec_cmd+= cmd.GetMB();
-	} else {
-		exec_cmd+= "far2l -h";
+	// Та панель, которая имеет фокус - активна (начнем по традиции с Левой Панели ;-)
+	if ((IsActivePanel && Opt.LeftPanel.Focus) || (!IsActivePanel && !Opt.LeftPanel.Focus)) {
+		Opt.LeftPanel.Type = FILE_PANEL;  // сменим моду панели
+		Opt.LeftPanel.Visible = TRUE;     // и включим ее
+		outFolder = &Opt.strLeftFolder;
+		outCurFile = &Opt.strLeftCurFile;
+	}
+	else {
+		Opt.RightPanel.Type = FILE_PANEL;
+		Opt.RightPanel.Visible = TRUE;
+		outFolder = &Opt.strRightFolder;
+		outCurFile = &Opt.strRightCurFile;
 	}
 
-	exec_cmd+= " >";
-	exec_cmd+= strTempName.GetMB();
-	exec_cmd+= " 2>&1";
-
-	farExecuteA(exec_cmd.c_str(), EF_NOCMDPRINT);
-
-	return strTempName;
+	auto Attr = apiGetFileAttributes(strDestName);
+	if (Attr != INVALID_FILE_ATTRIBUTES) {
+		if (Attr & FILE_ATTRIBUTE_DIRECTORY) {
+			outCurFile->Clear();
+			*outFolder = strDestName;
+		}
+		else {
+			*outCurFile = PointToName(strDestName);
+			*outFolder = strDestName;
+			CutToSlash(*outFolder, true);
+			if (outFolder->IsEmpty())
+				*outFolder = L"/";
+		}
+	}
 }
 
 static int MainProcess(FARString strEditViewArg, FARString strDestName1, FARString strDestName2,
@@ -170,9 +187,9 @@ static int MainProcess(FARString strEditViewArg, FARString strDestName1, FARStri
 		clock_t cl_start = clock();
 		ChangePriority ChPriority(ChangePriority::NORMAL);
 		ControlObject CtrlObj;
-		WORD InitAttributes = 0;
+		uint64_t InitAttributes = 0;
 		Console.GetTextAttributes(InitAttributes);
-		SetColor(COL_COMMANDLINEUSERSCREEN, true);
+		SetFarColor(COL_COMMANDLINEUSERSCREEN, true);
 
 		if (Opt.OnlyEditorViewerUsed != Options::NOT_ONLY_EDITOR_VIEWER) {
 			Panel *DummyPanel = new Panel;
@@ -184,7 +201,7 @@ static int MainProcess(FARString strEditViewArg, FARString strDestName1, FARStri
 
 			if (Opt.OnlyEditorViewerUsed == Options::ONLY_EDITOR_ON_CMDOUT
 					|| Opt.OnlyEditorViewerUsed == Options::ONLY_VIEWER_ON_CMDOUT) {
-				strEditViewArg = ExecuteCommandAndGrabItsOutput(strEditViewArg);
+				strEditViewArg = ExecuteCommandAndGrabItsOutput(strEditViewArg, "far2l -h");
 			}
 
 			if (Opt.OnlyEditorViewerUsed == Options::ONLY_EDITOR
@@ -225,46 +242,12 @@ static int MainProcess(FARString strEditViewArg, FARString strDestName1, FARStri
 
 			// воспользуемся тем, что ControlObject::Init() создает панели
 			// юзая Opt.*
-			if (strDestName1.GetLength())		// актиная панель
+			if (strDestName1.GetLength())  // активная панель
 			{
-				Opt.SetupArgv++;
-				strPath = strDestName1;
+				UpdatePathOptions(strDestName1, true);
 
-				if (strPath != "/") {
-					DeleteEndSlash(strPath);	// BUGBUG!! если конечный слешь не убрать - получаем забавный эффект - отсутствует ".."
-				}
-
-				// Та панель, которая имеет фокус - активна (начнем по традиции с Левой Панели ;-)
-				if (Opt.LeftPanel.Focus) {
-					Opt.LeftPanel.Type = FILE_PANEL;	// сменим моду панели
-					Opt.LeftPanel.Visible = TRUE;		// и включим ее
-					Opt.strLeftFolder = strPath;
-				} else {
-					Opt.RightPanel.Type = FILE_PANEL;
-					Opt.RightPanel.Visible = TRUE;
-					Opt.strRightFolder = strPath;
-				}
-
-				if (strDestName2.GetLength())		// пассивная панель
-				{
-					Opt.SetupArgv++;
-					strPath = strDestName2;
-
-					if (strPath != "/") {
-						DeleteEndSlash(strPath);	// BUGBUG!! если конечный слешь не убрать - получаем забавный эффект - отсутствует ".."
-					}
-
-					// а здесь с точнотью наоборот - обрабатываем пассивную панель
-					if (Opt.LeftPanel.Focus) {
-						Opt.RightPanel.Type = FILE_PANEL;	// сменим моду панели
-						Opt.RightPanel.Visible = TRUE;		// и включим ее
-						Opt.strRightFolder = strPath;
-					} else {
-						Opt.LeftPanel.Type = FILE_PANEL;
-						Opt.LeftPanel.Visible = TRUE;
-						Opt.strLeftFolder = strPath;
-					}
-				}
+				if (strDestName2.GetLength())  // пассивная панель
+					UpdatePathOptions(strDestName2, false);
 			}
 
 			// теперь все готово - создаем панели!
@@ -286,14 +269,14 @@ static int MainProcess(FARString strEditViewArg, FARString strDestName1, FARStri
 						AnotherPanel->SetFocus();
 						CtrlObject->CmdLine->ExecString(strDestName2, 0);
 						ActivePanel->SetFocus();
-					} else {
+					} /* else { // positioning on the file in UpdatePathOptions() is enough
 						strPath = strDestName2;
 
 						if (!strPath.IsEmpty()) {
 							if (AnotherPanel->GoToFile(strPath))
 								AnotherPanel->ProcessKey(KEY_CTRLPGDN);
 						}
-					}
+					} */
 				}
 
 				ActivePanel->GetCurDir(strCurDir);
@@ -301,14 +284,18 @@ static int MainProcess(FARString strEditViewArg, FARString strDestName1, FARStri
 
 				if (IsPluginPrefixPath(strDestName1)) {
 					CtrlObject->CmdLine->ExecString(strDestName1, 0);
-				} else {
+				} /* else { // positioning on the file in UpdatePathOptions() is enough
 					strPath = strDestName1;
 
 					if (!strPath.IsEmpty()) {
 						if (ActivePanel->GoToFile(strPath))
 							ActivePanel->ProcessKey(KEY_CTRLPGDN);
 					}
-				}
+				} */
+
+				// Update pointers as the above prefixed plugin calls could recreate one or both panels
+				ActivePanel=CtrlObject->Cp()->ActivePanel;
+				AnotherPanel=CtrlObject->Cp()->GetAnotherPanel(ActivePanel);
 
 				// !!! ВНИМАНИЕ !!!
 				// Сначала редравим пассивную панель, а потом активную!
@@ -317,13 +304,31 @@ static int MainProcess(FARString strEditViewArg, FARString strDestName1, FARStri
 			}
 
 			fprintf(stderr, "STARTUP: %llu\n", (unsigned long long)(clock() - cl_start));
-			if( Opt.IsFirstStart )
+
+
+			if( Opt.IsFirstStart ) {
 				Help::Present(L"Far2lGettingStarted",L"",FHELP_NOSHOWERROR);
+
+				DWORD tweaks = WINPORT(SetConsoleTweaks)(TWEAKS_ONLY_QUERY_SUPPORTED);
+				if (tweaks & TWEAK_STATUS_SUPPORT_OSC52CLIP_SET) {
+					if (Message(0, 2,
+						Msg::ConfigOSC52ClipSet,
+						Msg::Yes,
+						Msg::No))
+					{
+						Opt.OSC52ClipSet = 0;
+					} else {
+						Opt.OSC52ClipSet = 1;
+					}
+					ConfigOptSave(false);
+				}
+			}
+
 			FrameManager->EnterMainLoop();
 		}
 
 		// очистим за собой!
-		SetScreen(0, 0, ScrX, ScrY, L' ', COL_COMMANDLINEUSERSCREEN);
+		SetScreen(0, 0, ScrX, ScrY, L' ', FarColorToReal(COL_COMMANDLINEUSERSCREEN));
 		Console.SetTextAttributes(InitAttributes);
 		ScrBuf.ResetShadow();
 		ScrBuf.Flush();
@@ -396,9 +401,7 @@ int FarAppMain(int argc, char **argv)
 	Opt.LoadPlug.PluginsPersonal = TRUE;
 	Opt.LoadPlug.PluginsCacheOnly = FALSE;
 
-	char pid_str[32];
-	snprintf(pid_str, sizeof(pid_str) - 1, "%lu", (unsigned long)getpid());
-	setenv("FARPID", pid_str, 1);
+	setenv("FARPID", ToDec(getpid()).c_str(), 1);
 
 	g_strFarPath = g_strFarModuleName;
 
@@ -423,7 +426,8 @@ int FarAppMain(int argc, char **argv)
 	}
 
 	// run by symlink in editor mode
-	if (strstr(argv[0], "far2ledit") != NULL) {
+	bool is_far2ledit = strstr(argv[0], "far2ledit") != NULL;
+	if (is_far2ledit) {
 		Opt.OnlyEditorViewerUsed = Options::ONLY_EDITOR;
 		if (argc > 1) {
 			strEditViewArg = argv[argc - 1];	// use last argument
@@ -440,7 +444,7 @@ int FarAppMain(int argc, char **argv)
 			arg_w.erase(0, 1);
 		}
 		bool switchHandled = false;
-		if ((arg_w[0] == L'/' || arg_w[0] == L'-') && arg_w[1]) {
+		if ((/*arg_w[0] == L'/' ||*/ arg_w[0] == L'-') && arg_w[1]) {
 			switchHandled = true;
 			if (!StrCmpNI(arg_w.c_str() + 1, L"SET:", 4))
 			{
@@ -471,6 +475,9 @@ int FarAppMain(int argc, char **argv)
 					break;
 				case L'E':
 
+					if (is_far2ledit)
+						break;
+
 					if (iswdigit(arg_w[2])) {
 						StartLine = _wtoi((const wchar_t *)&arg_w[2]);
 						wchar_t *ChPtr = wcschr((wchar_t *)&arg_w[2], L':');
@@ -498,6 +505,9 @@ int FarAppMain(int argc, char **argv)
 
 					break;
 				case L'V':
+
+					if (is_far2ledit)
+						break;
 
 					if (I + 1 < argc) {
 						strEditViewArg = argv[I + 1];
@@ -541,6 +551,8 @@ int FarAppMain(int argc, char **argv)
 						Opt.LoadPlug.PluginsPersonal = FALSE;
 
 					} else if (Upper(arg_w[2]) == L'D' && !arg_w[3]) {
+						if (is_far2ledit)
+							break;
 						if (I + 1 < argc) {
 							I++;
 							arg_w = MB2Wide(argv[I]);
@@ -602,8 +614,13 @@ int FarAppMain(int argc, char **argv)
 		Opt.LoadPlug.PluginsPersonal = FALSE;
 	}
 
+	ZeroFarPalette();
 	ConfigOptLoad();
+	InitFarPalette();
+
 	InitConsole();
+	WINPORT(SetConsoleCursorBlinkTime)(NULL, Opt.CursorBlinkTime);
+
 	static_assert(!IsPtr(Msg::NewFileName._id),
 			"Too many language messages. Need to refactor code to eliminate use of IsPtr.");
 
@@ -626,6 +643,7 @@ int FarAppMain(int argc, char **argv)
 	setenv("FARLANG", Opt.strLanguage.GetMB().c_str(), 1);
 	initMacroVarTable(1);
 
+	UpdateDefaultColumnTypeWidths();
 	CheckForImportLegacyShortcuts();
 
 	// (!!!) temporary STUB because now Editor can not input filename "", see: fileedit.cpp -> FileEditor::Init()
@@ -695,7 +713,7 @@ static int libexec(const char *lib, const char *cd, const char *symbol, int argc
 static void SetCustomSettings(const char *arg)
 {
 	std::string refined;
-	if (arg[0] == '/') {
+	if (arg[0] == GOOD_SLASH) {
 		refined = arg;
 
 	} else if (arg[0] == '.' && arg[1] == GOOD_SLASH) {
@@ -742,7 +760,7 @@ int _cdecl main(int argc, char *argv[])
 		}
 		if (argc > 1
 				&& (strncasecmp(argv[1], "--h", 3) == 0 || strncasecmp(argv[1], "-h", 2) == 0
-						|| strcasecmp(argv[1], "/h") == 0 || strcasecmp(argv[1], "/?") == 0)) {
+						/*|| strcasecmp(argv[1], "/h") == 0*/ || strcasecmp(argv[1], "-?") == 0)) {
 
 			print_help(name);
 			return 0;
@@ -759,6 +777,11 @@ int _cdecl main(int argc, char *argv[])
 	umask(g_umask);
 
 	setlocale(LC_ALL, "");	// otherwise non-latin keys missing with XIM input method
+
+	const char *lcc = getenv("LC_COLLATE");
+	if (lcc && *lcc) {
+		setlocale(LC_COLLATE, lcc);
+	}
 
 	SetupFarPath(argv[0]);
 

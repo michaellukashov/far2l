@@ -2,6 +2,7 @@
 #include <mutex>
 #include <vector>
 #include <string>
+#include <condition_variable>
 #include "WinCompat.h"
 #include "ConsoleBuffer.h"
 #include "Backend.h"
@@ -23,6 +24,8 @@ class ConsoleOutput : public IConsoleOutput
 		void Add(const SMALL_RECT &area);
 		void Add(const SMALL_RECT *areas, size_t cnt);
 	} _deferred_repaints;
+	unsigned int _change_id{1};
+	std::condition_variable _change_id_cond;
 	
 	struct {
 		COORD pos;
@@ -55,6 +58,8 @@ class ConsoleOutput : public IConsoleOutput
 		};
 	};
 	
+	void LockedChangeIdUpdate();
+
 	SHORT ModifySequenceEntityAt(SequenceModifier &sm, COORD pos, SMALL_RECT &area);
 	size_t ModifySequenceAt(SequenceModifier &sm, COORD &pos);
 	void ScrollOutputOnOverflow(SMALL_RECT &area);
@@ -71,6 +76,8 @@ public:
 
 	virtual void SetAttributes(DWORD64 attributes);
 	virtual DWORD64 GetAttributes();
+
+	virtual	void SetCursorBlinkTime(DWORD interval);
 	virtual void SetCursor(COORD pos);
 	virtual void SetCursor(UCHAR height, bool visible);
 	virtual COORD GetCursor();
@@ -114,10 +121,15 @@ public:
 	virtual bool ConsoleBackgroundMode(bool TryEnterBackgroundMode);
 	virtual bool SetFKeyTitles(const CHAR **titles);
 	virtual BYTE GetColorPalette();
+	virtual void GetBasePalette(void *p);
+	virtual bool SetBasePalette(void *p);
 	virtual void OverrideColor(DWORD Index, DWORD *ColorFG, DWORD *ColorBK);
 	virtual void RepaintsDeferStart();
-	virtual void RepaintsDeferFinish();
+	virtual void RepaintsDeferFinish(bool force);
 
 	virtual IConsoleOutput *ForkConsoleOutput(HANDLE con_handle);
 	virtual void JoinConsoleOutput(IConsoleOutput *con_out);
+
+	virtual unsigned int WaitForChange(unsigned int prev_change_id, unsigned int timeout_msec = -1);
+	virtual const char *BackendInfo(int entity);
 };

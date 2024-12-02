@@ -216,8 +216,15 @@ class DialogBuilderBase
 			case DI_TEXT:
 				return TextWidth(Item);
 
+			case DI_DOUBLEBOX: // text in dialog title
+				{
+					int Width = TextWidth(Item);
+					return (Width ? Width + 2 : 0);
+				}
+
 			case DI_CHECKBOX:
 			case DI_RADIOBUTTON:
+			case DI_BUTTON:
 				return TextWidth(Item) + 4;
 
 			case DI_EDIT:
@@ -250,7 +257,7 @@ class DialogBuilderBase
 
 		int MaxTextWidth()
 		{
-			int MaxWidth = 0;
+			int MaxWidth = ItemWidth(DialogItems [0]); // text in dialog title
 			for(int i=1; i<DialogItemsCount; i++)
 			{
 				if (DialogItems [i].X1 == SECOND_COLUMN) continue;
@@ -420,6 +427,29 @@ class DialogBuilderBase
 					Item->Flags |= DIF_GROUP;
 				if (*Value == i)
 					Item->Selected = TRUE;
+				SetLastItemBinding(CreateRadioButtonBinding(Value));
+			}
+		}
+
+		// Добавляет горизонтальную группу радиокнопок.
+		void AddRadioButtonsHorz(int *Value, int OptionCount, FarLangMsg MessageIDs[])
+		{
+			T *PrevItem = nullptr;
+			for(int i=0; i<OptionCount; i++)
+			{
+				T *Item = AddDialogItem(DI_RADIOBUTTON, GetLangString(MessageIDs[i]));
+				if (!i) {
+					SetNextY(Item);
+					Item->Flags |= DIF_GROUP;
+				}
+				else {
+					Item->Y1 = Item->Y2 = PrevItem->Y1;
+					Item->X1 = PrevItem->X2 + 2;
+				}
+				Item->X2 = Item->X1 + ItemWidth(*Item);
+				if (*Value == i)
+					Item->Selected = TRUE;
+				PrevItem = Item;
 				SetLastItemBinding(CreateRadioButtonBinding(Value));
 			}
 		}

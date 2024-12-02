@@ -31,6 +31,7 @@ src/Backend/WinPortRGB.cpp
 src/Backend/SudoAskpassImpl.cpp
 src/Backend/FSClipboardBackend.cpp
 src/Backend/ExtClipboardBackend.cpp
+src/Backend/NotifySh.cpp
 src/Backend/TTY/TTYBackend.cpp
 src/Backend/TTY/TTYRevive.cpp
 src/Backend/TTY/TTYInput.cpp
@@ -42,6 +43,16 @@ src/Backend/TTY/OSC52ClipboardBackend.cpp
 src/Backend/TTY/TTYNegotiateFar2l.cpp
 src/Backend/TTY/TTYXGlue.cpp
 )
+
+if(TESTING)
+    message(STATUS "Building with smoke tests support due to TESTING=${TESTING}")
+    set(SOURCES
+        ${SOURCES}
+        src/Backend/TestController.cpp
+    )
+else()
+    message(STATUS "Building without smoke tests support due to TESTING=${TESTING}")
+endif()
 
 add_library (WinPort STATIC ${SOURCES})
 
@@ -58,6 +69,10 @@ endif()
 if(CMAKE_THREAD_LIBS_INIT)
     target_link_libraries(WinPort "${CMAKE_THREAD_LIBS_INIT}")
 endif()
+if(TESTING)
+    target_compile_options(WinPort PUBLIC -DTESTING)
+endif()
+
 if(${CMAKE_SYSTEM_NAME} MATCHES "Haiku")
     target_link_libraries(WinPort root)
 endif()

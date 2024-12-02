@@ -24,15 +24,15 @@ BuildRequires:  pkgconfig
 BuildRequires:  make
 %if %{defined suse_version}
 BuildRequires: 	wxGTK3-3_2-devel 
-BuildRequires: 	libxerces-c-devel libneon-devel libopenssl-devel libuchardet-devel
+BuildRequires: 	libxml2-devel libneon-devel libopenssl-devel libuchardet-devel
 BuildRequires:	update-desktop-files
 %endif
 %if 0%{?fedora} || 0%{?rhel_version} || 0%{?centos_version}
 BuildRequires:  wxGTK-devel >= 3.1
-BuildRequires: 	xerces-c-devel neon-devel openssl-devel uchardet-devel
+BuildRequires: 	libxml2-devel neon-devel openssl-devel uchardet-devel
 %endif
 BuildRequires:  fmt-devel libarchive-devel
-BuildRequires:  libnfs-devel libsmbclient-devel libssh-devel pcre-devel
+BuildRequires:  libnfs-devel libsmbclient-devel libssh-devel
 BuildRequires:  python-rpm-macros
 BuildRequires:  python3-devel python3-cffi python3-pip
 
@@ -61,7 +61,7 @@ Suggests:	tar gzip bzip2 exiftool 7zip zstd elfutils gpg2 util-linux
 AutoReq: 	no
 Requires:	/bin/bash 
 Requires:	libarchive13
-Requires:	libfmt8 libuchardet0 libxerces-c-3_2 libpcre1
+Requires:	libfmt8 libuchardet0 libxml2
 %endif
 Conflicts:	far2l-full
 Provides:	far2l
@@ -161,8 +161,8 @@ Far for Linux plug-in to communicate via NFS, as part of NetRocks
 Summary: Far for Linux (complete installation)
 %if %{defined suse_version}
 AutoReq: 	no
-Requires: 		/bin/sh libarchive13 libopenssl1_1 libfmt8 libnfs13 libssh2-1 libuchardet0 libxerces-c-3_2 libneon27 
-Requires: 		libsmbclient0 libpcre2-32-0 libwx_baseu-suse5_0_0 libwx_gtk3u_core-suse5_0_0 
+Requires: 		/bin/sh libarchive13 libopenssl1_1 libfmt8 libnfs13 libssh2-1 libuchardet0 libxml2 libneon27
+Requires: 		libsmbclient0 libwx_baseu-suse5_0_0 libwx_gtk3u_core-suse5_0_0 
 Requires:		python3
 %endif
 Conflicts:	far2l-core far2l-ttyxi far2l-wxgtk far2l-plugins-netrocks-ftp far2l-plugins-netrocks-sftp far2l-plugins-netrocks-smb far2l-plugins-netrocks-webdav far2l-plugins-netrocks-nfs

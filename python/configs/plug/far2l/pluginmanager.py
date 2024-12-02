@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 
 def setup():
     if os.path.isdir(USERHOME):
-        sys.path.insert(3, USERHOME)
+        sys.path.insert(1, USERHOME)
         fname = os.path.join(USERHOME, "logger.ini")
         if os.path.isfile(fname):
             with open(fname, "rt") as fp:
@@ -144,17 +144,20 @@ class PluginManager:
         }
         name = id2name[OpenFrom]
         log.debug("pluginGetFrom({0} ({1}), {2})".format(OpenFrom, name, Item))
-        for plugin in self.plugins:
-            openFrom = plugin.Plugin.openFrom
-            log.debug(
-                "pluginGetFrom(openok={0}, no={1} : {2})".format(
-                    name in openFrom, Item, plugin.Plugin.name
+        if OpenFrom in [ffic.OPEN_DISKMENU, ffic.OPEN_FINDLIST]:
+            for plugin in self.plugins:
+                openFrom = plugin.Plugin.openFrom
+                log.debug(
+                    "pluginGetFrom(openok={0}, no={1} : {2})".format(
+                        name in openFrom, Item, plugin.Plugin.name
+                    )
                 )
-            )
-            if name in openFrom:
-                if not Item:
-                    return plugin
-                Item -= 1
+                if name in openFrom:
+                    if not Item:
+                        return plugin
+                    Item -= 1
+        elif Item < len(self.plugins):
+            return self.plugins[Item]
         return None
 
     def s2f(self, s):

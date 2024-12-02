@@ -44,19 +44,20 @@ private:
 	SHORT CurPosX, CurPosY;
 	bool CurVisible;
 	DWORD CurSize;
-	int X1, Y1, X2, Y2;
 
 	void CleanupBuffer(PCHAR_INFO Buffer, size_t BufSize);
 	int ScreenBufCharCount();
 	void CharCopy(PCHAR_INFO ToBuffer, PCHAR_INFO FromBuffer, int Count);
-	CHAR_INFO *GetBufferAddress() { return ScreenBuf; }
 
 public:
+	int X1, Y1, X2, Y2;
+
 	SaveScreen();
 	SaveScreen(int X1, int Y1, int X2, int Y2);
 	~SaveScreen();
 
 public:
+	CHAR_INFO *GetBufferAddress() { return ScreenBuf; };
 	void CorrectRealScreenCoord();
 	void SaveArea(int X1, int Y1, int X2, int Y2);
 	void SaveArea();

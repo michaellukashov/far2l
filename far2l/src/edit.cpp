@@ -127,7 +127,7 @@ Edit::Edit(ScreenObject *pOwner, Callback *aCallback, bool bAllocateData)
 	Flags.Set(FEDITLINE_EDITBEYONDEND);
 	Color = F_LIGHTGRAY | B_BLACK;
 	SelColor = F_WHITE | B_BLACK;
-	ColorUnChanged = COL_DIALOGEDITUNCHANGED;
+	ColorUnChanged = FarColorToReal(COL_DIALOGEDITUNCHANGED);
 	EndType = EOL_NONE;
 	TabSize = Opt.EdOpt.TabSize;
 	TabExpandMode = EXPAND_NOTABS;
@@ -506,7 +506,7 @@ int Edit::ProcessInsPath(FarKey Key, int PrevSelStart, int PrevSelEnd)
 			RetCode = TRUE;
 	} else		// Пути/имена?
 	{
-		RetCode = _MakePath1(Key, strPathName, L"");
+		RetCode = _MakePath1(Key, strPathName, L"", 0); // 0 - always not escaping path names
 	}
 
 	// Если что-нить получилось, именно его и вставим (PathName)
@@ -545,7 +545,7 @@ int64_t Edit::VMProcess(MacroOpcode OpCode, void *vParam, int64_t iParam)
 		case MCODE_V_ITEMCOUNT:
 			return (int64_t)StrSize;
 		case MCODE_V_CURPOS:
-			return (int64_t)(CursorPos + 1);
+			return (int64_t)(CurPos + 1);
 		case MCODE_F_EDITOR_SEL: {
 			int Action = (int)((INT_PTR)vParam);
 
@@ -1507,7 +1507,7 @@ int Edit::InsertKey(FarKey Key)
 	return TRUE;
 }
 
-void Edit::SetObjectColor(int Color, int SelColor, int ColorUnChanged)
+void Edit::SetObjectColor(uint64_t Color, uint64_t SelColor, uint64_t ColorUnChanged)
 {
 	this->Color = Color;
 	this->SelColor = SelColor;
@@ -2392,9 +2392,9 @@ void Edit::ApplyColor()
 
 		// Раскрашиваем элемент, если есть что раскрашивать
 		if (Length > 0) {
-			ScrBuf.ApplyColor(Start, Y1, Start + Length - 1, Y1, Attr,
+			ScrBuf.ApplyColor(Start, Y1, Start + Length - 1, Y1, Attr, SelColor );
 					// Не раскрашиваем выделение
-					SelColor >= COL_FIRSTPALETTECOLOR ? Palette[SelColor - COL_FIRSTPALETTECOLOR] : SelColor);
+//					SelColor >= COL_FIRSTPALETTECOLOR ? Palette[SelColor - COL_FIRSTPALETTECOLOR] : SelColor);
 		}
 	}
 }
@@ -2671,7 +2671,7 @@ void EditControl::PopulateCompletionMenu(VMenu &ComplMenu, const FARString &strF
 			if (!m_pSuggestor)
 				m_pSuggestor.reset(new MenuFilesSuggestor);
 
-			m_pSuggestor->Suggest(strFilter, ComplMenu);
+			m_pSuggestor->Suggest(strFilter, ComplMenu, ECFlags.Check(EC_ENABLEFNCOMPLETE_ESCAPED));
 		}
 	}
 }

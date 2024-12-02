@@ -155,7 +155,7 @@ static const wchar_t *_SubstFileName(const wchar_t *CurStr, TSubstData *PSubstDa
 		int First = TRUE;
 
 		while (WPanel->GetSelNameCompat(&strFileNameL, FileAttrL)) {
-			QuoteSpaceOnly(strFileNameL);
+			EscapeSpace(strFileNameL); //QuoteSpaceOnly(strFileNameL);
 
 			// Вот здесь фиг его знает - нужно/ненужно...
 			// если будет нужно - раскомментируем :-)
@@ -380,7 +380,7 @@ int SubstFileName(FARString &strStr,	// результирующая строк�
 	FARString strTmp = strStr;
 
 	if (!IgnoreInput)
-		ReplaceVariables(strTmp, PSubstData);
+		ReplaceVariables(strTmp,PSubstData);
 
 	const wchar_t *CurStr = strTmp;
 	FARString strOut;
@@ -395,6 +395,7 @@ int SubstFileName(FARString &strStr,	// результирующая строк�
 	}
 
 	strStr = strOut;
+
 	return (PSubstData->PreserveLFN);
 }
 

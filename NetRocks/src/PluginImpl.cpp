@@ -423,6 +423,22 @@ void PluginImpl::GetOpenPluginInfo(struct OpenPluginInfo *Info)
 			Info->Flags|= OPIF_COMPAREFATTIME;
 		}
 	}
+	else {
+		Info->Flags|= OPIF_HL_MARKERS_NOSHOW; // for site connections list always don't show markers
+		// for site connections list don't use current far2l panel modes
+		//  - only name column(s) without dependence on panel Align file extensions
+		static struct PanelMode PanelModesArray[10] = {
+			{ .ColumnTypes = L"N", .ColumnWidths = L"0" },
+			{ .ColumnTypes = L"N,N,N", .ColumnWidths = L"0,0,0" },
+			{ .ColumnTypes = L"N,N", .ColumnWidths = L"0,0" },
+			{ .ColumnTypes = L"N", .ColumnWidths = L"0" }, { .ColumnTypes = L"N", .ColumnWidths = L"0" },
+			{ .ColumnTypes = L"N", .ColumnWidths = L"0" }, { .ColumnTypes = L"N", .ColumnWidths = L"0" },
+			{ .ColumnTypes = L"N", .ColumnWidths = L"0" }, { .ColumnTypes = L"N", .ColumnWidths = L"0" },
+			{ .ColumnTypes = L"N", .ColumnWidths = L"0" },
+		};
+		Info->PanelModesArray = PanelModesArray;
+		Info->PanelModesNumber = ARRAYSIZE(PanelModesArray);
+	}
 	Info->HostFile = _standalone_config.empty() ? NULL : _standalone_config.c_str();
 	Info->CurDir = _cur_dir;
 	Info->Format = _format;
@@ -637,6 +653,12 @@ int PluginImpl::MakeDirectory(const wchar_t **Name, int OpMode)
 	return 1;
 }
 
+static bool NoControls(unsigned int ControlState)
+{
+	return (ControlState & (PKF_CONTROL | PKF_ALT | PKF_SHIFT)) == 0;
+}
+
+
 int PluginImpl::ProcessKey(int Key, unsigned int ControlState)
 {
 //	fprintf(stderr, "NetRocks::ProcessKey(0x%x, 0x%x)\n", Key, ControlState);
@@ -649,8 +671,8 @@ int PluginImpl::ProcessKey(int Key, unsigned int ControlState)
 		return ByKey_TryEnterSelectedSite() ? TRUE : FALSE;
 	}
 
-	if (Key == VK_F5 || Key == VK_F6) {
-		return ByKey_TryCrossload(Key==VK_F6) ? TRUE : FALSE;
+	if ((Key == VK_F5 || Key == VK_F6) && NoControls(ControlState)) {
+		return ByKey_TryCrossload(Key == VK_F6) ? TRUE : FALSE;
 	}
 
 	if (Key == VK_F4 && !_remote

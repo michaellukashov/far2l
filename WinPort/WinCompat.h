@@ -420,6 +420,7 @@ typedef struct _CHAR_INFO {
 
 typedef struct _WINDOW_BUFFER_SIZE_RECORD {
     COORD dwSize;
+    BOOL bDamaged; // TRUE if screen area was damaged even in frames not affected by actual size change
 } WINDOW_BUFFER_SIZE_RECORD, *PWINDOW_BUFFER_SIZE_RECORD;
 
 typedef struct _MENU_EVENT_RECORD {
@@ -1138,6 +1139,7 @@ typedef void *HKL;
 #define ERROR_INSUFFICIENT_BUFFER        ENOBUFS
 #define ERROR_NO_UNICODE_TRANSLATION     EILSEQ
 #define ERROR_DIRECTORY                  EISDIR
+#define ERROR_TOO_MANY_POSTS             E2BIG
 #define ERROR_INVALID_NAME               ENAMETOOLONG
 #define ERROR_FILE_EXISTS                EEXIST
 #define ERROR_OUTOFMEMORY                ENOMEM

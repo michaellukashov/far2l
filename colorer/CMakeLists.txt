@@ -14,93 +14,54 @@ message(STATUS "Build Colorer: ${COLORER_VERSION}")
 
 set(SOURCES
     src/pcolorer2/ChooseTypeMenu.h
-    src/pcolorer2/ConsoleAnnotation.h
     src/pcolorer2/FarEditor.h
     src/pcolorer2/FarEditorSet.h
     src/pcolorer2/FarHrcSettings.h
     src/pcolorer2/pcolorer.h
-    src/pcolorer2/resource.h
-    src/pcolorer2/StringBuffer.h
     src/pcolorer2/tools.h
     src/pcolorer2/ChooseTypeMenu.cpp
     src/pcolorer2/FarEditor.cpp
     src/pcolorer2/FarEditorSet.cpp
     src/pcolorer2/FarHrcSettings.cpp
     src/pcolorer2/pcolorer.cpp
-    src/pcolorer2/StringBuffer.cpp
     src/pcolorer2/tools.cpp
+    src/pcolorer2/CerrLogger.cpp
+    src/pcolorer2/CerrLogger.h
 )
 
-
-if (USESPDLOG)
-    FIND_PACKAGE(Spdlog REQUIRED)
-    set (SPDLOG_DEFINES
-        USESPDLOG
-        SPDLOG_DISABLE_TID_CACHING
-        SPDLOG_NO_THREAD_ID
-        SPDLOG_NO_TLS
-    )
-
-    if (NOT EXISTS "${SPDLOG_INCLUDE_DIR}/spdlog/fmt/bundled")
-        if (fmt_FOUND)
-            set (SPDLOG_DEFINES
-                ${SPDLOG_DEFINES}
-                SPDLOG_FMT_EXTERNAL=ON
-            )
-            message("SPDLOG: using with SPDLOG_FMT_EXTERNAL cuz FMT installed but ${SPDLOG_INCLUDE_DIR}/spdlog/fmt/bundled is missing")
-        else()
-            message("SPDLOG: using without forced SPDLOG_FMT_EXTERNAL cuz FMT NOT installed")
-        endif()
-    else()
-        message("SPDLOG: using without forced SPDLOG_FMT_EXTERNAL cuz ${SPDLOG_INCLUDE_DIR}/spdlog/fmt/bundled exists")
-    endif()
-endif()
-
+# set options for colorer-library
+set(COLORER_USE_ICU_STRINGS OFF)
+set(COLORER_USE_LIBXML ON)
+set(COLORER_BUILD_HARD_WARNINGS OFF)
+set(COLORER_BUILD_OLD_COMPILERS ON)
 
 add_library(colorer MODULE ${SOURCES})
 
-FIND_PACKAGE(XercesC REQUIRED)
-MESSAGE (STATUS "Found Xerces-C: ${XERCESC_LIBRARY}")
-# sometimes libstd requires linking to libfmt, sometimes not
-# so, if libfmt there - lets link to it, if not - then dont care
-FIND_PACKAGE(fmt)
-
-# using fmt_LIBRARY directrly target_link_libraries fails build
-# so have to copy it into intermediate var but only if fmt_FOUND
-if (fmt_FOUND)
-    set(fmt_LIBRARY_OPTIONAL "${fmt_LIBRARY}")
-    # add libfmt package into far2l dependencies if needed
-    IF(PACKAGE_DEPENDENCIES)
-        SET(PACKAGE_DEPENDENCIES "${PACKAGE_DEPENDENCIES}, libfmt${fmt_VERSION_MAJOR}" PARENT_SCOPE)
-    ELSE(PACKAGE_DEPENDENCIES)
-        SET(PACKAGE_DEPENDENCIES "libfmt${fmt_VERSION_MAJOR}" PARENT_SCOPE)
-    ENDIF(PACKAGE_DEPENDENCIES)
-else()
-    set(fmt_LIBRARY_OPTIONAL "")
-endif()
+FIND_PACKAGE(LibXml2 REQUIRED)
 
 target_include_directories(colorer
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/Colorer-library/src
-    PUBLIC ${XERCESC_INCLUDE_DIR}
     )
 
-if(USESPDLOG)
-    target_include_directories(colorer PUBLIC ${SPDLOG_INCLUDE_DIR})
-endif()
-
-target_link_libraries(colorer
-    ${XERCESC_LIBRARIES}
-    ${fmt_LIBRARY_OPTIONAL}
+target_link_libraries(colorer PRIVATE
     utils
     colorer_lib
     far2l
     )
+    if(OPT_USE_STATIC_EXT_LIBS)
+        FIND_PACKAGE(ZLIB REQUIRED)
+        target_link_libraries(colorer PRIVATE
+            # ${VCPKG_INSTALLED_PATH}/lib/libz.a
+            ZLIB::ZLIB
+            ${VCPKG_INSTALLED_PATH}/lib/libxml2.a
+            ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
+            dl)
+    endif(OPT_USE_STATIC_EXT_LIBS)
 
 target_compile_definitions(colorer PUBLIC
     _UNICODE
     UNICODE
     __unix__
-    ${SPDLOG_DEFINES}
 )
 
 
@@ -123,3 +84,8 @@ add_custom_command(TARGET colorer POST_BUILD
 
 add_subdirectory("${LIBCOLORER_TREE}" "${CMAKE_BINARY_DIR}/Colorer-library/src")
 
+set_target_properties(colorer PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED YES
+    CXX_EXTENSIONS YES
+)

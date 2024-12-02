@@ -24,11 +24,6 @@ using namespace oldfar;
 #include "fmt.hpp"
 #include <errno.h>
 
-#ifdef HAVE_PCRE
-#include "pcre++.h"
-using namespace PCRE;
-#endif
-
 #if defined(__BORLANDC__)
 #pragma option -a1
 #elif defined(__GNUC__) || (defined(__WATCOMC__) && (__WATCOMC__ < 1100)) || defined(__LCC__)
@@ -70,10 +65,6 @@ static void FillFormat(const KeyFileValues *Values);
 static void MakeFiletime(SYSTEMTIME st, SYSTEMTIME syst, LPFILETIME pft);
 static int StringToInt(const char *str);
 static int64_t StringToInt64(const char *str);
-#ifdef HAVE_PCRE
-static void ParseListingItemRegExp(Match match, struct ArcItemInfo *Info, SYSTEMTIME &stModification,
-		SYSTEMTIME &stCreation, SYSTEMTIME &stAccess);
-#endif
 static void ParseListingItemPlain(const char *CurFormat, const char *CurStr, struct ArcItemInfo *Info,
 		SYSTEMTIME &stModification, SYSTEMTIME &stCreation, SYSTEMTIME &stAccess);
 
@@ -361,7 +352,7 @@ BOOL WINAPI _export CUSTOM_IsArchive(const char *FName, const unsigned char *Dat
 		bool SpecifiedID = false, FoundID = false;
 		for (unsigned int J = 0; J != (unsigned int)-1; ++J) {
 			if (J != 0)
-				sprintf(IDName, "ID%u", J);
+				snprintf(IDName, sizeof(IDName), "ID%u", J);
 			else
 				strcpy(IDName, "ID");
 
@@ -529,54 +520,7 @@ int WINAPI _export CUSTOM_GetArcItem(struct ArcItemInfo *Info)
 	WINPORT(GetSystemTime)(&syst);
 
 	while (GetString(Str, sizeof(Str))) {
-#ifdef HAVE_PCRE
-		RegExp re;
 
-		if (!StartText.empty()) {
-			if (re.compile(StartText.c_str())) {
-				if (re.match(Str))
-					StartText.clear();
-			} else {
-				if ((StartText[0] == '^' && strncmp(Str, StartText.c_str() + 1, StartText.size() - 1) == 0)
-						|| (StartText[0] != '^' && strstr(Str, StartText.c_str()) != NULL)) {
-					StartText.clear();
-				}
-			}
-			continue;
-		}
-
-		if (!EndText.empty()) {
-			if (re.compile(EndText.c_str())) {
-				if (re.match(Str))
-					break;
-			} else if (EndText[0] == '^') {
-				if (strncmp(Str, EndText.c_str() + 1, EndText.size() - 1) == 0)
-					break;
-			} else if (strstr(Str, EndText.c_str()) != NULL)
-				break;
-		}
-
-		bool bFoundIgnoreString = false;
-		for (CustomStringList *CurIgnoreString = IgnoreStrings; CurIgnoreString->Next();
-				CurIgnoreString = CurIgnoreString->Next()) {
-			if (re.compile(CurIgnoreString->Str())) {
-				if (re.match(Str))
-					bFoundIgnoreString = true;
-			} else if (*CurIgnoreString->Str() == '^') {
-				if (strncmp(Str, CurIgnoreString->Str() + 1, strlen(CurIgnoreString->Str() + 1)) == 0)
-					bFoundIgnoreString = true;
-			} else if (strstr(Str, CurIgnoreString->Str()) != NULL)
-				bFoundIgnoreString = true;
-		}
-
-		if (bFoundIgnoreString)
-			continue;
-
-		if (re.compile(CurFormatNode->Str())) {
-			if (Match match = re.match(Str))
-				ParseListingItemRegExp(match, Info, stModification, stCreation, stAccess);
-		} else {
-#endif
 			if (!StartText.empty()) {
 				if (StartText == Str) {
 					StartText.clear();
@@ -591,9 +535,6 @@ int WINAPI _export CUSTOM_GetArcItem(struct ArcItemInfo *Info)
 			}
 
 			ParseListingItemPlain(CurFormatNode->Str(), Str, Info, stModification, stCreation, stAccess);
-#ifdef HAVE_PCRE
-		}
-#endif
 
 		CurFormatNode = CurFormatNode->Next();
 		if (!CurFormatNode || !CurFormatNode->Next()) {
@@ -631,7 +572,7 @@ BOOL WINAPI _export CUSTOM_CloseArchive(struct ArcInfo *Info)
 	return (TRUE);
 }
 
-BOOL WINAPI _export CUSTOM_GetFormatName(int Type, char *FormatName, char *DefaultExt)
+BOOL WINAPI _export CUSTOM_GetFormatName(int Type, std::string &FormatName, std::string &DefaultExt)
 {
 	std::string TypeName;
 	const KeyFileValues *Values = GetSection(Type, TypeName);
@@ -639,12 +580,12 @@ BOOL WINAPI _export CUSTOM_GetFormatName(int Type, char *FormatName, char *Defau
 	if (!Values)
 		return (FALSE);
 
-	Values->GetChars(FormatName, 64, Str_TypeName, TypeName.c_str());
-	Values->GetChars(DefaultExt, NM, "Extension", "");
-	return (*FormatName != 0);
+	FormatName = Values->GetString(Str_TypeName, TypeName.c_str());
+	DefaultExt = Values->GetString("Extension");
+	return !FormatName.empty();
 }
 
-BOOL WINAPI _export CUSTOM_GetDefaultCommands(int Type, int Command, char *Dest)
+BOOL WINAPI _export CUSTOM_GetDefaultCommands(int Type, int Command, std::string &Dest)
 {
 	std::string TypeName, FormatName;
 
@@ -663,7 +604,7 @@ BOOL WINAPI _export CUSTOM_GetDefaultCommands(int Type, int Command, char *Dest)
 			"AllFilesMask"};
 
 	if (Command < (int)(ARRAYSIZE(CmdNames))) {
-		Values->GetChars(Dest, 512, CmdNames[Command], "");
+		Dest = Values->GetString(CmdNames[Command], "");
 		return (TRUE);
 	}
 
@@ -725,9 +666,7 @@ static void FillFormat(const KeyFileValues *Values)
 	delete Format;
 	Format = new CustomStringList;
 	for (CustomStringList *CurFormat = Format;; CurFormat = CurFormat->Add()) {
-		char FormatName[100];
-
-		sprintf(FormatName, "Format%d", FormatNumber++);
+		const auto &FormatName = StrPrintf("Format%d", FormatNumber++);
 		Values->GetChars(CurFormat->Str(), PROF_STR_LEN, FormatName, "");
 		if (*CurFormat->Str() == 0)
 			break;
@@ -738,9 +677,7 @@ static void FillFormat(const KeyFileValues *Values)
 	delete IgnoreStrings;
 	IgnoreStrings = new CustomStringList;
 	for (CustomStringList *CurIgnoreString = IgnoreStrings;; CurIgnoreString = CurIgnoreString->Add()) {
-		char Name[100];
-
-		sprintf(Name, "IgnoreString%d", Number++);
+		const auto &Name = StrPrintf("IgnoreString%d", Number++);
 		Values->GetChars(CurIgnoreString->Str(), PROF_STR_LEN, Name, "");
 		if (*CurIgnoreString->Str() == 0)
 			break;
@@ -829,104 +766,6 @@ static int StringToIntHex(const char *str)
 		}
 	return i;
 }
-
-#ifdef HAVE_PCRE
-static void ParseListingItemRegExp(Match match, struct ArcItemInfo *Info, SYSTEMTIME &stModification,
-		SYSTEMTIME &stCreation, SYSTEMTIME &stAccess)
-{
-	if (const char *p = match["name"])
-		Info->PathName = p;
-	if (const char *p = match["description"])
-		Info->Description.reset(new std::string(p));
-
-	Info->nFileSize = StringToInt64(match["size"]);
-	Info->nPhysicalSize = StringToInt64(match["packedSize"]);
-
-	for (const char *p = match["attr"]; p && *p; ++p) {
-		switch (*p) {
-			case 'd':
-			case 'D':
-				Info->dwFileAttributes|= FILE_ATTRIBUTE_DIRECTORY;
-				break;
-			case 'h':
-			case 'H':
-				Info->dwFileAttributes|= FILE_ATTRIBUTE_HIDDEN;
-				break;
-			case 'a':
-			case 'A':
-				Info->dwFileAttributes|= FILE_ATTRIBUTE_ARCHIVE;
-				break;
-			case 'r':
-			case 'R':
-				Info->dwFileAttributes|= FILE_ATTRIBUTE_READONLY;
-				break;
-			case 's':
-			case 'S':
-				Info->dwFileAttributes|= FILE_ATTRIBUTE_SYSTEM;
-				break;
-			case 'c':
-			case 'C':
-				Info->dwFileAttributes|= FILE_ATTRIBUTE_COMPRESSED;
-				break;
-			case 'x':
-			case 'X':
-				Info->dwFileAttributes|= FILE_ATTRIBUTE_EXECUTABLE;
-				break;
-		}
-	}
-
-	stModification.wYear = StringToInt(match["mYear"]);
-	stModification.wDay = StringToInt(match["mDay"]);
-	stModification.wMonth = StringToInt(match["mMonth"]);
-
-	if (const char *p = match["mMonthA"]) {
-		static const char *Months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
-				"Nov", "Dec"};
-
-		for (size_t I = 0; I < sizeof(Months) / sizeof(Months[0]); I++)
-			if (strncasecmp(p, Months[I], 3) == 0) {
-				stModification.wMonth = (WORD)(I + 1);
-				break;
-			}
-	}
-
-	stModification.wHour = StringToInt(match["mHour"]);
-
-	if (const char *p = match["mAMPM"]) {
-		switch (*p) {
-			case 'A':
-			case 'a':
-				if (stModification.wHour == 12)
-					stModification.wHour-= 12;
-				break;
-			case 'P':
-			case 'p':
-				if (stModification.wHour < 12)
-					stModification.wHour+= 12;
-				break;
-		}
-	}
-
-	stModification.wMinute = StringToInt(match["mMin"]);
-	stModification.wSecond = StringToInt(match["mSec"]);
-
-	stAccess.wDay = StringToInt(match["aDay"]);
-	stAccess.wMonth = StringToInt(match["aMonth"]);
-	stAccess.wYear = StringToInt(match["aYear"]);
-	stAccess.wHour = StringToInt(match["aHour"]);
-	stAccess.wMinute = StringToInt(match["aMin"]);
-	stAccess.wSecond = StringToInt(match["aSec"]);
-
-	stCreation.wDay = StringToInt(match["cDay"]);
-	stCreation.wMonth = StringToInt(match["cMonth"]);
-	stCreation.wYear = StringToInt(match["cYear"]);
-	stCreation.wHour = StringToInt(match["cHour"]);
-	stCreation.wMinute = StringToInt(match["cMin"]);
-	stCreation.wSecond = StringToInt(match["cSec"]);
-
-	Info->CRC32 = StringToIntHex(match["CRC"]);
-}
-#endif
 
 static void ParseListingItemPlain(const char *CurFormat, const char *CurStr, struct ArcItemInfo *Info,
 		SYSTEMTIME &stModification, SYSTEMTIME &stCreation, SYSTEMTIME &stAccess)

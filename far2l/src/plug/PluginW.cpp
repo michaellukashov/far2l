@@ -87,6 +87,8 @@ static const char szCache_ProcessMacroFunc[] = "ProcessMacroFuncW";
 static const char szCache_Configure[] = "ConfigureW";
 static const char szCache_Analyse[] = "AnalyseW";
 static const char szCache_GetCustomData[] = "GetCustomDataW";
+static const char szCache_GetFiles[] = "GetFilesW";
+static const char szCache_ProcessHostFile[] = "ProcessHostFileW";
 
 static const char NFMP_OpenPlugin[] = "OpenPluginW";
 static const char NFMP_OpenFilePlugin[] = "OpenFilePluginW";
@@ -200,6 +202,8 @@ bool PluginW::LoadFromCache()
 	pConfigureW = (PLUGINCONFIGUREW)(INT_PTR)kfh.GetUInt(szCache_Configure, 0);
 	pAnalyseW = (PLUGINANALYSEW)(INT_PTR)kfh.GetUInt(szCache_Analyse, 0);
 	pGetCustomDataW = (PLUGINGETCUSTOMDATAW)(INT_PTR)kfh.GetUInt(szCache_GetCustomData, 0);
+	pGetFilesW = (PLUGINGETFILESW)(INT_PTR)kfh.GetUInt(szCache_GetFiles, 0);
+	pProcessHostFileW = (PLUGINPROCESSHOSTFILEW)(INT_PTR)kfh.GetUInt(szCache_ProcessHostFile, 0);
 	WorkFlags.Set(PIWF_CACHED);		// too much "cached" flags
 
 	if (kfh.GetInt(szCache_Preopen) != 0)
@@ -279,6 +283,8 @@ bool PluginW::SaveToCache()
 	kfh.SetUInt(GetSettingsName(), szCache_Configure, pConfigureW != nullptr);
 	kfh.SetUInt(GetSettingsName(), szCache_Analyse, pAnalyseW != nullptr);
 	kfh.SetUInt(GetSettingsName(), szCache_GetCustomData, pGetCustomDataW != nullptr);
+	kfh.SetUInt(GetSettingsName(), szCache_GetFiles, pGetFilesW!=nullptr);
+	kfh.SetUInt(GetSettingsName(), szCache_ProcessHostFile, pProcessHostFileW!=nullptr);
 
 	return true;
 }
@@ -419,6 +425,8 @@ void CreatePluginStartupInfo(Plugin *pPlugin, PluginStartupInfo *PSI, FarStandar
 		StandardFunctions.LStrlwr = farStrLower;
 		StandardFunctions.LStricmp = farStrCmpI;
 		StandardFunctions.LStrnicmp = farStrCmpNI;
+		StandardFunctions.LStrcmp = farStrCmp;
+		StandardFunctions.LStrncmp = farStrCmpN;
 		StandardFunctions.Unquote = Unquote;
 		StandardFunctions.LTrim = RemoveLeadingSpaces;
 		StandardFunctions.RTrim = RemoveTrailingSpaces;
@@ -452,6 +460,8 @@ void CreatePluginStartupInfo(Plugin *pPlugin, PluginStartupInfo *PSI, FarStandar
 		StandardFunctions.BackgroundTask = farBackgroundTaskW;
 		StandardFunctions.StrCellsCount = farStrCellsCount;
 		StandardFunctions.StrSizeOfCells = farStrSizeOfCells;
+		StandardFunctions.VTEnumBackground = farAPIVTEnumBackground;
+		StandardFunctions.VTLogExport = farAPIVTLogExportW;
 	}
 
 	if (!StartupInfo.StructSize) {

@@ -50,6 +50,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "syslog.hpp"
 #include "interf.hpp"
 #include "message.hpp"
+#include "mix.hpp"
 #include "clipboard.hpp"
 #include "xlat.hpp"
 #include "datetime.hpp"
@@ -58,6 +59,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "palette.hpp"
 #include "DialogBuilder.hpp"
 #include "wakeful.hpp"
+#include "codepage.hpp"
 
 static int ReplaceMode, ReplaceAll;
 
@@ -284,7 +286,11 @@ void Editor::ShowEditor(int CurLineOnly)
 	if (!Flags.Check(FEDITOR_DIALOGMEMOEDIT))
 		CtrlObject->Plugins.CurEditor = HostFileEditor;		// this;
 
-	XX2 = X2 - (EdOpt.ShowScrollBar ? 1 : 0);
+	if (NumLastLine > (Y2 - Y1) + 1)
+		XX2 = X2 - (EdOpt.ShowScrollBar ? 1 : 0);
+	else
+		XX2 = X2;
+
 	/*
 		17.04.2002 skv
 		Что б курсор не бегал при Alt-F9 в конце длинного файла.
@@ -328,34 +334,6 @@ void Editor::ShowEditor(int CurLineOnly)
 		}
 	}
 
-	if (!CurLineOnly) {
-		LeftPos = CurLine->GetLeftPos();
-#if 0
-
-		// крайне эксперементальный кусок!
-		if (CurPos+LeftPos < XX2)
-			LeftPos=0;
-		else if (CurLine->X2 < XX2)
-			LeftPos=CurLine->GetLength()-CurPos;
-
-		if (LeftPos < 0)
-			LeftPos=0;
-
-#endif
-
-		for (CurPtr = TopScreen, Y = Y1; Y <= Y2; Y++)
-			if (CurPtr) {
-				CurPtr->SetEditBeyondEnd(TRUE);
-				CurPtr->SetPosition(X1, Y, XX2, Y);
-				// CurPtr->SetTables(UseDecodeTable ? &TableSet:nullptr);
-				//_D(SysLog(L"Setleftpos 3 to %i",LeftPos));
-				CurPtr->SetLeftPos(LeftPos);
-				CurPtr->SetCellCurPos(CurPos);
-				CurPtr->SetEditBeyondEnd(EdOpt.CursorBeyondEOL);
-				CurPtr = CurPtr->m_next;
-			}
-	}
-
 	if (!Pasting) {
 		/*
 			$ 10.08.2000 skv
@@ -392,12 +370,33 @@ void Editor::ShowEditor(int CurLineOnly)
 	DrawScrollbar();
 
 	if (!CurLineOnly) {
+		LeftPos = CurLine->GetLeftPos();
+#if 0
+
+		// крайне эксперементальный кусок!
+		if (CurPos+LeftPos < XX2)
+			LeftPos=0;
+		else if (CurLine->X2 < XX2)
+			LeftPos=CurLine->GetLength()-CurPos;
+
+		if (LeftPos < 0)
+			LeftPos=0;
+
+#endif
+
 		for (CurPtr = TopScreen, Y = Y1; Y <= Y2; Y++)
 			if (CurPtr) {
+				CurPtr->SetEditBeyondEnd(TRUE);
+				CurPtr->SetPosition(X1, Y, XX2, Y);
+				// CurPtr->SetTables(UseDecodeTable ? &TableSet:nullptr);
+				//_D(SysLog(L"Setleftpos 3 to %i",LeftPos));
+				CurPtr->SetLeftPos(LeftPos);
+				CurPtr->SetCellCurPos(CurPos);
 				CurPtr->FastShow();
+				CurPtr->SetEditBeyondEnd(EdOpt.CursorBeyondEOL);
 				CurPtr = CurPtr->m_next;
 			} else {
-				SetScreen(X1, Y, XX2, Y, L' ', COL_EDITORTEXT);		// Пустые строки после конца текста
+				SetScreen(X1, Y, XX2, Y, L' ', FarColorToReal(COL_EDITORTEXT));		// Пустые строки после конца текста
 			}
 	}
 
@@ -421,7 +420,7 @@ void Editor::ShowEditor(int CurLineOnly)
 						BlockX2 = XX2;
 
 					if (BlockX1 <= XX2 && BlockX2 >= X1)
-						ChangeBlockColor(BlockX1, Y, BlockX2, Y, COL_EDITORSELECTEDTEXT);
+						ChangeBlockColor(BlockX1, Y, BlockX2, Y, FarColorToReal(COL_EDITORSELECTEDTEXT));
 				}
 
 				CurPtr = CurPtr->m_next;
@@ -810,7 +809,7 @@ int Editor::ProcessKey(FarKey Key)
 	int CurPos, CurVisPos, I;
 	CurPos = CurLine->GetCurPos();
 	CurVisPos = GetLineCurPos();
-	int isk = IsShiftKey(Key);
+	const bool isk = IsShiftKey(Key);
 	_SVS(SysLog(L"[%d] isk=%d", __LINE__, isk));
 
 	// if ((!isk || CtrlObject->Macro.IsExecuting()) && !isk && !Pasting)
@@ -2182,7 +2181,7 @@ int Editor::ProcessKey(FarKey Key)
 			if (!Flags.Check(FEDITOR_MARKINGVBLOCK))
 				BeginVBlockMarking();
 
-			if (!EdOpt.CursorBeyondEOL && VBlockX >= CurLine->m_prev->GetLength())
+			if (!EdOpt.CursorBeyondEOL && VBlockX >= CurLine->m_prev->RealPosToCell(CurLine->m_prev->GetLength()))
 				return TRUE;
 
 			Pasting++;
@@ -2212,7 +2211,7 @@ int Editor::ProcessKey(FarKey Key)
 			if (!Flags.Check(FEDITOR_MARKINGVBLOCK))
 				BeginVBlockMarking();
 
-			if (!EdOpt.CursorBeyondEOL && VBlockX >= CurLine->m_next->GetLength())
+			if (!EdOpt.CursorBeyondEOL && VBlockX >= CurLine->m_next->RealPosToCell(CurLine->m_prev->GetLength()))
 				return TRUE;
 
 			Pasting++;
@@ -2301,7 +2300,9 @@ int Editor::ProcessKey(FarKey Key)
 			Lock();
 			Pasting++;
 
-			while (CurLine != TopList) {
+			Edit* PrevLine = nullptr;
+			while (CurLine!=TopList && PrevLine!=CurLine) {
+				PrevLine = CurLine;
 				ProcessKey(KEY_ALTUP);
 			}
 
@@ -2317,7 +2318,9 @@ int Editor::ProcessKey(FarKey Key)
 			Lock();
 			Pasting++;
 
-			while (CurLine != EndList) {
+			Edit* PrevLine = nullptr;
+			while (CurLine!=EndList && PrevLine!=CurLine) {
+				PrevLine = CurLine;
 				ProcessKey(KEY_ALTDOWN);
 			}
 
@@ -3420,19 +3423,19 @@ BOOL Editor::Search(int Next)
 			if (CurTime - StartTime > RedrawTimeout) {
 				StartTime = CurTime;
 
+				strMsgStr = strSearchStr;
+				InsertQuote(strMsgStr);
+				SetCursorType(FALSE, -1);
+				int Total = ReverseSearch ? StartLine : NumLastLine - StartLine;
+				int Current = abs(NewNumLine - StartLine);
+				EditorShowMsg(Msg::EditSearchTitle, Msg::EditSearchingFor, strMsgStr, ToPercent64(Current, Total));
+
 				if (CheckForEscSilent()) {
 					if (ConfirmAbortOp()) {
 						UserBreak = TRUE;
 						break;
 					}
 				}
-
-				strMsgStr = strSearchStr;
-				InsertQuote(strMsgStr);
-				SetCursorType(FALSE, -1);
-				int Total = ReverseSearch ? StartLine : NumLastLine - StartLine;
-				int Current = abs(NewNumLine - StartLine);
-				EditorShowMsg(Msg::EditSearchTitle, Msg::EditSearchingFor, strMsgStr, Current * 100 / Total);
 			}
 
 			int SearchLength = 0;
@@ -5374,25 +5377,19 @@ int Editor::EditorControl(int Command, void *Param)
 				_ECTLLOG(SysLog(L"  EndPos      =%d", col->EndPos));
 				_ECTLLOG(SysLog(L"  Color       =%d (0x%08X)", col->Color, col->Color));
 				_ECTLLOG(SysLog(L"}"));
+				ColorItem newcol{0};
+				newcol.StartPos = col->StartPos + (col->StartPos != -1 ? X1 : 0);
+				newcol.EndPos = col->EndPos + X1;
+				newcol.Color = col->Color;
 				Edit *CurPtr = GetStringByNumber(col->StringNumber);
+
 				if (!CurPtr) {
 					_ECTLLOG(SysLog(L"GetStringByNumber(%d) return nullptr", col->StringNumber));
 					return FALSE;
 				}
 
-				ColorItem newcol{0};
-				newcol.StartPos = col->StartPos + (col->StartPos != -1 ? X1 : 0);
 				if (!col->Color)
 					return (CurPtr->DeleteColor(newcol.StartPos));
-
-				if (col->EndPos >= 0) {
-					newcol.EndPos = col->EndPos + X1;
-				} else {
-					newcol.EndPos = CurPtr->GetLeftPos() + CurPtr->CellPosToReal(X2 - X1);//CurPtr->GetLength();
-				}
-				newcol.Color = col->Color;
-
-
 
 				if (Command == ECTL_ADDTRUECOLOR) {
 					const EditorTrueColor *tcol = (EditorTrueColor *)Param;
@@ -5505,6 +5502,8 @@ int Editor::EditorControl(int Command, void *Param)
 					case ESPT_CODEPAGE: {
 						// BUGBUG
 						if ((UINT)espar->Param.iParam == CP_AUTODETECT) {
+							rc = FALSE;
+						} else if (!IsCodePageSupported(espar->Param.iParam)) {
 							rc = FALSE;
 						} else {
 							if (HostFileEditor) {
@@ -6248,7 +6247,7 @@ void Editor::EditorShowMsg(const wchar_t *Title, const wchar_t *Msg, const wchar
 {
 	FARString strProgress;
 
-	if (Percent != -1) {
+	if (Percent > -1) {
 		FormatString strPercent;
 		strPercent << Percent;
 
@@ -6297,7 +6296,7 @@ Edit *Editor::CreateString(const wchar_t *lpwszStr, int nLength)
 			pEdit->SetBinaryString(lpwszStr, nLength);
 
 		pEdit->SetCurPos(0);
-		pEdit->SetObjectColor(COL_EDITORTEXT, COL_EDITORSELECTEDTEXT);
+		pEdit->SetObjectColor(FarColorToReal(COL_EDITORTEXT), FarColorToReal(COL_EDITORSELECTEDTEXT));
 		pEdit->SetEditorMode(TRUE);
 		pEdit->SetWordDiv(EdOpt.strWordDiv);
 		pEdit->SetShowWhiteSpace(EdOpt.ShowWhiteSpace);
@@ -6543,7 +6542,7 @@ void Editor::GetCursorType(bool &Visible, DWORD &Size)
 	CurLine->GetCursorType(Visible, Size);	//???
 }
 
-void Editor::SetObjectColor(int Color, int SelColor, int ColorUnChanged)
+void Editor::SetObjectColor(uint64_t Color, uint64_t SelColor, uint64_t ColorUnChanged)
 {
 	for (Edit *CurPtr = TopList; CurPtr; CurPtr = CurPtr->m_next)	//???
 		CurPtr->SetObjectColor(Color, SelColor, ColorUnChanged);
@@ -6552,7 +6551,7 @@ void Editor::SetObjectColor(int Color, int SelColor, int ColorUnChanged)
 void Editor::DrawScrollbar()
 {
 	if (EdOpt.ShowScrollBar) {
-		SetColor(COL_EDITORSCROLLBAR);
+		SetFarColor(COL_EDITORSCROLLBAR);
 		XX2 = X2
 				- (ScrollBarEx(X2, Y1, Y2 - Y1 + 1, NumLine - CalcDistance(TopScreen, CurLine, -1),
 							NumLastLine)

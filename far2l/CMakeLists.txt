@@ -58,6 +58,9 @@ src/RefreshFrameManager.cpp
 src/scantree.cpp
 src/setattr.cpp
 src/setcolor.cpp
+src/pick_color.cpp
+src/pick_color256.cpp
+src/pick_colorRGB.cpp
 src/stddlg.cpp
 src/synchro.cpp
 src/syslog.cpp
@@ -70,6 +73,7 @@ src/ViewerStrings.cpp
 src/ViewerPrinter.cpp
 src/fileholder.cpp
 src/GrepFile.cpp
+src/about.cpp
 
 src/panels/panel.cpp
 src/panels/filelist.cpp
@@ -97,7 +101,7 @@ src/console/scrsaver.cpp
 
 src/filemask/CFileMask.cpp
 src/filemask/FileMasksProcessor.cpp
-src/filemask/FileMasksWithExclude.cpp
+#src/filemask/FileMasksWithExclude.cpp
 
 src/locale/codepage.cpp
 src/locale/DetectCodepage.cpp
@@ -116,6 +120,7 @@ src/cfg/ConfigRW.cpp
 src/cfg/ConfigLegacy.cpp
 src/cfg/HotkeyLetterDialog.cpp
 src/cfg/language.cpp
+src/cfg/MaskGroups.cpp
 
 src/hist/history.cpp
 src/hist/poscache.cpp
@@ -129,6 +134,7 @@ src/plug/plclass.cpp
 src/vt/vtansi.cpp
 src/vt/vtshell.cpp
 src/vt/vtshell_translation.cpp
+src/vt/vtshell_translation_kitty.cpp
 src/vt/vtshell_compose.cpp
 src/vt/vtshell_leader.cpp
 src/vt/vtshell_ioreaders.cpp
@@ -278,11 +284,14 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #TODO
 else()
     configure_file("${CMAKE_CURRENT_SOURCE_DIR}/DE/far2l.desktop" "${CMAKE_CURRENT_BINARY_DIR}/DE/far2l.desktop")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/DE/far2ledit.desktop" "${CMAKE_CURRENT_BINARY_DIR}/DE/far2ledit.desktop")
 
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/DE/icons" DESTINATION "share" USE_SOURCE_PERMISSIONS COMPONENT desktop FILES_MATCHING PATTERN "*")
 
-	# Have to make desktop file executable, see:
+	# Have to make desktop files executable, see:
 	# https://wiki.ubuntu.com/SecurityTeam/Policies#Execute-Permission_Bit_Required
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/DE/far2l.desktop" DESTINATION "share/applications" COMPONENT desktop
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/DE/far2l.desktop" "${CMAKE_CURRENT_BINARY_DIR}/DE/far2ledit.desktop"
+        DESTINATION "share/applications"
+        COMPONENT desktop
         PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_READ WORLD_EXECUTE)
 endif()

@@ -39,14 +39,13 @@ config BR2_PACKAGE_FAR2L_NETROCKS
 config BR2_PACKAGE_FAR2L_COLORER
 	bool "Colorer plugin"
 	default y
-	select BR2_PACKAGE_XERCES
+	select BR2_PACKAGE_LIBXML2
 	help
 	  Text editor syntax coloring plugin.
 
 config BR2_PACKAGE_FAR2L_MULTIARC
 	bool "MultiArc plugin"
 	default y
-	select BR2_PACKAGE_PCRE2
 	select BR2_PACKAGE_LIBARCHIVE
 	help
 	  Various archive file types support.

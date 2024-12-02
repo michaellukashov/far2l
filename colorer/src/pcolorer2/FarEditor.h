@@ -1,55 +1,58 @@
 #ifndef _FAREDITOR_H_
 #define _FAREDITOR_H_
 
-#include<colorer/editor/BaseEditor.h>
-#include<colorer/handlers/StyledRegion.h>
-#include<colorer/editor/Outliner.h>
-#if 0
-#include<common/Logging.h>
-#endif // if 0
-#include <colorer/unicode/SString.h>
-#include <colorer/unicode/Character.h>
+#include <colorer/editor/BaseEditor.h>
+#include <colorer/editor/Outliner.h>
+#include <colorer/handlers/StyledRegion.h>
+#include "pcolorer.h"
 
-#include"pcolorer.h"
-
-struct color{
-  union{
-    struct{
+struct color
+{
+  union {
+    struct
+    {
       unsigned int cfg : 4;
       unsigned int cbk : 4;
     };
     int concolor : 32;
-    struct{
-      unsigned int fg :24;
-      unsigned int bk :24;
+    struct
+    {
+      unsigned int fg : 24;
+      unsigned int bk : 24;
       int style;
     };
   };
-  //color(): concolor(0), fg(0), bk(0), style(0) {}
-  color() {concolor=0; fg = 0; bk = 0; style = 0; }
+  // color(): concolor(0), fg(0), bk(0), style(0) {}
+  color()
+  {
+    concolor = 0;
+    fg = 0;
+    bk = 0;
+    style = 0;
+  }
 };
 
-extern const SString DShowCross;
-extern const SString DNone;
-extern const SString DVertical;
-extern const SString DHorizontal;
-extern const SString DBoth;
-extern const SString DCrossZorder;
-extern const SString DBottom;
-extern const SString DTop;
-extern const SString DYes;
-extern const SString DNo;
-extern const SString DTrue;
-extern const SString DFalse;
-extern const SString DBackparse;
-extern const SString DMaxLen;
-extern const SString DDefFore;
-extern const SString DDefBack;
-extern const SString DFullback;
-extern const SString DHotkey;
-extern const SString DFavorite;
-extern const SString DFirstLines;
-extern const SString DFirstLineBytes;
+extern const UnicodeString DShowCross;
+extern const UnicodeString DNone;
+extern const UnicodeString DVertical;
+extern const UnicodeString DHorizontal;
+extern const UnicodeString DBoth;
+extern const UnicodeString DCrossZorder;
+extern const UnicodeString DBottom;
+extern const UnicodeString DTop;
+extern const UnicodeString DYes;
+extern const UnicodeString DNo;
+extern const UnicodeString DTrue;
+extern const UnicodeString DFalse;
+extern const UnicodeString DBackparse;
+extern const UnicodeString DMaxLen;
+extern const UnicodeString DDefFore;
+extern const UnicodeString DDefBack;
+extern const UnicodeString DFullback;
+extern const UnicodeString DHotkey;
+extern const UnicodeString DFavorite;
+extern const UnicodeString DFirstLines;
+extern const UnicodeString DFirstLineBytes;
 
 /** FAR Editor internal plugin structures.
     Implements text parsing and different
@@ -58,133 +61,133 @@ extern const SString DFirstLineBytes;
 */
 class FarEditor : public LineSource
 {
-public:
+ public:
   /** Creates FAR editor instance.
-  */
-  FarEditor(PluginStartupInfo *inf, ParserFactory *pf);
+   */
+  FarEditor(PluginStartupInfo* inf, ParserFactory* pf);
   /** Drops this editor */
-  ~FarEditor();
+  ~FarEditor() override;
 
-  void endJob(size_t lno);
+  void endJob(size_t lno) override;
   /**
   Returns line number "lno" from FAR interface. Line is only valid until next call of this function,
   it also should not be disposed, this function takes care of this.
   */
-#if 0
-  String *getLine(int lno);
-#endif // if 0
-  SString *getLine(size_t lno);
+  UnicodeString* getLine(size_t lno) override;
 
   /** Changes current assigned file type.
-  */
-  void setFileType(FileType *ftype);
+   */
+  void setFileType(FileType* ftype);
   /** Returns currently selected file type.
-  */
-  FileType *getFileType();
+   */
+  [[nodiscard]] FileType* getFileType() const;
 
   /** Selects file type with it's extension and first lines
-  */
-  void chooseFileType(String *fname);
-
+   */
+  void chooseFileType(const UnicodeString* fname);
 
   /** Installs specified RegionMapper implementation.
   This class serves to request mapping of regions into
   real colors.
   */
-  void setRegionMapper(RegionMapper *rs);
+  void setRegionMapper(RegionMapper* rs);
 
   /**
-  * Change editor properties. These overwrites default HRC settings
-  */
+   * Change editor properties. These overwrites default HRC settings
+   */
   void setDrawCross(int _drawCross);
   void setDrawPairs(bool drawPairs);
   void setDrawSyntax(bool drawSyntax);
   void setOutlineStyle(bool oldStyle);
-  void setTrueMod(bool _TrueMod);
+  void setTrueMod(bool TrueMod_);
 
   /** Editor action: pair matching.
-  */
+   */
   void matchPair();
   /** Editor action: pair selection.
-  */
+   */
   void selectPair();
   /** Editor action: pair selection with current block.
-  */
+   */
   void selectBlock();
   /** Editor action: Selection of current region under cursor.
-  */
+   */
   void selectRegion();
-  /** Editor action: Lists fuctional region.
-  */
+  /** Editor action: Lists functional region.
+   */
   void listFunctions();
   /** Editor action: Lists syntax errors in text.
-  */
+   */
   void listErrors();
   /**
-  * Locates a function under cursor and tries to jump to it using outliner information
-  */
+   * Locates a function under cursor and tries to jump to it using outliner information
+   */
   void locateFunction();
 
   /** Invalidates current syntax highlighting
-  */
+   */
   void updateHighlighting();
 
   /** Handle passed FAR editor event */
-  int editorEvent(int event, void *param);
+  int editorEvent(int event, void* param);
   /** Dispatch editor input event */
-  int editorInput(const INPUT_RECORD *ir);
+  int editorInput(const INPUT_RECORD* ir);
 
   void cleanEditor();
 
-private:
+ private:
   EditorInfo ei;
-  PluginStartupInfo *info;
+  PluginStartupInfo* info;
 
-  ParserFactory *parserFactory;
-  BaseEditor *baseEditor;
+  ParserFactory* parserFactory;
+  std::unique_ptr<BaseEditor> baseEditor;
 
-  int  maxLineLength;
-  bool fullBackground;
+  int maxLineLength = 0;
+  bool fullBackground = true;
 
-  int drawCross;//0 - off,  1 - always, 2 - if included in the scheme
-  bool showVerticalCross, showHorizontalCross;
-  int crossZOrder;
-  color horzCrossColor, vertCrossColor;
+  int drawCross = 2;  // 0 - off,  1 - always, 2 - if included in the scheme
+  bool showVerticalCross = false;
+  bool showHorizontalCross = false;
+  int crossZOrder = 0;
+  color horzCrossColor {};
+  color vertCrossColor {};
 
-  bool drawPairs, drawSyntax;
-  bool oldOutline;
-  bool TrueMod;
+  bool drawPairs = true;
+  ;
+  bool drawSyntax = true;
+  ;
+  bool oldOutline = false;
+  bool TrueMod = true;
+  ;
 
-  int WindowSizeX;
-  int WindowSizeY;
-  bool inRedraw;
-  int idleCount;
+  int WindowSizeX = 0;
+  int WindowSizeY = 0;
+  bool inRedraw = false;
+  int idleCount = 0;
 
-  int prevLinePosition, blockTopPosition;
+  int prevLinePosition = 0;
+  int blockTopPosition = -1;
 
-#if 0
-  String *ret_str;
-#endif // if 0
-  SString *ret_str;
-  int ret_strNumber;
+  std::unique_ptr<UnicodeString> ret_str;
+  size_t ret_strNumber = -1;
 
-  int newfore, newback;
-  const StyledRegion *rdBackground;
-  LineRegion *cursorRegion;
+  int newfore = -1;
+  int newback = -1;
+  const StyledRegion* rdBackground = nullptr;
+  std::unique_ptr<LineRegion> cursorRegion;
 
-  int visibleLevel;
-  Outliner *structOutliner;
-  Outliner *errorOutliner;
+  int visibleLevel = 100;
+  std::unique_ptr<Outliner> structOutliner;
+  std::unique_ptr<Outliner> errorOutliner;
 
   void reloadTypeSettings();
   void enterHandler();
-  color convert(const StyledRegion *rd);
+  color convert(const StyledRegion* rd);
   bool foreDefault(color col);
   bool backDefault(color col);
-  void showOutliner(Outliner *outliner);
-  void addFARColor(int lno, int s, int e, color col);
-  void addAnnotation(int lno, int s, int e, AnnotationInfo &ai);
-  const wchar_t *GetMsg(int msg);
+  void showOutliner(Outliner* outliner);
+  void addFARColor(int lno, int s, int e, color col, bool add_style = true);
+  const wchar_t* GetMsg(int msg);
 };
 #endif
 
