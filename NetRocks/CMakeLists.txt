@@ -132,10 +132,6 @@ if (LIBSSH_FOUND AND ((NOT DEFINED NR_SFTP) OR NR_SFTP))
         target_include_directories(NetRocks-SFTP PRIVATE src ${LIBSSH_INCLUDE_DIRS})
         target_include_directories(NetRocks-SFTP PRIVATE ${LIBSSH_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS})
     endif(OPT_USE_STATIC_EXT_LIBS)
-			${VCPKG_INSTALLED_PATH}/lib/libz.a ${VCPKG_INSTALLED_PATH}/lib/libmbedx509.a ${VCPKG_INSTALLED_PATH}/lib/libmbedtls.a ${VCPKG_INSTALLED_PATH}/lib/libmbedcrypto.a dl)
-	endif(OPT_USE_STATIC_EXT_LIBS)
-	target_include_directories(NetRocks-SFTP PRIVATE src)
-	target_include_directories(NetRocks-SFTP PRIVATE ${LIBSSH_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS})
     set_target_properties(NetRocks-SFTP
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${INSTALL_DIR}/Plugins/NetRocks/plug"
@@ -180,7 +176,6 @@ endif ()
 
 if (LIBNEON_FOUND AND ((NOT DEFINED NR_WEBDAV) OR NR_WEBDAV))
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_WEBDAV")
-	message("LIBNEON_INCLUDE_DIRS: ${LIBNEON_INCLUDE_DIRS}")
     add_executable (NetRocks-WebDAV
         ${PROTOCOL_SOURCES}
         src/Protocol/WebDAV/ProtocolWebDAV.cpp
