@@ -253,10 +253,14 @@ if(LibArchive_FOUND)
             BZip2::BZip2
         )
         target_link_libraries(multiarc
-            ${VCPKG_INSTALLED_PATH}/lib/libz.a
             ${VCPKG_INSTALLED_PATH}/lib/libarchive.a
             ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
             ${VCPKG_INSTALLED_PATH}/lib/libzstd.a
+            ${VCPKG_INSTALLED_PATH}/lib/libz.a
+            ${VCPKG_INSTALLED_PATH}/lib/libbz2.a
+            ${VCPKG_INSTALLED_PATH}/lib/liblz4.a
+            ${VCPKG_INSTALLED_PATH}/lib/libssl.a
+            ${VCPKG_INSTALLED_PATH}/lib/libcrypto.a
             dl
         )
     else()
