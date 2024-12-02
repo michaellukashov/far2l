@@ -257,8 +257,9 @@ if(LibArchive_FOUND)
             ${VCPKG_INSTALLED_PATH}/lib/liblzma.a
             dl
         )
+    else()
+        target_link_libraries(multiarc ${LibArchive_LIBRARIES} ${OPENSSL_LIBRARIES})
     endif(OPT_USE_STATIC_EXT_LIBS)
-    target_link_libraries(multiarc ${LibArchive_LIBRARIES} ${OPENSSL_LIBRARIES})
     target_include_directories(multiarc PRIVATE ${LibArchive_INCLUDE_DIRS})
 endif()
 
