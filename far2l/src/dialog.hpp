@@ -245,7 +245,7 @@ struct DialogItemEx
 
 /*
 Описывает один элемент диалога - для сокращения объемов
-Структура аналогичена структуре InitDialogItem (см. "Far PlugRinG
+Структура аналогична структуре InitDialogItem (см. "Far PlugRinG
 Russian Help Encyclopedia of Developer")
 */
 
