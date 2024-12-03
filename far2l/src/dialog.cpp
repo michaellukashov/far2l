@@ -1131,6 +1131,7 @@ BOOL Dialog::SetItemRect(unsigned ID, SMALL_RECT *aRect)
 		case DI_VTEXT:
 			CurItem->X2 = 0;	// ???
 			CurItem->Y2 = Rect.Bottom;
+			break;
 		case DI_DOUBLEBOX:
 		case DI_SINGLEBOX:
 		case DI_USERCONTROL:
