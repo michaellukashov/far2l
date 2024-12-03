@@ -212,7 +212,7 @@ void ReadFileLines(int fd, DWORD FileSizeLow, TCHAR **argv, TCHAR *args, UINT *n
 			Pos++;
 		Len = Pos - Off;
 
-	    Len = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED | MB_ERR_INVALID_CHARS, &FileData[Off], Len, TMP,
+		Len = MultiByteToWideChar(CP_UTF8, MB_PRECOMPOSED | MB_ERR_INVALID_CHARS, &FileData[Off], Len, TMP,
 			TMP.Size() - 1);
 
 		if (!Len)
