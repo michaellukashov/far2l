@@ -575,11 +575,11 @@ void FileEditor::Init(FileHolderPtr NewFileHolder, UINT codepage, const wchar_t 
 				ExitCode = XC_LOADING_INTERRUPTED;
 			}
 
-			// Ахтунг. Ниже комментарии оставлены в назидании потомкам (до тех пор, пока не измениться манагер)
+			// Ахтунг. Ниже комментарии оставлены в назидании потомкам (до тех пор, пока не изменится манагер)
 			// FrameManager->DeleteFrame(this); // BugZ#546 - Editor валит фар!
 			// CtrlObject->Cp()->Redraw(); //AY: вроде как не надо, делает проблемы с прорисовкой если в редакторе из истории попытаться выбрать несуществующий файл
 
-			// если прервали загрузку, то фремы нужно проапдейтить, чтобы предыдущие месаги не оставались на экране
+			// если прервали загрузку, то фреймы нужно проапдейтить, чтобы предыдущие месаги не оставались на экране
 			if (!Opt.Confirm.Esc && UserBreak && ExitCode == XC_LOADING_INTERRUPTED && FrameManager)
 				FrameManager->RefreshFrame();
 
@@ -1441,7 +1441,7 @@ int FileEditor::LoadFile(const wchar_t *Name, int &UserBreak)
 		bool bSignatureDetected = false;
 		Detect = GetFileFormat(EditFile, dwCP, &bSignatureDetected, Opt.EdOpt.AutoDetectCodePage != 0);
 
-		// Проверяем поддерживается или нет задетектировання кодовая страница
+		// Проверяем поддерживается или нет задетектированная кодовая страница
 		if (Detect) {
 			Detect = IsCodePageSupported(dwCP);
 			if (Detect) {
@@ -1494,7 +1494,7 @@ int FileEditor::LoadFile(const wchar_t *Name, int &UserBreak)
 			INT64 CurPos = 0;
 			EditFile.GetPointer(CurPos);
 			int Percent = static_cast<int>(CurPos * 100 / FileSize);
-			// В случае если во время загрузки файл увеличивается размере, то количество
+			// В случае если во время загрузки файл увеличивается в размере, то количество
 			// процентов может быть больше 100. Обрабатываем эту ситуацию.
 			if (Percent > 100) {
 				EditFile.GetSize(FileSize);
@@ -1994,8 +1994,8 @@ int FileEditor::SaveFile(const wchar_t *Name, int Ask, bool bSaveAs, int TextFor
 	if (m_editor->Flags.Check(FEDITOR_MODIFIED) || NewFile)
 		m_editor->Flags.Set(FEDITOR_WASCHANGED);
 
-	// Этот кусок раскомметировать в том случае, если народ решит, что
-	// для если файл был залочен и мы его переписали под други именем...
+	// Этот кусок раскомментировать в том случае, если народ решит, что
+	// для если файл был залочен и мы его переписали под другим именем...
 	// ...то "лочка" должна быть снята.
 
 	//	if(SaveAs)
