@@ -2863,6 +2863,7 @@ void EditControl::AutoCompleteProcMenu(bool &Result, bool Manual, bool DelBlock,
 									break;
 								}
 							}
+							break;
 
 							// всё остальное закрывает список и идёт владельцу
 							default: {
