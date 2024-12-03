@@ -763,29 +763,6 @@ foreach (_variableName ${_variableNames})
     message(STATUS "${_variableName}=${${_variableName}}")
 endforeach()]]
 
-if(OPT_PVS_ANALYSIS)
-
-include(FetchContent)
-FetchContent_Declare(
-    PVS_CMakeModule
-    GIT_REPOSITORY "https://github.com/viva64/pvs-studio-cmake-module.git"
-    GIT_TAG "master"
-)
-
-FetchContent_MakeAvailable(PVS_CMakeModule)
-include("${pvs_cmakemodule_SOURCE_DIR}/PVS-Studio.cmake")
-
-pvs_studio_add_target(TARGET far2l.analyze ALL
-    OUTPUT FORMAT json
-    ANALYZE far2l
-    COMPILE_COMMANDS
-    MODE GA:1,2
-    LOG target.err
-    # ARGS -e CMakeFiles/far2l.dir/far2l_autogen)
-)
-
-endif(OPT_PVS_ANALYSIS)
-
 # setup some symlinks and remove deprecated stuff from previous installation
 execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ../../bin/far2l ${PROJECT_BINARY_DIR}/far2l/far2l_askpass)
 execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ../../bin/far2l ${PROJECT_BINARY_DIR}/far2l/far2l_sudoapp)
@@ -824,4 +801,3 @@ pvs_studio_add_target(TARGET far2l.analyze ALL
 )
 
 endif(OPT_PVS_ANALYSIS)
-

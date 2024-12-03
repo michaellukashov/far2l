@@ -165,11 +165,6 @@ struct MenuItemEx
 	}
 
 	// UserData не копируется.
-	{
-		Clear();
-		operator=(srcMenu);
-	}
-
 	const MenuItemEx &operator=(const MenuItemEx &srcMenu)
 	{
 		if (this != &srcMenu) {

@@ -1387,7 +1387,7 @@ int Edit::ProcessCtrlQ()
 
 int Edit::ProcessInsPlainText(const wchar_t *Str)
 {
-	if (*str) {
+	if (*Str) {
 		InsertString(Str);
 		return TRUE;
 	}

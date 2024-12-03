@@ -713,6 +713,7 @@ IUnmakeWritablePtr apiMakeWritable(LPCWSTR lpFileName)
 		bool target_flags_modified, dir_flags_modified;
 		UnmakeWritable()
 			:
+			target_mode(0), dir_mode(0), target_flags_modified(false), dir_flags_modified(false)
 		{}
 
 		virtual void Unmake()

@@ -161,8 +161,7 @@ public:
 
 public:
 	TAbstractSet(const TAbstractSet&) = delete;
-	TAbstractSet(const wchar_t *s)
-		explicit TAbstractSet(const wchar_t *s)
+	explicit TAbstractSet(const wchar_t *s)
 	{
 		str = nullptr;
 		next = nullptr;
