@@ -306,7 +306,7 @@ void PanelSettings()
 		else if (clicked_id == ChangeSizeColumnStyleID)
 			DirectoryNameSettings();
 		else
-			break;		
+			break;
 	}
 }
 
@@ -394,6 +394,7 @@ static LONG_PTR WINAPI DirCfgDlgProc(HANDLE hDlg, int Msg, int Param1, LONG_PTR 
 			dircfg_data->SurrIndex = SendDlgMessage(hDlg, DM_LISTGETCURPOS, ID_DIRCFG_SURR_COMBO, (LONG_PTR)0);
 		}
 	}
+	break;
 
 	case DN_BTNCLICK: {
 		if (Param1 == ID_DIRCFG_CHECKBOX_CENTER) {
@@ -419,6 +420,7 @@ static LONG_PTR WINAPI DirCfgDlgProc(HANDLE hDlg, int Msg, int Param1, LONG_PTR 
 			SendDlgMessage(hDlg, DM_REDRAW, 0, 0);
 		}
 	}
+	break;
 
 	} // switch
 
@@ -603,7 +605,7 @@ void InterfaceSettings()
 		DecimalSeparatorEdit->Flags |= DIF_MASKEDIT;
 		DecimalSeparatorEdit->strMask = L"X";
 		Builder.AddTextAfter(DecimalSeparatorEdit, Msg::ConfigDecimalSeparator);
-        
+
 		Builder.ColumnBreak();
 		int DateTimeDefaultID = -1;
 		Builder.AddButton(Msg::ConfigDateTimeDefault, DateTimeDefaultID);
