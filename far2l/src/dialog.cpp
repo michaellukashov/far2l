@@ -1285,6 +1285,7 @@ void Dialog::DeleteDialogObjects()
 
 				if (CurItem->ObjPtr)
 					delete (DlgEdit *)(CurItem->ObjPtr);
+				break;
 
 			case DI_LISTBOX:
 
