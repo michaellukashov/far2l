@@ -7,7 +7,7 @@
  * Interface for editor line information requests.
  * Basic data source interface, used in TextParser processing.
  * @note Methods startJob and endJob are optional, and
- * could be implemented or not depending on system archtecture.
+ * could be implemented or not depending on system architecture.
  * @ingroup colorer
  */
 class LineSource

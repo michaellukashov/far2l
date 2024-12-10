@@ -6,7 +6,7 @@
 
 /**
  * Item in outliner's list.
- * Contans all the information about single
+ * Constants all the information about single
  * structured token with specified type (region reference).
  * @ingroup colorer_editor
  */

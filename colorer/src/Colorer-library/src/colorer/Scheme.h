@@ -5,7 +5,7 @@
 class FileType;
 
 /** HRC Scheme instance information.
-    Used in RegionHandler calls to pass curent region's scheme.
+    Used in RegionHandler calls to pass current region's scheme.
     @ingroup colorer
 */
 class Scheme
