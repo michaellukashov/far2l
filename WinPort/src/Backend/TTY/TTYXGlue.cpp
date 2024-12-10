@@ -17,7 +17,7 @@ class TTYXGlue : public ITTYXGlue
 	bool _xi = false;
 
 public:
-	TTYXGlue(pid_t broker_pid, int fdr, int fdw)
+	explicit TTYXGlue(pid_t broker_pid, int fdr, int fdw)
 		:
 		_broker_pid(broker_pid),
 		_ipc(fdr, fdw)

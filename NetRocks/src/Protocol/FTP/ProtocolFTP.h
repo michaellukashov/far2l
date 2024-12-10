@@ -52,7 +52,7 @@ class ProtocolFTP : public IProtocol, public std::enable_shared_from_this<Protoc
 	void SimpleDispositionCommand(const char *cmd, const std::string &path);
 
 public:
-	ProtocolFTP(const std::string &protocol, const std::string &host, unsigned int port,
+	explicit ProtocolFTP(const std::string &protocol, const std::string &host, unsigned int port,
 		const std::string &username, const std::string &password, const std::string &protocol_options);
 	virtual ~ProtocolFTP();
 
