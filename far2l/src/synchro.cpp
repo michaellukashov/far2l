@@ -37,9 +37,9 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 PluginSynchro PluginSynchroManager;
 
-PluginSynchro::PluginSynchro() {}
+PluginSynchro::PluginSynchro() = default;
 
-PluginSynchro::~PluginSynchro() {}
+PluginSynchro::~PluginSynchro() = default;
 
 void PluginSynchro::Synchro(bool Plugin, INT_PTR ModuleNumber, void *Param)
 {

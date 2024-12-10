@@ -229,7 +229,7 @@ UserMenu::UserMenu(bool ChoiceMenuType)
 	ProcessUserMenu(ChoiceMenuType);
 }
 
-UserMenu::~UserMenu() {}
+UserMenu::~UserMenu() = default;
 
 void UserMenu::ProcessUserMenu(bool ChoiceMenuType)
 {
