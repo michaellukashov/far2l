@@ -1,3 +1,5 @@
+#include <icecream.hpp>
+
 #include <stdio.h>
 #include <wchar.h>
 #include <sys/types.h>
@@ -645,7 +647,7 @@ public:
 		_conn->BusyReset();
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		if (_complete)
 			return false;

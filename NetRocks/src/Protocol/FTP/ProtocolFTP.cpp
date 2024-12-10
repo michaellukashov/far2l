@@ -543,7 +543,7 @@ protected:
 public:
 	using FTPDataCommand::FTPDataCommand;
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		if (!_data_transport) {
 			return false;
@@ -593,7 +593,7 @@ class FTPDirectoryEnumerMLSD : public FTPBaseDirectoryEnumer
 protected:
 
 	virtual bool OnParseLine(const char *buf, size_t len, std::string &name,
-		std::string &owner, std::string &group, FileInformation &file_info)
+		std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		uid_t uid = 0;
 		gid_t gid = 0;
@@ -622,7 +622,7 @@ class FTPDirectoryEnumerLIST : public FTPBaseDirectoryEnumer
 protected:
 
 	virtual bool OnParseLine(const char *buf, size_t len, std::string &name,
-		std::string &owner, std::string &group, FileInformation &file_info)
+		std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		struct ftpparse fp{};
 

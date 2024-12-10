@@ -48,12 +48,12 @@ public:
 		_ipc.RecvPOD(_xi);
 	}
 
-	virtual bool HasXi() noexcept
+	virtual bool HasXi() noexcept override
 	{
 		return _xi;
 	}
 
-	virtual bool SetClipboard(const ITTYXGlue::Type2Data &t2d) noexcept
+	virtual bool SetClipboard(const ITTYXGlue::Type2Data &t2d) noexcept override
 	{
 		try {
 			_ipc.SendCommand(IPC_CLIPBOARD_SET);
@@ -74,7 +74,7 @@ public:
 		return true;
 	}
 
-	virtual bool GetClipboard(const std::string &type, std::vector<unsigned char> &data) noexcept
+	virtual bool GetClipboard(const std::string &type, std::vector<unsigned char> &data) noexcept override
 	{
 		try {
 			data.clear();
@@ -111,7 +111,7 @@ public:
 		}
 	}
 
-	virtual void InspectKeyEvent(KEY_EVENT_RECORD &event) noexcept
+	virtual void InspectKeyEvent(KEY_EVENT_RECORD &event) noexcept override
 	{
 		const KEY_EVENT_RECORD saved_event = event;
 		try {

@@ -248,7 +248,7 @@ public:
 		_conn->executed_command.reset();
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		name.clear();
 		owner.clear();
@@ -292,7 +292,7 @@ enum DirectoryEnumerMode
 
 class SCPDirectoryEnumer_stat : public SCPDirectoryEnumer
 {
-	virtual bool TryParseLine(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool TryParseLine(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 // PATH/NAME MODE SIZE ACCESS MODIFY CHANGE USER GROUP
 // /bin/bash 81ed 1037528 1568672221 1494938995 1523911947 root root

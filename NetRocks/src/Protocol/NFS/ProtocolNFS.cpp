@@ -330,7 +330,7 @@ public:
 		}
 	}
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		for (;;) {
 			struct nfsdirent *de = nfs_readdir(_nfs->ctx, _dir);
@@ -377,7 +377,7 @@ struct NFSContainersEnumer : IDirectoryEnumer
 protected:
 	std::set<std::string> _names;
 
-	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info)
+	virtual bool Enum(std::string &name, std::string &owner, std::string &group, FileInformation &file_info) override
 	{
 		if (_names.empty()) {
 			return false;
