@@ -452,7 +452,7 @@ wsp:
       <entity name="eor" value="[zmlhvcqstaZMLHVCSQTA\x27\x22]"/>
       <annotation>
          <documentation>
-    Next entitys - hack for unworked //s. 
+    Next entities - hack for unworked //s.
     When //s go to work, please change "s-hack" to false regexp
    </documentation>
       </annotation>

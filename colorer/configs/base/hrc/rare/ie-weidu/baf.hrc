@@ -14,7 +14,7 @@
 		Eugene Efremov <4mirror@mail.ru>
 	]]></contributors>
 	<appinfo><todo>
-		- support more IDS constatns
+		- support more IDS constants
 	</todo>
 	<note>
 		Ugly constructs like "foo(bar(baz)" -- NOT supportred.
