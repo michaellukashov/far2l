@@ -216,7 +216,7 @@ public:
 	~ArcCommand();	//$ AA 25.11.2001
 
 public:
-	int GetExecCode() { return (ExecCode); };
+	int GetExecCode() { return (ExecCode); }
 };
 
 struct InitDialogItem

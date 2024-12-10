@@ -16,7 +16,7 @@ class ConsoleInput : public IConsoleInput
 	unsigned int CurrentPriority() const;
 
 public:
-	virtual ~ConsoleInput() {};
+	virtual ~ConsoleInput() {}
 
 	virtual void Enqueue(const INPUT_RECORD *data, DWORD size);
 	virtual DWORD Peek(INPUT_RECORD *data, DWORD size, unsigned int requestor_priority = 0);

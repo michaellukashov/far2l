@@ -681,7 +681,7 @@ protected:
   public:
     string name, description;
     BinaryOperationNodeFactory ( const string & _name, const string & _description=L"" ) : name(_name),description(_description) {}
-    virtual ~BinaryOperationNodeFactory() {};
+    virtual ~BinaryOperationNodeFactory() {}
     Node * create_node( Node * left, Node * right  ) const
       { return create_node(NodeList(left,right), name);
       }

@@ -14,7 +14,7 @@ public:
 
 	inline void Set() { _errno = errno; }
 
-	inline int Get() const { return _errno; };
+	inline int Get() const { return _errno; }
 
 	inline bool IsAccessDenied() const
 	{

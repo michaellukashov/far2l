@@ -187,5 +187,5 @@ public:
 	 * for X10 mouse sequence
 	*/
 	void ParseWinDoubleBuffer(bool idle_expired);
-	char UsingExtension() const { return _using_extension; };
+	char UsingExtension() const { return _using_extension; }
 };

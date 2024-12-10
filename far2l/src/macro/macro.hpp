@@ -267,14 +267,14 @@ public:
 
 	int PushState(bool CopyLocalVars = FALSE);
 	int PopState();
-	int GetLevelState() { return CurPCStack; };
+	int GetLevelState() { return CurPCStack; }
 
-	int IsRecording() { return (Recording); };
-	int IsExecuting() { return (Work.Executing); };
+	int IsRecording() { return (Recording); }
+	int IsExecuting() { return (Work.Executing); }
 	int IsExecutingLastKey();
-	int IsDsableOutput() { return CheckCurMacroFlags(MFLAGS_DISABLEOUTPUT); };
-	void SetMode(int Mode) { KeyMacro::Mode = Mode; };
-	int GetMode() { return (Mode); };
+	int IsDsableOutput() { return CheckCurMacroFlags(MFLAGS_DISABLEOUTPUT); }
+	void SetMode(int Mode) { KeyMacro::Mode = Mode; }
+	int GetMode() { return (Mode); }
 
 	void DropProcess();
 

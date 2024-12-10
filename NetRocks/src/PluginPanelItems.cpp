@@ -48,7 +48,7 @@ PluginPanelItem *PluginPanelItems::Add(const wchar_t *name)
 {
 	if (count == capacity) {
 		if (capacity == std::numeric_limits<int>::max() - 16)
-			throw std::runtime_error("PluginPanelItems: capacity overflow");;
+			throw std::runtime_error("PluginPanelItems: capacity overflow");
 
 		int new_capacity = (capacity < (std::numeric_limits<int>::max() / 2) )
 			? capacity + capacity/2 + 0x100 : capacity + 16;
