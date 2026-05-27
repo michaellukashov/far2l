@@ -203,6 +203,36 @@ void TTYBackend::SetupAttachedTTY()
 	_tty_raw_mode.emplace(_stdin, _stdout);
 	_tty_caps.Setup(_stdin, _stdout, _restrict);
 
+	// Runtime diagnostic: dump terminal flags if FAR2L_TTY_DIAG is set
+	if (getenv("FAR2L_TTY_DIAG")) {
+		struct termios ts;
+		if (tcgetattr(_stdin, &ts) == 0) {
+			fprintf(stderr,
+				"TTY_DIAG: stdin tcgetattr OK. "
+				"c_iflag=0x%x c_oflag=0x%x c_cflag=0x%x c_lflag=0x%x "
+				"VMIN=%d VTIME=%d\n",
+				(unsigned)ts.c_iflag, (unsigned)ts.c_oflag,
+				(unsigned)ts.c_cflag, (unsigned)ts.c_lflag,
+				(int)ts.c_cc[VMIN], (int)ts.c_cc[VTIME]);
+			fprintf(stderr,
+				"TTY_DIAG: flags: ICANON=%d ISIG=%d IEXTEN=%d ECHO=%d "
+				"IUTF8=%d IXOFF=%d IUCLC=%d IXON=%d CREAD=%d CLOCAL=%d\n",
+				!!(ts.c_lflag & ICANON), !!(ts.c_lflag & ISIG),
+				!!(ts.c_lflag & IEXTEN), !!(ts.c_lflag & ECHO),
+				!!(ts.c_iflag & IUTF8), !!(ts.c_iflag & IXOFF),
+				!!(ts.c_iflag & IUCLC), !!(ts.c_iflag & IXON),
+				!!(ts.c_cflag & CREAD), !!(ts.c_cflag & CLOCAL));
+			const char *verdict =
+				(ts.c_lflag & (ICANON | ISIG | IEXTEN | ECHO)) ? "PARTIAL" :
+				(ts.c_cc[VMIN] != 1 || ts.c_cc[VTIME] != 0) ? "PARTIAL" :
+				"RAW_OK";
+			fprintf(stderr, "TTY_DIAG: raw mode verdict: %s\n", verdict);
+		} else {
+			fprintf(stderr, "TTY_DIAG: tcgetattr(stdin) failed: %s\n",
+				strerror(errno));
+		}
+	}
+
 	// now setup clipboard backend and some other things
 	{
 		std::unique_lock<std::mutex> lock(_async_mutex);
@@ -371,6 +401,24 @@ void TTYBackend::ReaderLoop()
 			if (rd <= 0) {
 				throw std::runtime_error("stdin read failed");
 			}
+			#ifdef TTY_DEBUG_INPUT
+			{
+				fprintf(stderr, "TTY_IN: read %zd bytes:", rd);
+				for (ssize_t di = 0; di < (rd < 16 ? rd : 16); ++di) {
+					fprintf(stderr, " %02x", (unsigned char)buf[di]);
+				}
+				if (rd > 16) fprintf(stderr, " ...");
+				fprintf(stderr, "\n");
+			}
+			#endif
+			//fprintf(stderr, "ReaderThread: CHAR 0x%x\n", (unsigned char)c);
+			#ifdef FAR2L_TTY_INPUT_PROFILE
+			for (ssize_t di = 0; di < (rd < 16 ? rd : 16); ++di) {
+				fprintf(stderr, " %02x", (unsigned char)buf[di]);
+			}
+			if (rd > 16) fprintf(stderr, " ...");
+			fprintf(stderr, "\n");
+			#endif
 			//fprintf(stderr, "ReaderThread: CHAR 0x%x\n", (unsigned char)c);
 			tty_in->OnInput(buf, (size_t)rd);
 
@@ -427,6 +475,10 @@ void TTYBackend::WriterThread()
 				_async_cond.wait(lock);
 			} while (!_exiting && !_deadio);
 
+			auto t0 = std::chrono::steady_clock::now();
+			#ifdef FAR2L_TTY_PROFILE
+				g_tty_profiler->frames.fetch_add(1, std::memory_order_relaxed);
+			#endif
 			if (ae.palette) {
 				DispatchPalette(tty_out);
 			}
@@ -467,6 +519,33 @@ void TTYBackend::WriterThread()
 			tty_out.Flush();
 			tcdrain(_stdout);
 
+			if (g_tty_profile_frames) {
+				const auto diff_ms = std::chrono::duration<double, std::milli>(t1 - t0).count();
+				const auto flush_ms = std::chrono::duration<double, std::milli>(t2 - t1).count();
+				const auto drain_ms = std::chrono::duration<double, std::milli>(t3 - t2).count();
+				const auto total_ms = std::chrono::duration<double, std::milli>(t3 - t0).count();
+				if (total_ms > 5.0) {
+					fprintf(stderr, "TTYBackend::WriterThread: total=%.2f diff=%.2f flush=%.2f drain=%.2f ms partial=%d\n",
+						total_ms, diff_ms, flush_ms, drain_ms, had_partial ? 1 : 0);
+				}
+			}
+			#ifdef FAR2L_TTY_PROFILE
+				static std::mutex dump_mtx;
+				std::lock_guard<std::mutex> lock(dump_mtx);
+				const auto frames = g_tty_profiler->frames.load();
+				if (frames > 0 && (frames % 1000) == 0) {
+					const auto cells = g_tty_profiler->cells.load();
+					const auto attrs = g_tty_profiler->attribute_changes.load();
+					const auto bytes = g_tty_profiler->bytes_emitted.load();
+					fprintf(stderr,
+						"TTYOutput cumulative: frames=%lu cells/frame=%.1f "
+						"attrs/frame=%.1f bytes/frame=%.0f\n",
+						(unsigned long)frames,
+						(double)cells / frames,
+						(double)attrs / frames,
+						(double)bytes / frames);
+				}
+			#endif
 			if (ae.go_background) {
 				gone_background = true;
 				break;

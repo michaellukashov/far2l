@@ -478,10 +478,16 @@ size_t TTYInputSequenceParser::ParseIntoPending(const char *s, size_t l)
 
 			// workaround for \x0a received instead of \x0d in kitty and wezterm in bracketed paste mode
 			if (_bracketed_paste_mode && *s == 0x0a) {
+				#ifdef TTY_DEBUG_INPUT
+				fprintf(stderr, "TTY_IN: 0x%02x -> VK_RETURN (bracketed paste)\n", (unsigned char)*s);
+				#endif
 				AddPendingKeyEvent(TTYInputKey{VK_RETURN, 0});
 				return 1;
 			}
-
+			#ifdef TTY_DEBUG_INPUT
+			fprintf(stderr, "TTY_IN: 0x%02x -> VK='%c' + LEFT_CTRL\n",
+				(unsigned char)*s, char('A' + (*s - 0x01)));
+			#endif
 			AddPendingKeyEvent(TTYInputKey{WORD('A' + (*s - 0x01)), LEFT_CTRL_PRESSED});
 			return 1;
 

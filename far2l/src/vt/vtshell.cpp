@@ -872,7 +872,12 @@ class VTShell : VTOutputReader::IProcessor, VTInputReader::IProcessor, IVTShell
 			if (_kitty_kb_flags) {
 				std::string as_kitty = VT_TranslateKeyToKitty(KeyEvent, _kitty_kb_flags, _keypad);
 				if (as_kitty.length() > 0) {
-					return as_kitty;
+					// Ctrl+letter (A-Z) falls through to legacy translation
+					if (!(ctrl && !alt && !shift
+						&& KeyEvent.wVirtualKeyCode >= 'A'
+						&& KeyEvent.wVirtualKeyCode <= 'Z')) {
+						return as_kitty;
+					}
 				}
 			}
 
