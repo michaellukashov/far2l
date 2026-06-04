@@ -12,9 +12,11 @@
 # include <termios.h>
 # include <linux/kd.h>
 # include <linux/keyboard.h>
+# include <sys/prctl.h>
 #elif defined(__FreeBSD__) || defined(__DragonFly__)
 # include <sys/ioctl.h>
 # include <sys/kbio.h>
+# include <sys/procctl.h>
 #endif
 
 #include <ScopeHelpers.h>
@@ -356,6 +358,12 @@ static bool IsFar2lTerminal()
 	return (env && strstr(env, "far2l") != NULL);
 }
 
+static volatile sig_atomic_t s_pdeathsig_pending = 0;
+static void OnParentDead(int)
+{
+	s_pdeathsig_pending = 1;
+}
+
 extern "C" int WinPortMain(const char *full_exe_path, int argc, char **argv, int(*AppMain)(int argc, char **argv))
 {
 	std::unique_ptr<ConsoleOutput> winport_con_out(new ConsoleOutput);
@@ -560,6 +568,13 @@ extern "C" int WinPortMain(const char *full_exe_path, int argc, char **argv, int
 				MakeFDCloexec(std_out);
 				MakeFDCloexec(new_notify_pipe[1]);
 				if (g_sigwinch_pid == 0) {
+					signal(SIGUSR1, OnParentDead);
+#ifdef __linux__
+					prctl(PR_SET_PDEATHSIG, SIGUSR1);
+#elif defined(__FreeBSD__) || defined(__DragonFly__)
+					int sig = SIGUSR1;
+					procctl(P_PID, 0, PROC_PDEATHSIG_CTL, &sig);
+#endif
 					{
 						setsid();
 						SudoAskpassImpl askass_impl;

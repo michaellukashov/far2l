@@ -45,6 +45,7 @@ class TTYBackend : IConsoleOutputBackend, ITTYInputSpecialSequenceHandler, IFar2
 	bool _ext_clipboard = false;
 	TTYRestrict _restrict{};
 	unsigned int _esc_expiration = 0;
+	bool _is_forktty_child = false;
 	int _notify_pipe = -1;
 	int *_result = nullptr;
 	int _kickass[2] = {-1, -1};
@@ -56,8 +57,8 @@ class TTYBackend : IConsoleOutputBackend, ITTYInputSpecialSequenceHandler, IFar2
 	long _terminal_size_change_id = 0;
 
 	pthread_t _reader_trd = 0;
-	volatile bool _exiting = false;
-	volatile bool _deadio = false;
+	std::atomic<bool> _exiting{false};
+	std::atomic<bool> _deadio{false};
 
 	static void *sReaderThread(void *p) { ((TTYBackend *)p)->ReaderThread(); return nullptr; }
 	static void *sWriterThread(void *p) { ((TTYBackend *)p)->WriterThread(); return nullptr; }
