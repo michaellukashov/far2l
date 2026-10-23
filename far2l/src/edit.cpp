@@ -1284,11 +1284,23 @@ int Edit::ProcessKey(FarKey Key)
 			}
 
 			// For single-line edit controls, replace EOL sequences with spaces.
-			ReplaceStrings(strPastedText, L"\r\n", L" ");
-			ReplaceStrings(strPastedText, L"\r", L" ");
-			ReplaceStrings(strPastedText, L"\n", L" ");
+			// Counted, not ReplaceStrings: embedded NULs are significant.
+			size_t PasteLen = strPastedText.GetLength();
+			wchar_t *PasteBuf = strPastedText.GetBuffer();
+			for (size_t i = 0; i < PasteLen; ++i) {
+				if (PasteBuf[i] == L'\r') {
+					if (i + 1 < PasteLen && PasteBuf[i + 1] == L'\n') {
+						wmemmove(&PasteBuf[i], &PasteBuf[i + 1], PasteLen - i - 1);
+						--PasteLen;
+					}
+					PasteBuf[i] = L' ';
+				} else if (PasteBuf[i] == L'\n') {
+					PasteBuf[i] = L' ';
+				}
+			}
+			strPastedText.ReleaseBuffer(PasteLen);
 
-			InsertString(strPastedText);
+			InsertBinaryString(strPastedText.CPtr(), (int)strPastedText.GetLength());
 
 			Show();
 			return TRUE;
@@ -1543,11 +1555,17 @@ int Edit::ProcessKey(FarKey Key)
 				strClip = GPastedText;
 				GPastedText.Clear();
 			} else {
-				wchar_t *p = PasteFromClipboardEx(GetMaxLength());
-				if (!p)
+				// PasteText, not PasteFromClipboardEx: embedded NULs are significant
+				Clipboard clip;
+				if (!clip.Open())
 					return TRUE;
-				strClip = p;
-				free(p);
+				std::wstring Text;
+				bool IsVertical;
+				bool Pasted = clip.PasteText(Text, IsVertical, GetMaxLength());
+				clip.Close();
+				if (!Pasted)
+					return TRUE;
+				strClip.Copy(Text.c_str(), Text.size());
 			}
 
 			if (!Flags.Check(FEDITLINE_PERSISTENTBLOCKS)) {
@@ -1558,27 +1576,30 @@ int Edit::ProcessKey(FarKey Key)
 			for (int i = StrLength(Str.CPtr()) - 1; i >= 0 && IsEol(Str[i]); i--)
 				Str[i] = 0;
 
+			size_t ClipLen = strClip.GetLength();
 			wchar_t *ClipText = strClip.GetBuffer();
-			for (int i = 0; ClipText[i]; i++) {
+			for (size_t i = 0; i < ClipLen; i++) {
 				if (IsEol(ClipText[i])) {
-					if (IsEol(ClipText[i + 1]))
-						wmemmove(&ClipText[i], &ClipText[i + 1], StrLength(&ClipText[i + 1]) + 1);
+					if (i + 1 < ClipLen && IsEol(ClipText[i + 1])) {
+						wmemmove(&ClipText[i], &ClipText[i + 1], ClipLen - i - 1);
+						ClipLen--;
+					}
 
-					if (!ClipText[i + 1])
-						ClipText[i] = 0;
+					if (i + 1 >= ClipLen)
+						ClipLen = i;
 					else
 						ClipText[i] = L' ';
 				}
 			}
 
-			strClip.ReleaseBuffer();
+			strClip.ReleaseBuffer(ClipLen);
 
 			if (Flags.Check(FEDITLINE_CLEARFLAG)) {
 				my->LeftPos = 0;
 				Flags.Clear(FEDITLINE_CLEARFLAG);
-				SetString(strClip);
+				SetString(strClip.CPtr(), (int)strClip.GetLength());
 			} else {
-				InsertString(strClip);
+				InsertBinaryString(strClip.CPtr(), (int)strClip.GetLength());
 			}
 
 			Show();
