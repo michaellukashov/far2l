@@ -296,10 +296,14 @@ void *TTYXClipboard::OnClipboardSetData(UINT format, void *data)
 			d.resize(str.size() + 1);	// one explicit terminator, embedded NULs intact
 			memcpy(d.data(), str.c_str(), d.size());
 
-		} else {
-			if (format == CF_TEXT) {
-				len = strnlen((const char *)data, len);
+		} else if (format == CF_TEXT) {
+			if (len && ((const char *)data)[len - 1] == 0) {
+				--len;	// drop exactly one terminating NUL, embedded NULs are significant
 			}
+			d.resize(len + 1);	// one explicit terminator, embedded NULs intact
+			memcpy(d.data(), data, len);
+
+		} else {
 			d.resize(len);
 			memcpy(d.data(), data, d.size());
 		}
