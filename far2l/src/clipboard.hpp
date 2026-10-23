@@ -58,8 +58,10 @@ public:
 	BOOL Open();
 	BOOL Close();
 	BOOL Empty();
+	bool CopyText(const wchar_t *Data, size_t Length, bool IsVertical = false);
 	bool Copy(const wchar_t *Data, bool IsVertical = false);
 	bool CopyWithHtml(const wchar_t *Data, const char *Html);
+	bool PasteText(std::wstring &Out, bool &IsVertical, int MaxChars = -1);
 	wchar_t *Paste(bool &IsVertical, int MaxChars = -1);
 	wchar_t *Paste();
 

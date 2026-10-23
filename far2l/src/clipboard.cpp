@@ -173,11 +173,14 @@ bool Clipboard::IsFormatAvailable(UINT Format)
 }
 
 // Перед вставкой производится очистка буфера
-bool Clipboard::Copy(const wchar_t *Data, bool IsVertical)
+bool Clipboard::CopyText(const wchar_t *Data, size_t Length, bool IsVertical)
 {
 	Empty();
 
-	if (!AddData(CF_UNICODETEXT, Data, (wcslen(Data) + 1) * sizeof(wchar_t))) {
+	std::vector<wchar_t> Buffer(Data, Data + Length);
+	Buffer.emplace_back(L'\0');	// one explicit terminator, embedded NULs intact
+
+	if (!AddData(CF_UNICODETEXT, Buffer.data(), Buffer.size() * sizeof(wchar_t))) {
 		return false;
 	}
 
@@ -190,6 +193,12 @@ bool Clipboard::Copy(const wchar_t *Data, bool IsVertical)
 
 	return true;
 }
+
+bool Clipboard::Copy(const wchar_t *Data, bool IsVertical)
+{
+	return CopyText(Data, wcslen(Data), IsVertical);
+}
+
 
 bool Clipboard::CopyWithHtml(const wchar_t *Data, const char *Html)
 {
@@ -227,37 +236,62 @@ bool Clipboard::AddData(UINT FormatType, const void *Data, size_t Size)
 
 // max - без учета символа конца строки!
 // max = -1 - there is no limit!
-wchar_t *Clipboard::Paste(bool &IsVertical, int MaxChars)
+bool Clipboard::PasteText(std::wstring &Out, bool &IsVertical, int MaxChars)
 {
+	Out.clear();
+
 	PVOID ClipData = GetData(CF_UNICODETEXT);
 
 	if (!ClipData)
-		return nullptr;
+		return false;
 
 	const wchar_t *ClipChars = (const wchar_t *)ClipData;
-	size_t CharsCount = wcsnlen(ClipChars, WINPORT(ClipboardSize)(ClipData) / sizeof(wchar_t));
+	size_t CharsCount = WINPORT(ClipboardSize)(ClipData) / sizeof(wchar_t);
 
-	if (CharsCount > 0 && ClipChars[0] == L'\xFEFF') {
+	// drop exactly one terminating NUL, embedded NULs are significant
+	if (CharsCount && ClipChars[CharsCount - 1] == 0) {
+		--CharsCount;
+	}
+
+	if (CharsCount && ClipChars[0] == L'\xFEFF') {
 		++ClipChars;
 		--CharsCount;
 	}
 
-	if (MaxChars >= 0 && CharsCount > (size_t)MaxChars)
+	if (MaxChars >= 0 && CharsCount > (size_t)MaxChars) {
 		CharsCount = (size_t)MaxChars;
-
-	wchar_t *ClipText = (wchar_t *)malloc((CharsCount + 1) * sizeof(wchar_t));
-	if (ClipText) {
-		wmemcpy(ClipText, ClipChars, CharsCount);
-		ClipText[CharsCount] = 0;
 	}
+
+	Out.assign(ClipChars, CharsCount);
 
 	IsVertical = false;
 
-	if (ClipText && wcsstr(ClipText, NATIVE_EOLW)) {
+	if (!Out.empty() && Out.find(NATIVE_EOLW) != std::wstring::npos) {
 		UINT FormatType = RegisterFormat(FAR_VerticalBlock_Unicode);
 		if (FormatType && IsFormatAvailable(FormatType)) {
 			IsVertical = true;
 		}
+	}
+
+	return true;
+}
+
+// max - без учета символа конца строки!
+// max = -1 - there is no limit!
+wchar_t *Clipboard::Paste(bool &IsVertical, int MaxChars)
+{
+	std::wstring Text;
+
+	if (!PasteText(Text, IsVertical, MaxChars)) {
+		return nullptr;
+	}
+
+	// NB: legacy contract - empty clipboard text yields a non-NULL empty string,
+	// macro clipFunc relies on it to keep the VM stack balanced
+	wchar_t *ClipText = (wchar_t *)malloc((Text.size() + 1) * sizeof(wchar_t));
+	if (ClipText) {
+		wmemcpy(ClipText, Text.c_str(), Text.size());
+		ClipText[Text.size()] = 0;
 	}
 
 	return ClipText;

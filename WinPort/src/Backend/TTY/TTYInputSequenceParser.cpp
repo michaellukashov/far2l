@@ -450,6 +450,16 @@ size_t TTYInputSequenceParser::ParseIntoPending(const char *s, size_t l)
 {
 	_extra_control_keys = 0;
 
+	// In bracketed paste mode the terminal re-injects clipboard content, so
+	// control bytes are literal characters, not control keys. 0x1b is excluded:
+	// it starts the ESC[201~ paste-end marker. Tab (0x09) and CR (0x0d) keep
+	// their key mappings: AppendPastedKeyEvent turns them into \t and \n.
+	if (_bracketed_paste_mode
+			&& ((unsigned char)*s < 0x20 || (unsigned char)*s == 0x7f)
+			&& *s != 0x09 && *s != 0x0d && *s != 0x1b) {
+		return (size_t)TTY_PARSED_PLAINCHARS;
+	}
+
 	switch (*s) {
 		case 0x1b: {
 			if (l > 2 && s[1] == 0x1b) {
@@ -477,14 +487,13 @@ size_t TTYInputSequenceParser::ParseIntoPending(const char *s, size_t l)
 		case 0x0a: case 0x0b: case 0x0c: case 0x0e: case 0x0f: case 0x10: case 0x11: case 0x12:
 		case 0x13: case 0x14: case 0x15: case 0x16: case 0x17: case 0x18: case 0x19: case 0x1a:
 
-			// workaround for \x0a received instead of \x0d in kitty and wezterm in bracketed paste mode
-			if (_bracketed_paste_mode && *s == 0x0a) {
-				AddPendingKeyEvent(TTYInputKey{VK_RETURN, 0});
-				return 1;
-			}
-
+			#ifdef TTY_DEBUG_INPUT
+			fprintf(stderr, "TTY_IN: 0x%02x -> VK='%c' + LEFT_CTRL\n",
+				(unsigned char)*s, char('A' + (*s - 0x01)));
+			#endif
 			AddPendingKeyEvent(TTYInputKey{WORD('A' + (*s - 0x01)), LEFT_CTRL_PRESSED});
 			return 1;
+
 
 		case 0x08:
 			AddPendingKeyEvent(TTYInputKey{VK_BACK, 0});
@@ -517,6 +526,7 @@ size_t TTYInputSequenceParser::ParseIntoPending(const char *s, size_t l)
 		case 0x1f:
 			AddPendingKeyEvent(TTYInputKey{'7', 0});
 			return 1;
+
 
 		case 0x7f:
 			AddPendingKeyEvent(TTYInputKey{VK_BACK, 0});

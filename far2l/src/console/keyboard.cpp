@@ -83,10 +83,18 @@ static void StripPastedBOM()
 // Pasted text is accumulated in std::wstring rather than appended to GPastedText
 // char by char, as FARString grows its buffer without reserve, so appending large
 // pasted text to it char by char has quadratic complexity
+static bool IsPasteableKeyEvent(const KEY_EVENT_RECORD &ke)
+{
+	return ke.bKeyDown &&
+			(ke.uChar.UnicodeChar != 0 ||
+			 ke.wVirtualKeyCode == VK_RETURN ||
+			 ke.wVirtualKeyCode == VK_TAB ||
+			 (ke.wVirtualKeyCode == 0 && BracketedPasteMode));	// literal NUL from bracketed paste
+}
 static void AppendPastedKeyEvent(std::wstring &pasted, const KEY_EVENT_RECORD &ke)
 {
 	if (ke.bKeyDown) {
-		if (ke.uChar.UnicodeChar)
+		if (ke.uChar.UnicodeChar || (ke.wVirtualKeyCode == 0 && BracketedPasteMode))
 			pasted+= ke.uChar.UnicodeChar;
 		else if (ke.wVirtualKeyCode == VK_RETURN)
 			pasted+= L'\n';
@@ -666,13 +674,28 @@ static DWORD GetInputRecordInner(INPUT_RECORD *rec, bool ExcludeMacro, bool Proc
 				// grab all already arrived pasted chars at once instead of
 				// passing them one by one, each with own paste operation
 				std::wstring pasted;
+				bool interrupted = false;
 				do {
-					Console.ReadInput(*rec);
-					AppendPastedKeyEvent(pasted, rec->Event.KeyEvent);
+					if (!rec->Event.KeyEvent.bKeyDown) {
+						// key-up half of a char event pair: consume and continue
+						Console.ReadInput(*rec);
+					} else if (!IsPasteableKeyEvent(rec->Event.KeyEvent)) {
+						interrupted = true;
+						break;
+					} else {
+						Console.ReadInput(*rec);
+						AppendPastedKeyEvent(pasted, rec->Event.KeyEvent);
+					}
 				} while (Console.PeekInput(*rec) && rec->EventType == KEY_EVENT);
+				if (interrupted) {
+					// the interrupting key is left unread, so the paste mode must be
+					// switched off: otherwise it is rescanned as paste data forever
+					BracketedPasteMode = false;
+				}
 				GPastedText.Append(pasted.c_str(), pasted.size());
 				StripPastedBOM();
-				if (!GPastedText.IsEmpty()) {
+				// GetLength, not IsEmpty: IsEmpty() is true when the first char is NUL, dropping the paste
+				if (GPastedText.GetLength()) {
 					memset(rec, 0, sizeof(*rec));
 					rec->EventType = NOOP_EVENT; // Fake key event
 					return KEY_OP_PLAINTEXT;
@@ -865,7 +888,8 @@ static DWORD GetInputRecordInner(INPUT_RECORD *rec, bool ExcludeMacro, bool Proc
 
 			GPastedText.Append(pasted.c_str(), pasted.size());
 			StripPastedBOM();
-			if (!GPastedText.IsEmpty()) {
+			// GetLength, not IsEmpty: IsEmpty() is true when the first char is NUL, dropping the paste
+			if (GPastedText.GetLength()) {
 				memset(rec, 0, sizeof(*rec));
 				rec->EventType = NOOP_EVENT; // Fake key event
 				return KEY_OP_PLAINTEXT;

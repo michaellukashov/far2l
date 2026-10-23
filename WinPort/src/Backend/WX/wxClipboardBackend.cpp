@@ -226,13 +226,17 @@ void *wxClipboardBackend::OnClipboardSetData(UINT format, void *data)
 
 	if (format == CF_UNICODETEXT) {
 
-		wxString wx_str((const wchar_t *)data);
+		size_t wchar_cnt = len / sizeof(wchar_t);
+		if (wchar_cnt && ((const wchar_t *)data)[wchar_cnt - 1] == 0) {
+			--wchar_cnt;	// drop exactly one terminating NUL, embedded NULs are significant
+		}
+		wxString wx_str((const wchar_t *)data, wchar_cnt);
 
 		g_wx_data_to_clipboard->Add(new wxTextDataObjectTweaked(wx_str));
 
 		wxCustomDataObject *cdo = new wxCustomDataObject(wxT("text/plain;charset=utf-8"));
-		const std::string &tmp = wx_str.ToStdString();
-		cdo->SetData(tmp.size(), tmp.c_str()); // not including ending NUL char
+		const auto &utf8 = wx_str.utf8_str();
+		cdo->SetData(utf8.length(), utf8.data()); // not including ending NUL char
 		g_wx_data_to_clipboard->Add(cdo);
 
 
@@ -241,10 +245,14 @@ void *wxClipboardBackend::OnClipboardSetData(UINT format, void *data)
 #endif
 
 	} else if (format == CF_TEXT) {
-		g_wx_data_to_clipboard->Add(new wxTextDataObjectTweaked(wxString::FromUTF8((const char *)data)));
+		size_t char_cnt = len;
+		if (char_cnt && ((const char *)data)[char_cnt - 1] == 0) {
+			--char_cnt;	// drop exactly one terminating NUL, embedded NULs are significant
+		}
+		g_wx_data_to_clipboard->Add(new wxTextDataObjectTweaked(wxString::FromUTF8((const char *)data, char_cnt)));
 
 		wxCustomDataObject *cdo = new wxCustomDataObject(wxT("text/plain;charset=utf-8"));
-		cdo->SetData(strlen((const char *)data), data); // not including ending NUL char
+		cdo->SetData(char_cnt, data); // not including ending NUL char
 		g_wx_data_to_clipboard->Add(cdo);
 
 #if (CLIPBOARD_HACK)
@@ -296,23 +304,24 @@ void *wxClipboardBackend::OnClipboardGetData(UINT format)
 		wxString wx_str;
 		bool data_found = false;
 
-		wxTextDataObject data;
-		if (wxTheClipboard->GetData( data )) {
-			fprintf(stderr, "OnClipboardGetData(%u) - found wx-compatible text format\n", format);
-			wx_str = data.GetText();
-			data_found = true;
-		}
-
+		// far2l's own length-exact target first: unlike GTK text targets it carries
+		// embedded NULs byte-exactly (same mechanism as the FAR_VerticalBlock formats)
 		wxCustomDataObject cdo_utf8(wxT("text/plain;charset=utf-8"));
-		if (!data_found && wxTheClipboard->GetData(cdo_utf8)) {
+		if (wxTheClipboard->GetData(cdo_utf8)) {
 			const void* cdo_data = cdo_utf8.GetData();
 			size_t cdo_size = cdo_utf8.GetSize();
 			if (cdo_size > 0) {
 				fprintf(stderr, "OnClipboardGetData(%u) - found MIME-compatible text format\n", format);
-				const char *str = static_cast<const char*>(cdo_data);
-				wx_str = wxString::FromUTF8(str, strnlen(str, cdo_size));
+				wx_str = wxString::FromUTF8(static_cast<const char*>(cdo_data), cdo_size);
 				data_found = true;
 			}
+		}
+
+		wxTextDataObject data;
+		if (!data_found && wxTheClipboard->GetData( data )) {
+			fprintf(stderr, "OnClipboardGetData(%u) - found wx-compatible text format\n", format);
+			wx_str = data.GetText();
+			data_found = true;
 		}
 
 		if (!data_found) {
@@ -320,13 +329,23 @@ void *wxClipboardBackend::OnClipboardGetData(UINT format)
 			return nullptr;
 		}
 
+		fprintf(stderr, "OnClipboardGetData(%u) - resolved text length=%lu chars\n",
+			format, (unsigned long)wx_str.length());
+
 		if (format == CF_UNICODETEXT) {
-			const auto &wc = wx_str.wc_str();
-			p = ClipboardAllocFromZeroTerminatedString<wchar_t>(wc);
+			const size_t wchar_cnt = wx_str.length();	// length-aware: text may contain embedded NULs
+			p = WINPORT(ClipboardAlloc)((wchar_cnt + 1) * sizeof(wchar_t));
+			if (p) {
+				memcpy(p, (const wchar_t *)wx_str.wc_str(), wchar_cnt * sizeof(wchar_t));
+			}
 
 		} else {
 			const auto &utf8 = wx_str.utf8_str();
-			p = ClipboardAllocFromZeroTerminatedString<char>(utf8);
+			const size_t char_cnt = utf8.length();
+			p = WINPORT(ClipboardAlloc)(char_cnt + 1);
+			if (p) {
+				memcpy(p, utf8.data(), char_cnt);
+			}
 		}
 
 	} else {

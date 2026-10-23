@@ -173,7 +173,7 @@ int HMenu::ProcessKey(FarKey Key)
 			break;
 		case KEY_OP_PLAINTEXT: {
 			FARString strText;
-			if (!GPastedText.IsEmpty()) {
+			if (GPastedText.GetLength()) {	// GetLength, not IsEmpty: NUL-first paste is not empty
 				strText = GPastedText;
 				GPastedText.Clear();
 			} else {

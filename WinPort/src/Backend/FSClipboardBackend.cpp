@@ -85,8 +85,8 @@ void *FSClipboardBackend::OnClipboardGetData(UINT format)
 	void *out;
 	if (format == CF_UNICODETEXT) {
 		size_t utf8_len = data.size();
-		while (utf8_len && !data[utf8_len - 1]) {
-			--utf8_len;
+		if (utf8_len && !data[utf8_len - 1]) {
+			--utf8_len;	// drop exactly one terminating NUL, embedded NULs are significant
 		}
 
 		std::wstring ws;

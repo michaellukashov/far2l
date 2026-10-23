@@ -1287,16 +1287,17 @@ int64_t Editor::VMProcess(MacroOpcode OpCode, void *vParam, int64_t iParam)
 		case MCODE_V_EDITORSELVALUE:	// Editor.SelValue
 		{
 			FARString strText;
-			wchar_t *Text;
 
-			if (VBlockStart)
-				Text = VBlock2Text(nullptr);
-			else
-				Text = Block2Text(nullptr);
+			if (VBlockStart) {
+				wchar_t *Text = VBlock2Text(nullptr);
+				if (Text) {
+					strText = Text;
+					free(Text);
+				}
 
-			if (Text) {
-				strText = Text;
-				free(Text);
+			} else {
+				const std::wstring Text = Block2Text();
+				strText = FARString(Text.c_str(), Text.size());
 			}
 
 			*(FARString *)vParam = strText;
@@ -1312,6 +1313,24 @@ void Editor::ProcessPasteEvent()
 	if (Flags.Check(FEDITOR_LOCKMODE))
 		return;
 
+	if (GPastedText.GetLength()) {	// GetLength, not IsEmpty: NUL-first paste is not empty
+		FARString strTStr = GPastedText;
+		GPastedText.Clear();
+		ReplaceChars(strTStr, L'\n', L'\r');
+
+		Pasting++;
+		TextChanged(1);
+		BOOL IsBlock = VBlockStart || BlockStart;
+		if (!EdOpt.PersistentBlocks && IsBlock) {
+			Flags.Clear(FEDITOR_MARKINGVBLOCK | FEDITOR_MARKINGBLOCK);
+			DeleteBlock();
+		}
+		Paste(strTStr, strTStr.GetLength());
+		UnmarkBlock();
+		Pasting--;
+		Show();
+		return;
+	}
 	Pasting++;
 	if (!EdOpt.PersistentBlocks && !VBlockStart)
 		DeleteBlock();
@@ -3249,7 +3268,7 @@ case KEY_CTRLNUMPAD3: {
 		case KEY_OP_PLAINTEXT: {
 			if (!Flags.Check(FEDITOR_LOCKMODE)) {
 				FARString strTStr;
-				if (!GPastedText.IsEmpty()) {
+				if (GPastedText.GetLength()) {	// GetLength, not IsEmpty: NUL-first paste is not empty
 					strTStr = GPastedText;
 					GPastedText.Clear();
 				} else {
@@ -3271,7 +3290,7 @@ case KEY_CTRLNUMPAD3: {
 				}
 
 				// AddUndoData(UNDO_EDIT,NumLine,CurLine->GetCurPos(),CurLine);
-				Paste(strTStr);
+				Paste(strTStr, strTStr.GetLength());
 				// if (!EdOpt.PersistentBlocks && IsBlock)
 				UnmarkBlock();
 				Pasting--;
@@ -5512,13 +5531,14 @@ void Editor::SelectFoundPattern(const EditorFoundCoord &Coord, int SelectFound)
 	Show();
 }
 
-void Editor::Paste(const wchar_t *Src)
+void Editor::Paste(const wchar_t *Src, int SrcLength)
 {
 	if (Flags.Check(FEDITOR_LOCKMODE))
 		return;
 
-	wchar_t *ClipText = (wchar_t *)Src;
-	BOOL IsDeleteClipText = FALSE;
+	std::wstring ClipTextW;
+	const wchar_t *ClipText = (const wchar_t *)Src;
+	size_t ClipLength = (SrcLength >= 0) ? (size_t)SrcLength : (Src ? StrLength(Src) : 0);
 
 	if (!ClipText) {
 		Clipboard clip;
@@ -5527,19 +5547,29 @@ void Editor::Paste(const wchar_t *Src)
 			return;
 
 		bool IsVertical = false;
-		ClipText = clip.Paste(IsVertical);
-		if (ClipText && IsVertical && !m_bWordWrap) {
-			VPaste(ClipText);
+		if (!clip.PasteText(ClipTextW, IsVertical)) {
 			clip.Close();
 			return;
 		}
 
 		clip.Close();
 
-		IsDeleteClipText = TRUE;
+		if (IsVertical && !m_bWordWrap) {
+			// VPaste frees its argument, so hand it a malloc'd copy
+			wchar_t *VClipText = (wchar_t *)malloc((ClipTextW.size() + 1) * sizeof(wchar_t));
+			if (VClipText) {
+				wmemcpy(VClipText, ClipTextW.c_str(), ClipTextW.size() + 1);
+				VPaste(VClipText);
+			}
+
+			return;
+		}
+
+		ClipText = ClipTextW.c_str();
+		ClipLength = ClipTextW.size();
 	}
 
-	if (ClipText && *ClipText) {
+	if (ClipText && ClipLength) {
 		AddUndoData(UNDO_BEGIN);
 		Flags.Set(FEDITOR_NEWUNDO);
 		TextChanged(1);
@@ -5563,14 +5593,14 @@ void Editor::Paste(const wchar_t *Src)
 		int StartPos = CurLine->GetCurPos();
 		int oldAutoIndent = EdOpt.AutoIndent;
 
-		for (int I = 0; ClipText[I];) {
+		for (size_t I = 0; I < ClipLength;) {
 			if (ClipText[I] == L'\n' || ClipText[I] == L'\r') {
 				CurLine->Select(StartPos, -1);
 				StartPos = 0;
 				EdOpt.AutoIndent = FALSE;
 				ProcessKey(KEY_ENTER);
 
-				if (ClipText[I] == L'\r' && ClipText[I + 1] == L'\n')
+				if (ClipText[I] == L'\r' && I + 1 < ClipLength && ClipText[I + 1] == L'\n')
 					I++;
 
 				I++;
@@ -5593,9 +5623,9 @@ void Editor::Paste(const wchar_t *Src)
 					SetConvertTabs(OldTabsMode);
 				}
 
-				int Pos = I;
+				size_t Pos = I;
 
-				while (ClipText[Pos] && ClipText[Pos] != L'\n' && ClipText[Pos] != L'\r')
+				while (Pos < ClipLength && ClipText[Pos] != L'\n' && ClipText[Pos] != L'\r')
 					Pos++;
 
 				if (Pos > I) {
@@ -5621,9 +5651,6 @@ void Editor::Paste(const wchar_t *Src)
 		AddUndoData(UNDO_END);
 	}
 
-	if (IsDeleteClipText)
-		free(ClipText);
-
 
 	if (m_bWordWrap) {
 		RememberWordWrapPreferredCellPos();
@@ -5640,86 +5667,46 @@ void Editor::Copy(int Append)
 		return;
 	}
 
-	wchar_t *CopyData = nullptr;
+	std::wstring Text;
+	// append-pasted data is read length-aware, but the source clipboard's
+	// vertical-block marker must not leak into this horizontal copy
+	bool IgnoredSourceIsVertical = false;
 
 	Clipboard clip;
 
 	if (!clip.Open())
 		return;
 
-	if (Append)
-		CopyData = clip.Paste();
-
-	if ((CopyData = Block2Text(CopyData))) {
-		clip.Copy(CopyData);
-		free(CopyData);
+	if (Append) {
+		clip.PasteText(Text, IgnoredSourceIsVertical);
 	}
+
+	Text+= Block2Text();
+
+	clip.CopyText(Text.data(), Text.size(), false);
 
 	clip.Close();
 }
 
-wchar_t *Editor::Block2Text(wchar_t *ptrInitData)
+std::wstring Editor::Block2Text()
 {
-	size_t DataSize = 0;
+	std::wstring Text;
 
-	if (ptrInitData)
-		DataSize = wcslen(ptrInitData);
-
-	size_t TotalChars = DataSize;
 	for (Edit *Ptr = BlockStart; Ptr; Ptr = Ptr->m_next) {
 		const auto Sel = Ptr->GetSelection();
+
 		if (Sel.Start == -1)
 			break;
-		if (Sel.End == -1) {
-			TotalChars+= Ptr->GetLength() - Sel.Start;
-			TotalChars+= wcslen(NATIVE_EOLW);	// CRLF
-		} else
-			TotalChars+= Sel.End - Sel.Start;
-	}
-	TotalChars++;	// '\0'
 
-	wchar_t *CopyData = (wchar_t *)malloc(TotalChars * sizeof(wchar_t));
+		std::wstring SelText;
+		Ptr->GetSelString(SelText);
+		Text+= SelText;
 
-	if (!CopyData) {
-		if (ptrInitData)
-			free(ptrInitData);
-
-		return nullptr;
-	}
-
-	if (ptrInitData) {
-		wcscpy(CopyData, ptrInitData);
-		free(ptrInitData);
-	} else {
-		*CopyData = 0;
-	}
-
-
-	int line_in_block = 0;
-	for (Edit *Ptr = BlockStart; Ptr; Ptr = Ptr->m_next, ++line_in_block) {
-		const auto Sel = Ptr->GetSelection();
-//		const auto RealSel = Ptr->GetRealSelection();
-
-		if (Sel.Start == -1) {
-			break;
-		}
-
-		int Length;
 		if (Sel.End == -1)
-			Length = Ptr->GetLength() - Sel.Start;
-		else
-			Length = Sel.End - Sel.Start;
-
-		Ptr->GetSelString(CopyData + DataSize, Length + 1);
-		DataSize+= Length;
-
-		if (Sel.End == -1) {
-			wcscpy(CopyData + DataSize, NATIVE_EOLW);
-			DataSize+= wcslen(NATIVE_EOLW);
-		}
+			Text+= NATIVE_EOLW;	// CRLF
 	}
 
-	return CopyData;
+	return Text;
 }
 
 void Editor::DeleteBlock()

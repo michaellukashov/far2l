@@ -295,6 +295,7 @@ public:
 
 	int GetSelString(wchar_t *Data, int MaxSize);
 	int GetSelString(FARString &strStr);
+	bool GetSelString(std::wstring &Out);
 
 	void InsertString(const wchar_t *Str);
 	void InsertBinaryString(const wchar_t *Str, int Length);

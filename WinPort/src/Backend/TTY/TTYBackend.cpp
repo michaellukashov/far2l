@@ -1010,11 +1010,11 @@ void TTYBackend::ChooseSimpleClipboardBackend()
 	}
 }
 
-void TTYBackend::OSC52SetClipboard(const char *text)
+void TTYBackend::OSC52SetClipboard(const char *text, size_t len)
 {
 	fprintf(stderr, "TTYBackend::OSC52SetClipboard\n");
 	std::unique_lock<std::mutex> lock(_async_mutex);
-	_osc52clip = text;
+	_osc52clip.assign(text, len);	// embedded NULs intact, terminator already stripped upstream
 	_ae.osc52clip_set = true;
 	_async_cond.notify_all();
 }

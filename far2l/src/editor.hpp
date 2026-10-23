@@ -345,7 +345,7 @@ private:
 	void TextChanged(int State);
 
 	int CalcDistance(Edit *From, Edit *To, int MaxDist);
-	void Paste(const wchar_t *Src = nullptr);
+	void Paste(const wchar_t *Src = nullptr, int SrcLength = -1);
 	void Copy(int Append);
 	void DeleteBlock();
 	bool MarkBlock(bool SelVBlock, int SelStartLine, int SelStartPos, int SelWidth, int SelHeight);
@@ -406,7 +406,7 @@ private:
 	int BlockStart2NumLine(int *Pos);
 	int BlockEnd2NumLine(int *Pos);
 	bool CheckLine(Edit *line);
-	wchar_t *Block2Text(wchar_t *ptrInitData);
+	std::wstring Block2Text();
 	wchar_t *VBlock2Text(wchar_t *ptrInitData);
 
 public:

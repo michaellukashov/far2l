@@ -1276,7 +1276,7 @@ int Edit::ProcessKey(FarKey Key)
 			}
 
 			FARString strPastedText;
-			if (!GPastedText.IsEmpty()) {
+			if (GPastedText.GetLength()) {	// GetLength, not IsEmpty: NUL-first paste is not empty
 				strPastedText = GPastedText;
 				GPastedText.Clear();
 			} else {
@@ -1538,10 +1538,17 @@ int Edit::ProcessKey(FarKey Key)
 		}
 		case KEY_SHIFTINS:
 		case KEY_SHIFTNUMPAD0: {
-			wchar_t *ClipText = PasteFromClipboardEx(GetMaxLength());
-
-			if (!ClipText)
-				return TRUE;
+			FARString strClip;
+			if (GPastedText.GetLength()) {	// GetLength, not IsEmpty: NUL-first paste is not empty
+				strClip = GPastedText;
+				GPastedText.Clear();
+			} else {
+				wchar_t *p = PasteFromClipboardEx(GetMaxLength());
+				if (!p)
+					return TRUE;
+				strClip = p;
+				free(p);
+			}
 
 			if (!Flags.Check(FEDITLINE_PERSISTENTBLOCKS)) {
 				PauseEditListener pel(*this);
@@ -1551,6 +1558,7 @@ int Edit::ProcessKey(FarKey Key)
 			for (int i = StrLength(Str.CPtr()) - 1; i >= 0 && IsEol(Str[i]); i--)
 				Str[i] = 0;
 
+			wchar_t *ClipText = strClip.GetBuffer();
 			for (int i = 0; ClipText[i]; i++) {
 				if (IsEol(ClipText[i])) {
 					if (IsEol(ClipText[i + 1]))
@@ -1563,16 +1571,15 @@ int Edit::ProcessKey(FarKey Key)
 				}
 			}
 
+			strClip.ReleaseBuffer();
+
 			if (Flags.Check(FEDITLINE_CLEARFLAG)) {
 				my->LeftPos = 0;
 				Flags.Clear(FEDITLINE_CLEARFLAG);
-				SetString(ClipText);
+				SetString(strClip);
 			} else {
-				InsertString(ClipText);
+				InsertString(strClip);
 			}
-
-			if (ClipText)
-				free(ClipText);
 
 			Show();
 			return TRUE;
@@ -2156,6 +2163,23 @@ int Edit::GetSelString(FARString &strStr)
 
 	strStr.Copy(this->Str.CPtr() + my->SelStart, my->SelEnd - my->SelStart + 1);
 	return TRUE;
+}
+
+bool Edit::GetSelString(std::wstring &Out)
+{
+	MyEcoLazy::Use my(fields);
+	if (my->SelStart == -1 || (my->SelEnd != -1 && my->SelEnd <= my->SelStart) || my->SelStart >= Str.Size()) {
+		Out.clear();
+		return false;
+	}
+
+	// length-aware selection copy: embedded NULs must survive
+	// SelEnd is exclusive; clamp to available length, mirroring GetSelection() normalization
+	const int SelEnd = (my->SelEnd == -1) ? Str.Size() : std::min(my->SelEnd, Str.Size());
+	const int Length = std::max(SelEnd - my->SelStart, 0);
+	Out.resize(Length);
+	Str.CopyTo(Out.data(), my->SelStart, Length);
+	return true;
 }
 
 void Edit::InsertString(const wchar_t *Str)

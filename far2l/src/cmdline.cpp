@@ -1358,7 +1358,7 @@ int CommandLine::ProcessKeyIfVisible(FarKey Key)
 
 			if (Key == KEY_CTRLV || Key == KEY_SHIFTINS || Key == KEY_SHIFTNUMPAD0 || Key == KEY_OP_PLAINTEXT) {
 				FARString clip;
-				if (Key == KEY_OP_PLAINTEXT && !GPastedText.IsEmpty()) {
+				if (Key == KEY_OP_PLAINTEXT && GPastedText.GetLength()) {	// GetLength, not IsEmpty: NUL-first paste is not empty
 					clip = GPastedText;
 				} else {
 					wchar_t *p = PasteFromClipboard();

@@ -287,8 +287,13 @@ void *TTYXClipboard::OnClipboardSetData(UINT format, void *data)
 		auto &d = (*_pending_set)[format_name];
 		if (format == CF_UNICODETEXT) {
 			std::string str;
-			Wide2MB((const wchar_t *)data, wcsnlen((const wchar_t *)data, len / sizeof(wchar_t)), str);
-			d.resize(str.size());
+			size_t chars_cnt = len / sizeof(wchar_t);
+			if (chars_cnt && ((const wchar_t *)data)[chars_cnt - 1] == 0) {
+				--chars_cnt;	// drop exactly one terminating NUL
+			}
+
+			Wide2MB((const wchar_t *)data, chars_cnt, str);
+			d.resize(str.size() + 1);	// one explicit terminator, embedded NULs intact
 			memcpy(d.data(), str.c_str(), d.size());
 
 		} else {
@@ -318,19 +323,24 @@ void *TTYXClipboard::OnClipboardGetData(UINT format)
 		std::vector<unsigned char> data;
 		if (_ttyx->GetClipboard(format_name, data)) {
 			if (format == CF_UNICODETEXT || format == CF_TEXT) {
-				const char *utf8 = (const char *)data.data();
-				size_t utf8_len = strnlen(utf8, data.size());
+				size_t utf8_len = data.size();
+				if (utf8_len && !data[utf8_len - 1]) {
+					--utf8_len;	// drop exactly one terminating NUL, embedded NULs are significant
+				}
+
 				if (format == CF_UNICODETEXT) {
 					std::wstring ws;
-					MB2Wide(utf8, utf8_len, ws);
+					MB2Wide((const char *)data.data(), utf8_len, ws);
 					const size_t sz = (ws.size() + 1) * sizeof(wchar_t);
 					out = WINPORT(ClipboardAlloc)(sz);
 					if (out)
 						memcpy(out, ws.c_str(), sz);
 				} else {
 					out = WINPORT(ClipboardAlloc)(utf8_len + 1);
-					if (out)
-						memcpy(out, data.data(), utf8_len + 1);
+					if (out) {
+						memcpy(out, data.data(), utf8_len);
+						((char *)out)[utf8_len] = 0;
+					}
 				}
 
 			} else {
