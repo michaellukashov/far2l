@@ -340,7 +340,9 @@ TTYFar2lClipboardBackend::SetDataThread::SetDataThread(TTYFar2lClipboardBackend 
 			--wchar_cnt;	// drop exactly one terminating NUL, embedded NULs are significant
 		}
 
-		UtfConverter<wchar_t, unsigned char>((const wchar_t *)data, wchar_cnt).CopyToVector(_data);
+		// no automatic terminator: it would merge with a trailing payload NUL
+		UtfConverter<wchar_t, unsigned char, false>((const wchar_t *)data, wchar_cnt).CopyToVector(_data);
+		_data.emplace_back(0);	// explicit terminator
 		_format = CF_TEXT;
 
 	} else {
@@ -428,7 +430,9 @@ void *TTYFar2lClipboardBackend::OnClipboardGetData(UINT format)
 				--chars_cnt;	// drop exactly one terminating NUL, embedded NULs are significant
 			}
 
-			UtfConverter<char, wchar_t> cvt((const char *)data, chars_cnt);
+			// no automatic terminator: it would merge with a trailing payload NUL
+			UtfConverter<char, wchar_t, false> cvt((const char *)data, chars_cnt);
+			cvt.emplace_back(0);	// explicit terminator
 			WINPORT(ClipboardFree)(data);
 			return ClipboardAllocFromVector(cvt);
 		}
